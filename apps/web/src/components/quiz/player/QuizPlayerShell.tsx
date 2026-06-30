@@ -43,6 +43,17 @@ export interface MockChrome {
   submitting?: boolean;
 }
 
+/** A footer action-bar pill. Used to override the default Ask Mage / Source /
+ *  Mark-difficult trio — e.g. flashcards drive deck navigation ("Previous")
+ *  from here. */
+export interface ShellSecondaryAction {
+  icon: string;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  disabled?: boolean;
+}
+
 interface QuizPlayerShellProps {
   /** Crumbs, root → leaf, e.g. ['Biology Exam Prep', 'Cell Organelles']. */
   breadcrumb: string[];
@@ -70,6 +81,13 @@ interface QuizPlayerShellProps {
   /** Explicit action-bar CTA, overriding the session-driven one. The theory
    *  screen has no QuizSession, so it drives its "Continue" button this way. */
   primaryCta?: { label: string; onClick: () => void; disabled?: boolean } | null;
+  /** Override the footer's default secondary pills (Ask Mage · Source · Mark
+   *  difficult). When provided — even as [] — these replace the trio. Flashcards
+   *  pass a "Previous" deck-nav pill; Ask Mage / Sources stay in the sidebar. */
+  secondaryActions?: ShellSecondaryAction[];
+  /** Hide the Mission-progress panel (sidebar card + mobile accordion). The
+   *  flashcard deck has no per-slot mission rail, so it opts out. */
+  hideMission?: boolean;
   /** Header progress segments when there's no QuizSession (theory mission step).
    *  The "Question N of M" count line stays session-only. */
   progress?: { current: number; total: number };
@@ -126,6 +144,8 @@ export default function QuizPlayerShell({
   sourcesNoun = 'question',
   customCard = false,
   primaryCta,
+  secondaryActions,
+  hideMission = false,
   progress,
   ariaLabel,
   mock = null,
@@ -462,9 +482,11 @@ export default function QuizPlayerShell({
                 <SidebarCard>
                   <AskMageCard subtitle={mageSubtitle} actions={mageActions} />
                 </SidebarCard>
-                <SidebarCard>
-                  <MissionProgress steps={mission} />
-                </SidebarCard>
+                {!hideMission ? (
+                  <SidebarCard>
+                    <MissionProgress steps={mission} />
+                  </SidebarCard>
+                ) : null}
               </aside>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -500,14 +522,16 @@ export default function QuizPlayerShell({
                 >
                   <AskMageCard subtitle={mageSubtitle} actions={mageActions} hideHeader />
                 </Accordion>
-                <Accordion
-                  title="Mission progress"
-                  subtitle={stepLabel ?? `${mission.filter((s) => s.status === 'done').length} / ${mission.length}`}
-                  open={openPanel === 'mission'}
-                  onToggle={() => setOpenPanel((p) => (p === 'mission' ? null : 'mission'))}
-                >
-                  <MissionProgress steps={mission} hideHeader />
-                </Accordion>
+                {!hideMission ? (
+                  <Accordion
+                    title="Mission progress"
+                    subtitle={stepLabel ?? `${mission.filter((s) => s.status === 'done').length} / ${mission.length}`}
+                    open={openPanel === 'mission'}
+                    onToggle={() => setOpenPanel((p) => (p === 'mission' ? null : 'mission'))}
+                  >
+                    <MissionProgress steps={mission} hideHeader />
+                  </Accordion>
+                ) : null}
               </div>
             )
           ) : null}
@@ -547,21 +571,36 @@ export default function QuizPlayerShell({
           }}
         >
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: isPhone ? 'center' : 'flex-start' }}>
-            <SecondaryButton icon="auto_awesome" label="Ask Mage" onClick={onAskMage} />
-            {/* Phone shortens the two secondary labels (the icons carry the
-                meaning) so all three fit the Figma single-row action bar at
-                ≤414px instead of wrapping a lone pill to a second row. */}
-            <SecondaryButton
-              icon="description"
-              label={isPhone ? 'Source' : 'Show source'}
-              onClick={() => openSourceReader()}
-            />
-            <SecondaryButton
-              icon={markedDifficult ? 'flag' : 'outlined_flag'}
-              label={isPhone ? 'Difficult' : 'Mark as difficult'}
-              onClick={handleMarkDifficult}
-              active={markedDifficult}
-            />
+            {secondaryActions ? (
+              secondaryActions.map((a) => (
+                <SecondaryButton
+                  key={a.label}
+                  icon={a.icon}
+                  label={a.label}
+                  onClick={a.onClick}
+                  active={a.active}
+                  disabled={a.disabled}
+                />
+              ))
+            ) : (
+              <>
+                <SecondaryButton icon="auto_awesome" label="Ask Mage" onClick={onAskMage} />
+                {/* Phone shortens the two secondary labels (the icons carry the
+                    meaning) so all three fit the Figma single-row action bar at
+                    ≤414px instead of wrapping a lone pill to a second row. */}
+                <SecondaryButton
+                  icon="description"
+                  label={isPhone ? 'Source' : 'Show source'}
+                  onClick={() => openSourceReader()}
+                />
+                <SecondaryButton
+                  icon={markedDifficult ? 'flag' : 'outlined_flag'}
+                  label={isPhone ? 'Difficult' : 'Mark as difficult'}
+                  onClick={handleMarkDifficult}
+                  active={markedDifficult}
+                />
+              </>
+            )}
           </div>
           {cta ? (
             <button
@@ -636,16 +675,19 @@ function SecondaryButton({
   label,
   onClick,
   active,
+  disabled,
 }: {
   icon: string;
   label: string;
   onClick: () => void;
   active?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-pressed={active}
       className="qs-btn qs-secondary"
       style={{
@@ -661,7 +703,8 @@ function SecondaryButton({
         color: active ? 'var(--nm-primary-on-light)' : 'var(--on-surface-variant)',
         fontSize: '13px',
         fontWeight: 600,
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.45 : 1,
         fontFamily: 'inherit',
       }}
     >

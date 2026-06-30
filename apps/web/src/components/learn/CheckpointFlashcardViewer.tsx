@@ -1,10 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import DiagramReferencePanel from '@/components/learn/DiagramReferencePanel';
-import SourceReaderDrawer from '@/components/quiz/player/SourceReaderDrawer';
-import type { QuizSource } from '@/components/quiz/player/types';
+import QuizPlayerShell, { type ShellSecondaryAction } from '@/components/quiz/player/QuizPlayerShell';
+import FlashcardActivityCard from '@/components/quiz/player/FlashcardActivityCard';
+import { useOptionalMage } from '@/components/mage/MageProvider';
+import type { MageQuickAction, QuizSource } from '@/components/quiz/player/types';
 import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
 import { readUnlocked, type PathUnlock } from '@/components/learn/path-rewards';
@@ -20,10 +22,13 @@ function inferSourceKind(label?: string | null): QuizSource['kind'] {
   return 'page';
 }
 
-// Full-screen viewer for checkpoint flashcards. Replaces the in-drawer
-// FlashcardViewer for path checkpoints — no edit / delete / SRS rating /
-// CSV / section-picker / image-upload UI. The learner flips through
-// cards and presses Done on the last one to mark the activity complete.
+// Full-screen viewer for checkpoint flashcards. Phase (Quiz screens redesign):
+// the deck now rides the same warm-cream QuizPlayerShell as quizzes + theory
+// (header breadcrumb · step pill · Sources / Ask Mage / Mission sidebar · sticky
+// action bar) instead of the old bare dark overlay. The learner flips through
+// cards — the action-bar CTA reveals the answer, advances ("Next card"), then
+// completes ("Done") on the last card, mirroring the quiz Check → Continue →
+// Finish flow. Content fetch + "mark complete" PATCH are unchanged.
 
 interface FlashcardImageData {
   id: string;
@@ -66,18 +71,15 @@ interface FlashcardSetPayload {
   };
 }
 
-const SLOT_KIND_LABEL: Record<string, string> = {
-  learning: 'Learning',
-  review: 'Review',
-  assessment: 'Checkpoint',
-  final_exam: 'Final Exam',
-};
-
 interface CheckpointFlashcardViewerProps {
   slot?: PathSlot;
   activity?: PathActivity;
   onClose: () => void;
   onCompleted?: (unlocked?: PathUnlock[]) => void;
+  /** Path id — Ask-Mage grounding + the Sources path chip. */
+  planId?: string;
+  /** Path title — the QuizPlayerShell breadcrumb root + Sources label. */
+  pathTitle?: string;
   // Standalone (Study Pack) mode: render the deck directly from a pre-fetched
   // set, with no path slot/activity — no content fetch, no completion PATCH, no
   // path telemetry. The "Done" button simply closes the viewer.
@@ -85,7 +87,6 @@ interface CheckpointFlashcardViewerProps {
     title: string;
     cards: Flashcard[];
     diagrams?: unknown;
-    kindLabel?: string;
   };
 }
 
@@ -94,22 +95,22 @@ export default function CheckpointFlashcardViewer({
   activity,
   onClose,
   onCompleted,
+  planId,
+  pathTitle,
   standalone,
 }: CheckpointFlashcardViewerProps) {
   const [cards, setCards] = useState<Flashcard[] | null>(standalone?.cards ?? null);
   const [diagrams, setDiagrams] = useState<unknown>(standalone?.diagrams ?? null);
 
   const titleText = slot?.title ?? standalone?.title ?? 'Flashcards';
-  const kindLabel = slot
-    ? (SLOT_KIND_LABEL[slot.kind] ?? slot.kind)
-    : (standalone?.kindLabel ?? 'Study');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const { isDesktop } = useBreakpoint();
+  const isPhone = !isDesktop;
   const coarsePointer = useCoarsePointer();
+  const mage = useOptionalMage();
 
   useEffect(() => {
     if (!slot || !activity) return;
@@ -152,22 +153,12 @@ export default function CheckpointFlashcardViewer({
     };
   }, [activity?.id, standalone]);
 
-  useEffect(() => {
-    previousFocusRef.current = (document.activeElement as HTMLElement) ?? null;
-    containerRef.current?.focus();
-    return () => {
-      previousFocusRef.current?.focus?.();
-    };
-  }, []);
-
   const total = cards?.length ?? 0;
   const card = cards?.[currentIndex];
   const isLast = total > 0 && currentIndex === total - 1;
 
   // Source-highlighting — the current card's grounding anchor (when present)
-  // drives a "Show source" control + the reader drawer. The drawer is closed in
-  // the nav callbacks so it never shows a stale card's source.
-  const [readerOpen, setReaderOpen] = useState(false);
+  // drives the shell's Sources panel + "Show source" reader drawer.
   const cardSource = useMemo<QuizSource | undefined>(() => {
     if (!card?.sourceQuote) return undefined;
     const isVideo = card.sourceTimestampSec != null;
@@ -194,7 +185,6 @@ export default function CheckpointFlashcardViewer({
     setCurrentIndex((i) => {
       if (i >= total - 1) return i;
       setIsFlipped(false);
-      setReaderOpen(false);
       return i + 1;
     });
   }, [total]);
@@ -203,7 +193,6 @@ export default function CheckpointFlashcardViewer({
     setCurrentIndex((i) => {
       if (i <= 0) return i;
       setIsFlipped(false);
-      setReaderOpen(false);
       return i - 1;
     });
   }, []);
@@ -244,6 +233,9 @@ export default function CheckpointFlashcardViewer({
         e.preventDefault();
         onClose();
       } else if (e.code === 'Space') {
+        // Let Space activate a focused button/link (e.g. the action-bar CTA or
+        // "Previous"); only flip the card when focus is elsewhere.
+        if (target && (target.tagName === 'BUTTON' || target.tagName === 'A')) return;
         e.preventDefault();
         flip();
       } else if (e.code === 'ArrowLeft') {
@@ -258,481 +250,140 @@ export default function CheckpointFlashcardViewer({
     return () => document.removeEventListener('keydown', handler);
   }, [onClose, flip, prev, next]);
 
-  return (
-    <div
-      ref={containerRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${titleText} flashcards`}
-      tabIndex={-1}
-      className="checkpoint-flashcards"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'var(--surface)',
-        color: 'var(--on-surface)',
-        zIndex: 1300,
-        display: 'flex',
-        flexDirection: 'column',
-        outline: 'none',
-      }}
-    >
-      <style>{`
-        .checkpoint-flashcards {
-          animation: fcOverlayIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        @keyframes fcOverlayIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .checkpoint-flashcards { animation: none; }
-          .checkpoint-flashcards .fc-flip-card { transition: none !important; }
-        }
-      `}</style>
+  const breadcrumb = useMemo(
+    () => (slot ? (pathTitle ? [pathTitle, slot.title] : [slot.title]) : [titleText]),
+    [slot, pathTitle, titleText],
+  );
 
-      <header
-        style={{
-          padding: '14px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          borderBottom: '1px solid var(--outline-variant)',
-          background: 'var(--surface-container-low)',
-        }}
-      >
+  // Step pill + header progress reflect deck position (Card N of M), mirroring
+  // how the quiz shell counts questions.
+  const stepLabel = total > 0 ? `Practice · Card ${currentIndex + 1} of ${total}` : 'Practice';
+  const progress = total > 0 ? { current: currentIndex + 1, total } : undefined;
+
+  // Sources — the current card's grounding anchor when present, else the path.
+  const sources = useMemo<QuizSource[]>(() => {
+    if (cardSource) return [cardSource];
+    if (pathTitle) {
+      return [{ id: planId ?? slot?.id ?? 'path', title: pathTitle, kind: 'path', detail: 'Learning path' }];
+    }
+    return [];
+  }, [cardSource, pathTitle, planId, slot?.id]);
+
+  const openMage = useCallback(() => {
+    mage?.open({
+      type: 'practice',
+      ids: { pathId: planId, slotId: slot?.id },
+      title: slot?.title ?? titleText,
+    });
+  }, [mage, planId, slot?.id, slot?.title, titleText]);
+
+  const mageActions = useMemo<MageQuickAction[]>(
+    () => [
+      { label: 'Explain this card', onClick: openMage },
+      { label: 'Give me a hint', onClick: openMage },
+      { label: 'Why does this matter?', onClick: openMage },
+    ],
+    [openMage],
+  );
+
+  // Deck navigation lives in the action bar; Ask Mage / Sources stay in the
+  // sidebar (so the footer reads Previous · CTA, not a cluttered pill row).
+  const secondaryActions = useMemo<ShellSecondaryAction[]>(
+    () =>
+      total > 0
+        ? [{ icon: 'arrow_back', label: 'Previous', onClick: prev, disabled: currentIndex === 0 }]
+        : [],
+    [total, prev, currentIndex],
+  );
+
+  // CTA mirrors the quiz Check → Continue → Finish flow: reveal the answer,
+  // advance, then complete on the last card.
+  const cta =
+    total > 0
+      ? !isFlipped
+        ? { label: 'Show answer', onClick: flip, disabled: submitting }
+        : isLast
+          ? { label: submitting ? 'Saving…' : 'Done', onClick: handleDone, disabled: submitting }
+          : { label: 'Next card', onClick: next, disabled: submitting }
+      : null;
+
+  const bodyOnly = !!loadError || !cards || total === 0;
+
+  return (
+    <QuizPlayerShell
+      breadcrumb={breadcrumb}
+      title={titleText}
+      stepLabel={stepLabel}
+      ariaLabel={`${titleText} flashcards`}
+      session={null}
+      progress={progress}
+      sourcesNoun="card"
+      customCard
+      primaryCta={cta}
+      secondaryActions={secondaryActions}
+      sources={sources}
+      mission={[]}
+      hideMission
+      mageSubtitle="Stuck on a card?"
+      mageActions={mageActions}
+      onAskMage={openMage}
+      onShowSource={openMage}
+      onClose={onClose}
+      bodyOnly={bodyOnly}
+    >
+      {loadError ? (
+        <p role="alert" style={{ color: 'var(--error)', fontSize: '14px' }}>
+          {loadError}
+        </p>
+      ) : !cards ? (
+        <CheckpointSkeletonBody kind="flashcards" />
+      ) : total === 0 ? (
         <div
           style={{
-            flex: 1,
-            minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
-            gap: '6px',
-          }}
-        >
-          <span
-            style={{
-              alignSelf: 'flex-start',
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '2px 10px',
-              background: 'var(--primary)',
-              color: 'var(--on-primary)',
-              borderRadius: 'var(--radius-full)',
-              fontSize: '10px',
-              fontWeight: 800,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}
-          >
-            {kindLabel}
-          </span>
-          <h2
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-display)',
-              fontSize: '18px',
-              fontWeight: 800,
-              color: 'var(--on-surface)',
-              letterSpacing: '-0.01em',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {titleText}
-          </h2>
-        </div>
-        {total > 0 && (
-          <span
-            aria-label={`Card ${currentIndex + 1} of ${total}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'baseline',
-              gap: '4px',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-full)',
-              border: '1px solid var(--outline-variant)',
-              background: 'var(--surface-container)',
-              color: 'var(--on-surface-variant)',
-              fontSize: '12px',
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '0.04em',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ color: 'var(--on-surface)', fontWeight: 700 }}>
-              {currentIndex + 1}
-            </span>
-            <span>/</span>
-            <span>{total}</span>
-          </span>
-        )}
-        {cardSource ? (
-          <button
-            type="button"
-            onClick={() => setReaderOpen(true)}
-            aria-label="Show source"
-            title="Show source"
-            style={{
-              height: '36px',
-              padding: '0 14px',
-              borderRadius: 'var(--radius-full)',
-              border: '1px solid var(--outline-variant)',
-              background: 'transparent',
-              color: 'var(--on-surface)',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              flexShrink: 0,
-              fontFamily: 'inherit',
-              fontSize: '13px',
-              fontWeight: 700,
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }} aria-hidden>
-              menu_book
-            </span>
-            Source
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close flashcards"
-          style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: 'var(--radius-full)',
-            border: '1px solid var(--outline-variant)',
-            background: 'transparent',
-            color: 'var(--on-surface)',
-            cursor: 'pointer',
-            display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            fontFamily: 'inherit',
+            gap: '16px',
+            padding: '40px 0',
+            textAlign: 'center',
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-            close
-          </span>
-        </button>
-      </header>
-
-      {/* Reference diagrams copied from the slot's theory — collapsed by
-          default, rendered above the card stack. Sits OUTSIDE the centered/
-          overflow-hidden card region so an expanded panel isn't clipped. */}
-      {cards && total > 0 ? (
-        <div style={{ padding: '12px 16px 0' }}>
-          <DiagramReferencePanel diagrams={diagrams} />
-        </div>
-      ) : null}
-
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '24px 16px',
-          overflow: 'hidden',
-          minHeight: 0,
-        }}
-      >
-        {loadError ? (
-          <p role="alert" style={{ color: 'var(--error)', fontSize: '14px' }}>
-            {loadError}
+          <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px', margin: 0 }}>
+            No flashcards in this checkpoint.
           </p>
-        ) : !cards ? (
-          <CheckpointSkeletonBody kind="flashcards" />
-        ) : total === 0 ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '16px',
-            }}
-          >
-            <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>
-              No flashcards in this checkpoint.
-            </p>
-            <button
-              type="button"
-              onClick={handleDone}
-              disabled={submitting}
-              style={{ ...primaryBtnStyle, opacity: submitting ? 0.6 : 1 }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                check
-              </span>
-              {submitting ? 'Saving…' : 'Done'}
-            </button>
-          </div>
-        ) : card ? (
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '640px',
-              height: 'min(72vh, 620px)',
-              perspective: '1200px',
-            }}
-          >
-            <div
-              className="fc-flip-card"
-              onClick={flip}
-              role="button"
-              tabIndex={0}
-              aria-label={isFlipped ? 'Show question' : 'Show answer'}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  flip();
-                }
-              }}
-              style={{
-                width: '100%',
-                height: '100%',
-                position: 'relative',
-                transformStyle: 'preserve-3d',
-                transition: 'transform 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
-                transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-                cursor: 'pointer',
-              }}
-            >
-              <CardFace side="front" card={card} />
-              <CardFace side="back" card={card} />
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      {cards && total > 0 ? (
-        <footer
-          style={{
-            padding: '14px 20px',
-            paddingBottom: 'max(14px, env(safe-area-inset-bottom))',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            borderTop: '1px solid var(--outline-variant)',
-            background: 'var(--surface-container-low)',
-          }}
-        >
           <button
             type="button"
-            onClick={prev}
-            disabled={currentIndex === 0}
-            aria-label="Previous card"
-            style={navBtnStyle(currentIndex === 0)}
+            onClick={handleDone}
+            disabled={submitting}
+            className="qs-btn qs-cta"
+            style={{
+              padding: '12px 28px',
+              minWidth: '160px',
+              borderRadius: 'var(--radius-full)',
+              border: 'none',
+              background: 'var(--accent-strong)',
+              color: 'var(--on-primary-container)',
+              fontSize: '15px',
+              fontWeight: 800,
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+            }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
-              chevron_left
-            </span>
+            {submitting ? 'Saving…' : 'Done'}
           </button>
-          <button
-            type="button"
-            onClick={flip}
-            style={{ ...ghostBtnStyle, minWidth: '140px' }}
-          >
-            {isFlipped ? 'Show question' : coarsePointer ? 'Tap to flip' : 'Flip card'}
-          </button>
-          {isLast ? (
-            <button
-              type="button"
-              onClick={handleDone}
-              disabled={submitting}
-              style={{ ...primaryBtnStyle, opacity: submitting ? 0.6 : 1 }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                check
-              </span>
-              {submitting ? 'Saving…' : 'Done'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={next}
-              aria-label="Next card"
-              style={navBtnStyle(false)}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
-                chevron_right
-              </span>
-            </button>
-          )}
-        </footer>
-      ) : null}
-
-      {/* Source-highlighting — reader drawer for the current card's grounding
-          anchor. No Ask-Mage handoff here (the flashcard overlay has no Mage
-          panel); the drawer omits that CTA gracefully. */}
-      {cardSource ? (
-        <SourceReaderDrawer
-          open={readerOpen}
-          sources={[cardSource]}
-          activeIndex={0}
-          onClose={() => setReaderOpen(false)}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function CardFace({ side, card }: { side: 'front' | 'back'; card: Flashcard }) {
-  const isFront = side === 'front';
-  const text = isFront ? card.question : card.answer;
-  const images = card.images?.filter((img) => img.side === side) ?? [];
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        backfaceVisibility: 'hidden',
-        WebkitBackfaceVisibility: 'hidden',
-        borderRadius: 'var(--radius-lg)',
-        background: 'var(--surface-container)',
-        border: '1px solid var(--outline-variant)',
-        color: 'var(--on-surface)',
-        padding: 'clamp(24px, 5vw, 56px)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '16px',
-        textAlign: 'center',
-        overflow: 'auto',
-        transform: isFront ? undefined : 'rotateY(180deg)',
-        boxShadow:
-          '0 8px 32px rgba(174,137,255,0.06), 0 2px 8px rgba(0,0,0,0.3)',
-      }}
-    >
-      <span
-        style={{
-          fontSize: '11px',
-          color: 'var(--on-surface-variant)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.14em',
-          fontWeight: 700,
-        }}
-      >
-        {isFront ? 'Question' : 'Answer'}
-      </span>
-      <div
-        style={{
-          fontSize: 'clamp(18px, 2.4vw, 22px)',
-          lineHeight: 1.55,
-          maxWidth: '100%',
-          wordBreak: 'break-word',
-        }}
-      >
-        <MarkdownRenderer content={text} />
-      </div>
-      {images.length > 0 ? (
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-            justifyContent: 'center',
-            maxWidth: '100%',
-          }}
-        >
-          {images.map((img) => {
-            const caption = img.caption?.trim();
-            return (
-              <figure
-                key={img.id}
-                style={{
-                  margin: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '6px',
-                  maxWidth: '100%',
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`/api/uploads/flashcard-images/${img.id}`}
-                  alt={caption || img.fileName}
-                  loading="lazy"
-                  onError={(e) => {
-                    const fig = e.currentTarget.closest('figure');
-                    if (fig) (fig as HTMLElement).style.display = 'none';
-                  }}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '220px',
-                    borderRadius: 'var(--radius-md)',
-                    objectFit: 'contain',
-                    border: '1px solid var(--outline-variant)',
-                  }}
-                />
-                {caption ? (
-                  <figcaption
-                    style={{
-                      fontSize: '12px',
-                      lineHeight: 1.4,
-                      textAlign: 'center',
-                      color: 'var(--on-surface-variant)',
-                    }}
-                  >
-                    {caption}
-                  </figcaption>
-                ) : null}
-              </figure>
-            );
-          })}
+        </div>
+      ) : card ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isPhone ? '12px' : '16px' }}>
+          <DiagramReferencePanel diagrams={diagrams} />
+          <FlashcardActivityCard
+            card={card}
+            isFlipped={isFlipped}
+            onFlip={flip}
+            isPhone={isPhone}
+            coarsePointer={coarsePointer}
+          />
         </div>
       ) : null}
-    </div>
+    </QuizPlayerShell>
   );
-}
-
-const primaryBtnStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '6px',
-  padding: '10px 18px',
-  background: 'var(--primary)',
-  color: 'var(--on-primary)',
-  border: 'none',
-  borderRadius: 'var(--radius-full)',
-  fontSize: '13px',
-  fontWeight: 700,
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-  minWidth: '100px',
-  justifyContent: 'center',
-};
-
-const ghostBtnStyle: React.CSSProperties = {
-  ...primaryBtnStyle,
-  background: 'transparent',
-  color: 'var(--on-surface-variant)',
-  border: '1px solid var(--outline-variant)',
-};
-
-function navBtnStyle(disabled: boolean): React.CSSProperties {
-  return {
-    width: '44px',
-    height: '44px',
-    borderRadius: 'var(--radius-full)',
-    border: '1px solid var(--outline-variant)',
-    background: disabled ? 'transparent' : 'var(--surface-container)',
-    color: disabled ? 'var(--outline)' : 'var(--on-surface)',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    fontFamily: 'inherit',
-    padding: 0,
-  };
 }

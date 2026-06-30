@@ -773,6 +773,8 @@ function PathDetailInner({ planId, initialPath }: { planId: string; initialPath:
           key={activeActivity.id}
           slot={openSlot}
           activity={activeActivity}
+          planId={planId}
+          pathTitle={plan.title}
           onClose={() => setUrlSlot({ activity: null })}
           onCompleted={handleActivityCompleted}
         />
