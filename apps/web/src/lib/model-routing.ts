@@ -48,9 +48,6 @@ export type ModelFeature =
   | 'chat-generate'
   | 'chat-intent'
   | 'mage-answer'
-  | 'inline-rewrite'
-  | 'inline-summarize'
-  | 'inline-expand'
   | 'doc-summarize'
   | 'page-generate'
   | 'video-ingest'
@@ -288,15 +285,15 @@ export function resolveModel(
 ): ResolvedModel {
   switch (feature) {
     case 'essay': {
-      // SONNET REMOVED: grammar + full both run on Haiku (or glm-haiku under
-      // GLM_COMPOSITION) in BOTH legacy and optimized. ESSAY_FULL_MODEL /
+      // SONNET + HAIKU REMOVED: grammar + full both run on GLM-4.7 (glm-haiku);
+      // MODEL_COMPOSITION_LEGACY=1 reverts to Claude Haiku. ESSAY_FULL_MODEL /
       // ESSAY_MODEL still override per call if a stronger model is ever needed.
       const isFull = ctx.action === 'full';
       const override =
         (isFull ? parseToken(process.env.ESSAY_FULL_MODEL) : null) ??
         parseToken(process.env.ESSAY_MODEL);
       if (override) return fromToken(override);
-      return fromToken(applyGlm('haiku'));
+      return fromToken(isLegacyComposition() ? 'haiku' : 'glm-haiku');
     }
 
     case 'chat-title':
@@ -313,22 +310,13 @@ export function resolveModel(
       return fromToken(applyGlm(isLegacyComposition() ? 'haiku' : 'flash-lite'));
     }
 
-    case 'inline-rewrite':
-      return resolveStatic('INLINE_REWRITE_MODEL', 'haiku', 'flash-lite');
-    case 'inline-summarize':
-      return resolveStatic('INLINE_SUMMARIZE_MODEL', 'haiku', 'flash-lite');
-    case 'inline-expand':
-      // Expand was the one inline action that hallucinated on the cheap model in
-      // the audit — keep it on Haiku in both modes (still env-overridable).
-      return resolveStatic('INLINE_EXPAND_MODEL', 'haiku', 'haiku');
-
     case 'doc-summarize':
       return resolveStatic('DOCSUM_MODEL', 'haiku', 'flash-lite');
 
     case 'page-generate':
-      // Anthropic-only (forced-tool call). PAGE_GENERATE_MODEL env token
-      // overrides; MODEL_COMPOSITION_LEGACY=1 keeps Haiku (same as default).
-      return resolveStatic('PAGE_GENERATE_MODEL', 'haiku', 'haiku');
+      // GLM-4.7 default (Haiku removed app-wide); PAGE_GENERATE_MODEL env token
+      // overrides; MODEL_COMPOSITION_LEGACY=1 reverts to Claude Haiku.
+      return resolveStatic('PAGE_GENERATE_MODEL', 'haiku', 'glm-haiku');
 
     case 'video-ingest': {
       // Gemini-ONLY (D3): Anthropic has no native video ingestion, so this is
@@ -355,17 +343,19 @@ export function resolveModel(
 
     case 'chat-generate':
       // In-chat artifact generation (flashcards/quiz/mindmap/… via a forced
-      // tool). Was hardcoded to AI_MODEL (Haiku) and bypassed the resolver;
-      // now routed so GLM_COMPOSITION flips it to glm-haiku like the other
-      // Haiku slots. CHAT_GENERATE_MODEL pins it; legacy == optimized (Haiku).
-      return resolveStatic('CHAT_GENERATE_MODEL', 'haiku', 'haiku');
+      // tool). HAIKU REMOVED: now defaults to GLM-4.7 (glm-haiku) — the
+      // chat-stream dispatch branches on provider, so this routes straight to
+      // OpenRouter. CHAT_GENERATE_MODEL pins it; MODEL_COMPOSITION_LEGACY=1
+      // reverts to Claude Haiku.
+      return resolveStatic('CHAT_GENERATE_MODEL', 'haiku', 'glm-haiku');
 
     case 'chat-intent':
       // Per-turn intent gate (forced single-enum tool, runs only on ambiguous
-      // turns the heuristic can't resolve). Was hardcoded to AI_CLASSIFIER_MODEL
-      // (Haiku); now routed so GLM_COMPOSITION flips it to glm-haiku.
-      // CHAT_INTENT_MODEL pins it; legacy == optimized (Haiku).
-      return resolveStatic('CHAT_INTENT_MODEL', 'haiku', 'haiku');
+      // turns the heuristic can't resolve). HAIKU REMOVED: defaults to GLM-4.7
+      // (glm-haiku) — chat-intent dispatches on provider (openrouter → forced
+      // callOpenRouter). CHAT_INTENT_MODEL pins it; MODEL_COMPOSITION_LEGACY=1
+      // reverts to Claude Haiku.
+      return resolveStatic('CHAT_INTENT_MODEL', 'haiku', 'glm-haiku');
 
     case 'mage-answer':
       return resolveMageAnswer(ctx);

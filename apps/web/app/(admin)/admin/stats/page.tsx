@@ -52,9 +52,6 @@ const FEATURE_LABELS: Record<string, string> = {
   'chat-title': 'Chat titles',
   essay: 'Essay check',
   'doc-summarize': 'Doc summarize',
-  'inline-rewrite': 'Inline rewrite',
-  'inline-summarize': 'Inline summarize',
-  'inline-expand': 'Inline expand',
 };
 const featureLabel = (key: string) => FEATURE_LABELS[key] ?? key;
 

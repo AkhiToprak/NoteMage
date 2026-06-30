@@ -611,11 +611,12 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     // GLM model id used by the OpenRouter path (falls back to the Haiku default).
     const activeModel =
       activeResolved && activeResolved.provider !== 'gemini' ? activeResolved.model : AI_MODEL;
-    // The Anthropic model id `anthropic.messages.stream` uses — for normal
-    // Anthropic turns AND the GLM→Anthropic fallback. Maps a GLM token back to
-    // its Claude equivalent so a fallback never sends a GLM id to the Anthropic
-    // SDK.
-    const anthropicFallbackModel =
+    // The Anthropic model id `anthropic.messages.stream` uses — reached ONLY for
+    // an explicit Claude turn (MODEL_COMPOSITION_LEGACY=1 or a per-feature Claude
+    // override). There is NO automatic GLM/Gemini→Claude fallback anymore (Haiku
+    // removed app-wide). The glm-* mapping just keeps a GLM token from being sent
+    // to the Anthropic SDK on that explicit-legacy path.
+    const anthropicLegacyModel =
       activeResolved?.token === 'glm-sonnet'
         ? AI_GENERATION_MODEL
         : activeResolved?.token === 'glm-haiku'
@@ -715,7 +716,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     // it is never used for the answer itself.
     const mageAuto = isMageAnswer && !intentToolName;
     const streamParams: Parameters<typeof anthropic.messages.stream>[0] = {
-      model: anthropicFallbackModel,
+      model: anthropicLegacyModel,
       max_tokens: MAX_OUTPUT_TOKENS,
       system: systemBlocks,
       tools: CHAT_TOOLS,
@@ -827,17 +828,17 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 controller.close();
                 return;
               }
-              // Nothing streamed yet — fall back to Anthropic.
-              console.error(
-                '[AI Chat] Gemini failed pre-stream, falling back to Anthropic:',
-                geminiErr
-              );
+              // GLM/Gemini-only: NO Claude fallback (Haiku removed app-wide).
+              // Nothing streamed yet — surface the error to the client instead of
+              // silently spending on Claude.
+              console.error('[AI Chat] Gemini failed pre-stream:', geminiErr);
+              throw geminiErr;
             }
           }
 
           let glmResponse: Anthropic.Messages.Message | null = null;
           let usedProvider: 'anthropic' | 'openrouter' = 'anthropic';
-          let usedModel = anthropicFallbackModel;
+          let usedModel = anthropicLegacyModel;
 
           // ── GLM (OpenRouter) path — Mage answer / in-chat generation under
           // GLM_COMPOSITION. Returns an Anthropic-shaped Message so the
@@ -866,8 +867,11 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 controller.close();
                 return;
               }
-              // Nothing streamed yet — fall back to Anthropic below.
-              console.error('[AI Chat] GLM failed pre-stream, falling back to Anthropic:', glmErr);
+              // GLM-only: NO Claude fallback (Haiku removed app-wide). Nothing
+              // streamed yet — surface the error to the client (same posture as
+              // path generation) instead of silently spending on Claude.
+              console.error('[AI Chat] GLM failed pre-stream:', glmErr);
+              throw glmErr;
             }
           }
 

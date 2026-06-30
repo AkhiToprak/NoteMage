@@ -50,23 +50,26 @@ describe("resolveModel('mage-answer') — runs on GLM", () => {
     });
   });
 
-  it('MODEL_COMPOSITION_LEGACY reverts to Claude (Haiku / Sonnet by mode)', () => {
+  it('MODEL_COMPOSITION_LEGACY reverts to Claude Haiku (Sonnet removed app-wide)', () => {
     process.env.MODEL_COMPOSITION_LEGACY = '1';
+    // Sonnet was removed app-wide (commit 059b3e22): legacy deep-mode Mage no
+    // longer upgrades to Sonnet — both modes resolve to Haiku.
     expect(resolveModel('mage-answer', { mode: 'quick' })).toMatchObject({
       token: 'haiku',
       provider: 'anthropic',
     });
     expect(resolveModel('mage-answer', { mode: 'deep' })).toMatchObject({
-      token: 'sonnet',
+      token: 'haiku',
       provider: 'anthropic',
     });
   });
 });
 
 /**
- * onboarding-real-generation P2 (D4) — the anonymous pre-signup PREVIEW runs on
- * Sonnet (the make-or-break first impression, only ~3 small calls). It is an
- * Anthropic call, env-pinnable via PATH_PREVIEW_MODEL, and is deliberately NOT
+ * onboarding-real-generation P2 (D4) — the anonymous pre-signup PREVIEW (the
+ * make-or-break first impression, only ~3 small calls). SONNET REMOVED (commit
+ * 059b3e22): it now runs on GLM-5.2 (`glm-sonnet`, the flagship that replaced
+ * Sonnet for path gen), env-pinnable via PATH_PREVIEW_MODEL, and deliberately NOT
  * downgraded by MODEL_COMPOSITION_LEGACY.
  */
 describe("resolveModel('path-preview') — onboarding preview", () => {
@@ -75,10 +78,10 @@ describe("resolveModel('path-preview') — onboarding preview", () => {
     delete process.env.MODEL_COMPOSITION_LEGACY;
   });
 
-  it('defaults to Sonnet on Anthropic', () => {
+  it('defaults to GLM-5.2 (glm-sonnet via OpenRouter)', () => {
     const m = resolveModel('path-preview');
-    expect(m.token).toBe('sonnet');
-    expect(m.provider).toBe('anthropic');
+    expect(m.token).toBe('glm-sonnet');
+    expect(m.provider).toBe('openrouter');
   });
 
   it('PATH_PREVIEW_MODEL pins the model (e.g. =haiku to cut cost)', () => {
@@ -88,7 +91,7 @@ describe("resolveModel('path-preview') — onboarding preview", () => {
 
   it('does NOT downgrade under MODEL_COMPOSITION_LEGACY — quality is the point', () => {
     process.env.MODEL_COMPOSITION_LEGACY = '1';
-    expect(resolveModel('path-preview').token).toBe('sonnet');
+    expect(resolveModel('path-preview').token).toBe('glm-sonnet');
   });
 });
 
@@ -146,32 +149,24 @@ describe('resolveModel — path stages default to GLM-5.2', () => {
 });
 
 /**
- * GLM_COMPOSITION=1 flips the flag-gated Anthropic slots (essay, inline-expand,
- * page-generate, chat-generate, chat-intent, path-preview) to their GLM
- * equivalents. (Paths + mage-answer are hard-defaulted to GLM elsewhere.) Gemini
- * slots are untouched; overrides win; legacy reverts.
+ * The formerly-Haiku non-path slots (essay, page-generate, chat-generate,
+ * chat-intent) now HARD-DEFAULT to GLM-4.7 (glm-haiku) — Haiku was removed
+ * app-wide, so GLM_COMPOSITION no longer changes them; only
+ * MODEL_COMPOSITION_LEGACY=1 reverts them to Claude Haiku. Gemini slots are
+ * untouched; per-feature overrides win. (Paths + mage-answer + path-preview are
+ * hard-defaulted to GLM elsewhere.)
  */
-describe('resolveModel — GLM_COMPOSITION swap (non-path slots)', () => {
+describe('resolveModel — formerly-Haiku non-path slots run on GLM-4.7', () => {
   afterEach(() => {
     delete process.env.GLM_COMPOSITION;
     delete process.env.MODEL_COMPOSITION_LEGACY;
     delete process.env.ESSAY_MODEL;
   });
 
-  it('flag OFF: Anthropic default slots are unchanged', () => {
-    expect(resolveModel('essay')).toMatchObject({ token: 'haiku', provider: 'anthropic' });
-    expect(resolveModel('inline-expand')).toMatchObject({ token: 'haiku', provider: 'anthropic' });
-  });
+  const glmHaikuSlots = ['page-generate', 'essay', 'chat-generate', 'chat-intent'] as const;
 
-  it('flag ON: Haiku slots → glm-haiku (GLM-4.7)', () => {
-    process.env.GLM_COMPOSITION = '1';
-    for (const f of [
-      'inline-expand',
-      'page-generate',
-      'essay',
-      'chat-generate',
-      'chat-intent',
-    ] as const) {
+  it('default (no flag): all resolve to glm-haiku (GLM-4.7)', () => {
+    for (const f of glmHaikuSlots) {
       const m = resolveModel(f);
       expect(m.provider).toBe('openrouter');
       expect(m.token).toBe('glm-haiku');
@@ -179,21 +174,33 @@ describe('resolveModel — GLM_COMPOSITION swap (non-path slots)', () => {
     }
   });
 
-  it('flag ON: Sonnet slots → glm-sonnet (GLM-5.2)', () => {
+  it('GLM_COMPOSITION=1 leaves them on GLM-4.7 (already GLM)', () => {
     process.env.GLM_COMPOSITION = '1';
+    for (const f of glmHaikuSlots) {
+      expect(resolveModel(f)).toMatchObject({ token: 'glm-haiku', provider: 'openrouter' });
+    }
+  });
+
+  it('MODEL_COMPOSITION_LEGACY=1 reverts them to Claude Haiku', () => {
+    process.env.MODEL_COMPOSITION_LEGACY = '1';
+    for (const f of glmHaikuSlots) {
+      expect(resolveModel(f)).toMatchObject({ token: 'haiku', provider: 'anthropic' });
+    }
+  });
+
+  it('path-preview defaults to glm-sonnet (GLM-5.2)', () => {
     expect(resolveModel('path-preview')).toMatchObject({
       token: 'glm-sonnet',
       provider: 'openrouter',
     });
   });
 
-  it('flag ON: Gemini slots stay on Gemini', () => {
-    process.env.GLM_COMPOSITION = '1';
+  it('Gemini slots stay on Gemini', () => {
     expect(resolveModel('chat-plain', { tier: 'PRO' }).provider).toBe('gemini');
     expect(resolveModel('chat-title').provider).toBe('gemini');
   });
 
-  it('explicit override pins a slot TO GLM via token alias', () => {
+  it('explicit override pins a slot (e.g. ESSAY_MODEL=glm-5.2)', () => {
     process.env.ESSAY_MODEL = 'glm-5.2';
     expect(resolveModel('essay')).toMatchObject({ token: 'glm-sonnet', provider: 'openrouter' });
   });
@@ -201,8 +208,10 @@ describe('resolveModel — GLM_COMPOSITION swap (non-path slots)', () => {
   it('MODEL_COMPOSITION_LEGACY wins over GLM_COMPOSITION (no GLM)', () => {
     process.env.GLM_COMPOSITION = '1';
     process.env.MODEL_COMPOSITION_LEGACY = '1';
+    // Legacy wins (Claude, not GLM); Sonnet removed app-wide, so deep mode is
+    // Haiku not Sonnet — the point of the test (no GLM under legacy) still holds.
     expect(resolveModel('mage-answer', { mode: 'deep' })).toMatchObject({
-      token: 'sonnet',
+      token: 'haiku',
       provider: 'anthropic',
     });
   });

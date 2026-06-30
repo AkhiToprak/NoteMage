@@ -13,7 +13,7 @@ import type { TierKey } from './tiers';
 
 export interface AiUsageEvent {
   userId: string | null;
-  /** Stable feature key, e.g. 'essay', 'chat-title', 'path-classify', 'inline-rewrite'. */
+  /** Stable feature key, e.g. 'chat-generate', 'chat-title', 'path-classify', 'doc-summarize'. */
   feature: string;
   tier?: TierKey | null;
   provider: ModelProvider;
