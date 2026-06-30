@@ -4,6 +4,7 @@ import Link from 'next/link';
 import AppShell from '@/components/app/AppShell';
 import MageTip from '@/components/app/MageTip';
 import { useOptionalMage } from '@/components/mage';
+import { SubjectIcon } from '@/components/learn/SubjectIcon';
 import type { DashboardData } from '@/lib/dashboard-data';
 import ui from '@/components/app/ui.module.css';
 import styles from './Dashboard.module.css';
@@ -18,19 +19,6 @@ function MsIcon({ name, size = 20 }: { name: string; size?: number }) {
       {name}
     </span>
   );
-}
-
-/** Material Symbol for a path's primary subject (matches the Paths screen). */
-function subjectIcon(subjects: string[] | undefined): string {
-  const subj = (subjects?.[0] ?? '').toLowerCase();
-  if (subj.includes('math') || subj.includes('calc')) return 'calculate';
-  if (subj.includes('chem') || subj.includes('bio')) return 'science';
-  if (subj.includes('hist') || subj.includes('geo')) return 'public';
-  if (subj.includes('phys')) return 'bolt';
-  if (subj.includes('comp') || subj.includes('cs') || subj.includes('sql') || subj.includes('data')) return 'database';
-  if (subj.includes('lang') || subj.includes('lit') || subj.includes('eng')) return 'auto_stories';
-  if (subj.includes('econ') || subj.includes('biz')) return 'trending_up';
-  return 'menu_book';
 }
 
 interface DashboardViewProps {
@@ -97,9 +85,7 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
           {/* hero — the active path */}
           <section className={styles.hero}>
             <div className={styles.heroHead}>
-              <span className={styles.heroTile}>
-                <MsIcon name={subjectIcon(active.subjects)} size={26} />
-              </span>
+              <SubjectIcon subjects={active.subjects} size={56} radius={15} />
               <div>
                 <div className={styles.heroTitle}>{active.title}</div>
                 <div className={styles.heroSource}>{active.sourceLabel}</div>

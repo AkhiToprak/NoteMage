@@ -61,20 +61,6 @@ export function nodeIcon(slot: PathSlot, state: NodeState): string {
   return 'menu_book';
 }
 
-/** Subject buckets → header glyph (mirrors the /my-path card icon). */
-export function subjectIcon(subjects?: string[]): string {
-  const subj = subjects?.[0] ?? '';
-  if (subj.includes('math') || subj.includes('calc')) return 'calculate';
-  if (subj.includes('chem') || subj.includes('bio')) return 'science';
-  if (subj.includes('hist') || subj.includes('geo')) return 'public';
-  if (subj.includes('phys')) return 'bolt';
-  if (subj.includes('comp') || subj.includes('cs') || subj.includes('sql') || subj.includes('data'))
-    return 'database';
-  if (subj.includes('lang') || subj.includes('lit') || subj.includes('eng')) return 'auto_stories';
-  if (subj.includes('econ') || subj.includes('biz')) return 'trending_up';
-  return 'menu_book';
-}
-
 /** Human source name for the subtitle + Sources card. Prefers the Study
  *  Pack name; falls back to the generation source. No page-level citation
  *  exists in the DTO, so we never invent one. */

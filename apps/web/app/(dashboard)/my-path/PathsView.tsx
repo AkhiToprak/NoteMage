@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AppShell from '@/components/app/AppShell';
 import MageTip from '@/components/app/MageTip';
 import { UltraBadge } from '@/components/learn/UltraBadge';
+import { SubjectIcon } from '@/components/learn/SubjectIcon';
 import { derivePathStats, findContinueSlot } from '@/lib/path-stats';
 import type { SerializedPath } from '@/lib/path-loader';
 import type { PathPlan } from '@/components/learn/PathView';
@@ -185,19 +186,6 @@ function PathCard({
   const badge: 'Active' | 'Completed' | null =
     isDone ? 'Completed' : isActive ? 'Active' : null;
 
-  // Subject-based icon: pick a simple material symbol per subject, fallback to menu_book.
-  const subjectIcon = (() => {
-    const subj = p.subjects?.[0] ?? '';
-    if (subj.includes('math') || subj.includes('calc')) return 'calculate';
-    if (subj.includes('chem') || subj.includes('bio')) return 'science';
-    if (subj.includes('hist') || subj.includes('geo')) return 'public';
-    if (subj.includes('phys')) return 'bolt';
-    if (subj.includes('comp') || subj.includes('cs') || subj.includes('sql') || subj.includes('data')) return 'database';
-    if (subj.includes('lang') || subj.includes('lit') || subj.includes('eng')) return 'auto_stories';
-    if (subj.includes('econ') || subj.includes('biz')) return 'trending_up';
-    return 'menu_book';
-  })();
-
   // Total checkpoints drive the "X of N" progress count (the per-step total now
   // lives in the spine, not the meta line).
   const steps = stats.totalCheckpoints;
@@ -242,9 +230,7 @@ function PathCard({
     <article className={`${styles.pathCard} ${isActive ? styles.pathActive : ''}`}>
       <div className={styles.cardTop}>
         <div className={styles.cardHeader}>
-          <span className={`${styles.iconTile} ${isUltra ? styles.iconTileGold : ''}`}>
-            <MsIcon name={subjectIcon} size={24} />
-          </span>
+          <SubjectIcon subjects={p.subjects} size={46} />
           <div className={styles.headerMeta}>
             <div className={styles.titleRow}>
               <h2 className={styles.pathTitle}>{p.title}</h2>
