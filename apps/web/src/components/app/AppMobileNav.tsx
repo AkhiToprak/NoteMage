@@ -17,9 +17,9 @@ import { NavIcon } from './NavIcon';
 
 const NAV: { href: string; label: string; icon: string; img?: string }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: 'cottage', img: 'home' },
-  { href: '/exams', label: 'Exams', icon: 'target' },
+  { href: '/exams', label: 'Exams', icon: 'target', img: 'calendar' },
   { href: '/my-path', label: 'Paths', icon: 'account_tree', img: 'flag' },
-  { href: '/profile', label: 'Profile', icon: 'person' },
+  { href: '/profile', label: 'Profile', icon: 'person', img: 'profile' },
 ];
 
 /** Shared with AppSidebar — keep both navs agreeing on what "active" means.
