@@ -18,6 +18,10 @@ export interface ModelUsage {
   outputTokens: number;
   cacheReadTokens: number;
   cacheWriteTokens: number;
+  /** Accumulated EXACT USD that OpenRouter billed inline for these calls. 0 for
+   *  Anthropic/Gemini (their cost is derived from token rates). When > 0 the
+   *  meter reports this instead of re-deriving from the approximate rate table. */
+  costUsdExact: number;
 }
 
 export interface CostBreakdown {
@@ -104,6 +108,7 @@ export function costForCall(
     outputTokens: tokens.outputTokens,
     cacheReadTokens: tokens.cacheReadTokens ?? 0,
     cacheWriteTokens: tokens.cacheWriteTokens ?? 0,
+    costUsdExact: 0,
   });
 }
 

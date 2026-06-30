@@ -78,6 +78,15 @@ export interface CallOpenRouterOptions {
    * land deterministically. Maps to OpenRouter's `reasoning.enabled = false`.
    */
   disableReasoning?: boolean;
+  /**
+   * OpenRouter sticky-routing token, forwarded as the `X-Session-Id` header.
+   * OpenRouter pins all requests sharing a session id to the SAME upstream, so a
+   * burst of calls reusing a long shared prefix (e.g. one path generation's
+   * corpus) keeps hitting the same upstream's implicit prefix cache instead of
+   * being load-balanced across upstreams that each cache-miss. Safe to combine
+   * with `OPENROUTER_PROVIDER_ORDER` (that biases first contact; this pins after).
+   */
+  sessionId?: string;
   signal?: AbortSignal;
 }
 
@@ -103,15 +112,20 @@ interface OpenRouterResponse {
   usage?: OpenRouterUsageRaw;
 }
 
-/** Shared request headers (auth + optional app-ranking attribution). */
-function openRouterHeaders(apiKey: string): Record<string, string> {
-  return {
+/** Shared request headers (auth + optional app-ranking attribution + optional
+ *  sticky-routing session id). */
+function openRouterHeaders(apiKey: string, sessionId?: string): Record<string, string> {
+  const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
     // Optional attribution — surfaces in OpenRouter's app rankings; harmless to omit.
     'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'https://notemage.app',
     'X-Title': 'NoteMage',
   };
+  // Pins this request to the same upstream as others sharing the id → reliable
+  // implicit prefix-cache hits across a generation run.
+  if (sessionId) headers['X-Session-Id'] = sessionId;
+  return headers;
 }
 
 /**
@@ -182,7 +196,7 @@ export async function callOpenRouter(opts: CallOpenRouterOptions): Promise<OpenR
 
   const res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
     method: 'POST',
-    headers: openRouterHeaders(apiKey),
+    headers: openRouterHeaders(apiKey, opts.sessionId),
     body: JSON.stringify(buildOpenRouterBody(opts, false)),
     signal: opts.signal,
   });
@@ -271,7 +285,7 @@ export async function* streamOpenRouter(
 
   const res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
     method: 'POST',
-    headers: openRouterHeaders(apiKey),
+    headers: openRouterHeaders(apiKey, opts.sessionId),
     body: JSON.stringify(buildOpenRouterBody(opts, true)),
     signal: opts.signal,
   });

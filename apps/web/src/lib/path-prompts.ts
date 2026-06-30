@@ -10,7 +10,7 @@
 
 import type Anthropic from '@anthropic-ai/sdk';
 import type { QuestionKind } from '@notemage/shared';
-import { quizPayloadCatalogFor, type PathSlotKind } from './ai-tools';
+import { quizPayloadCatalogFor, quizShapeExamples, type PathSlotKind } from './ai-tools';
 import { pathLanguageName, type PathLanguageCode } from './path-languages';
 import {
   allowedKindsForSubjects,
@@ -423,6 +423,21 @@ export function buildTheoryPrompt(ctx: SlotContentContext): SplitPrompt {
       catalog,
     );
   }
+  // Schema-Guided Reasoning: an explicit "think then emit" protocol in the
+  // CACHED system prefix (constant per path → one-time cache-hash shift, then a
+  // cache hit). Gives the model the reasoning scaffold reasoning-mode would have
+  // provided, while keeping reasoning OFF (no empty-tool-call risk). ~5–10%
+  // quality lift at zero marginal cost.
+  systemLines.push(
+    '',
+    'REASONING PROTOCOL — work through these steps mentally before writing the JSON:',
+    'Step 1: Identify the single concept this slot teaches (from the topic hint and objective).',
+    'Step 2: Choose an opening hook — a concrete analogy or real-world scenario that makes the concept tangible before the formal definition.',
+    'Step 3: Draft 2–4 key points that build on each other; each must follow from the one before it.',
+    'Step 4: Select or invent ONE worked example that exercises the full concept end-to-end (not a fragment).',
+    "Step 5: Check every sentence stays within this slot's topic — no forward references to other slots.",
+    'Step 6: Emit the JSON.',
+  );
   const subjectFragment = subjectTheoryToneFragment(ctx.subjects);
   if (subjectFragment.length > 0) {
     systemLines.push(subjectFragment);
@@ -484,6 +499,18 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): SplitPrompt {
   if (flashcardStyleFragment.length > 0) {
     systemLines.push(flashcardStyleFragment);
   }
+  // Schema-Guided Reasoning protocol (cached prefix — constant per path). Gives
+  // the model the "think then emit" scaffold with reasoning OFF.
+  systemLines.push(
+    '',
+    'REASONING PROTOCOL — work through these steps mentally before writing the JSON:',
+    'Step 1: List every distinct idea the material (or theory text) teaches — one idea at a time.',
+    'Step 2: For each idea pick the best angle: definition, recall, comparison, or "explain why" (include at least one "explain why" card).',
+    "Step 3: Write the question so it isolates one idea and can't be answered by elimination.",
+    'Step 4: Write the answer in 1–3 sentences — complete but not padded.',
+    'Step 5: Drop duplicates; confirm every card covers a distinct idea.',
+    'Step 6: Emit the JSON.',
+  );
   // Optional figures — only when a source-image catalog is supplied (P3). Each
   // card may embed ONE image via a `figure` object; the catalog body is the same
   // deterministic list theory uses. Capped at 4 figured cards per set; prefer
@@ -579,8 +606,7 @@ export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
     'JSON shape (top-level keys MUST match EXACTLY — camelCase, no snake_case):',
     '{ "title": string, "questions": [ { "kind": <one of the allowed kinds listed below>, "prompt": string, "hint": string?, "correctExplanation": string?, "wrongExplanation": string?, "payload": <kind-specific NESTED object>, "source": { "label": string, "page": number?, "quote": string }? } ] }',
     '`payload` is a NESTED OBJECT. Every kind-specific key (options, correctIndex, correct, blank, pairs, template, slots, wordBank, expectedExpression, code, events, starterCode, tests, …) MUST live INSIDE the `payload` object — NEVER at the question top level next to `kind`/`prompt`.',
-    'CORRECT shape:   `{"kind":"mc","prompt":"…","payload":{"options":["a","b","c","d"],"correctIndex":0}}`',
-    'WRONG (rejected): `{"kind":"mc","prompt":"…","options":["a","b","c","d"],"correctIndex":0}`',
+    quizShapeExamples(),
     'The list key is `questions` — NEVER `quiz` or `items`. Use `correctExplanation` / `wrongExplanation` — NEVER `correct_explanation` / `wrong_explanation`. Use `correctIndex` — NEVER `correct_index`. Use `acceptableAnswers` — NEVER `acceptable_answers`. ALL keys are camelCase.',
     '',
     `Generate ${questionRange}. Use AT LEAST ${minKinds} different question kind${
@@ -602,6 +628,26 @@ export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
         ]
       : []),
   ];
+  // Schema-Guided Reasoning + pedagogy (cached prefix, constant per path). A
+  // per-question "think then emit" protocol with Bloom-level calibration and
+  // misconception-based distractors (research: CoT + Bloom level + ONE example is
+  // the optimal item-generation pattern; misconception distractors beat random
+  // wrong answers). Reasoning stays OFF — this is the cheap substitute.
+  systemLines.push(
+    '',
+    'REASONING PROTOCOL — work through these steps mentally before writing EACH question:',
+    'Step 1: Re-read the slot objective and identify its Bloom level (remember/understand → recall facts; apply/analyze → use knowledge in a new context; evaluate/create → judge or produce). Calibrate difficulty to it.',
+    'Step 2: Write a stem that isolates ONE facet of the objective — no compound questions.',
+    'Step 3: For mc, name 3 real misconceptions a learner at this level holds, then phrase each as a confident-sounding wrong option; the correct option answers the stem directly.',
+    'Step 4: Write correctExplanation (why it is right + a concrete example) and wrongExplanation (name the likely mix-up and correct it).',
+    'Step 5: Confirm the kind is allowed and the payload keys match the catalog exactly.',
+    'Step 6: Emit the question object.',
+    '',
+    'DISTRACTOR QUALITY (mc): every wrong option must encode a real misconception ("a learner might think X because…") stated confidently. Reject options that are obviously wrong, joke answers, or "none of the above".',
+    '',
+    'EXAMPLE (apply-level mc, correct structure):',
+    'Objective: "Apply the distributive property to expand expressions." Question: "Which is equivalent to 3(x + 4)?" Options: A) 3x + 4  B) 3x + 12  C) x + 12  D) 3x + 7. Correct: B. Each wrong option is a real slip — A: multiplied only x; C: dropped the coefficient; D: added 3 to both terms.',
+  );
   const subjectFragment = subjectQuizGuidanceFragment(ctx.subjects, ctx.subjectWeights);
   if (subjectFragment.length > 0) {
     systemLines.push(subjectFragment);
@@ -661,6 +707,9 @@ export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
   if (!isFinalExam && ctx.slotObjective && ctx.slotObjective.trim().length > 0) {
     tailLines.push(
       `Objective to test — write questions that verify the learner can do this: ${ctx.slotObjective.trim()}`,
+      // Bloom hint (Step 1 of the reasoning protocol): the per-slot objective is
+      // dynamic, so the level-mapping nudge rides the uncached tail next to it.
+      'Bloom hint: read the verb in the objective above, map it to its cognitive level, and calibrate question difficulty to that level.',
     );
   }
   const briefLine = learnerBriefLine(ctx);

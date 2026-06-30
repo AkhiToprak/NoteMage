@@ -6,7 +6,13 @@
 // (`answer: { text }`) vanished → empty set → spurious "failure".
 
 import { describe, it, expect } from 'vitest';
-import { normalizeFlashcardsInput, normalizeQuizQuestions } from './path-generator-normalize';
+import { QuizSetV2Schema } from '@notemage/shared';
+import {
+  normalizeFlashcardsInput,
+  normalizeQuizQuestions,
+  safeParseQuizQuestions,
+  runSemanticChecks,
+} from './path-generator-normalize';
 
 describe('normalizeFlashcardsInput', () => {
   it('keeps canonical {question, answer} string pairs', () => {
@@ -151,5 +157,109 @@ describe('normalizeQuizQuestions', () => {
     // A non-object figure is ignored; the question still survives.
     expect(out[3].figure).toBeUndefined();
     expect(out[3].prompt).toBe('Q4');
+  });
+});
+
+describe('normalizeQuizQuestions — payload coercions (Phase 1)', () => {
+  it('coerces true_false string/number "correct" to boolean', () => {
+    const out = normalizeQuizQuestions([
+      { kind: 'true_false', prompt: 'A', payload: { correct: 'true' } },
+      { kind: 'true_false', prompt: 'B', payload: { correct: 'False' } },
+      { kind: 'true_false', prompt: 'C', payload: { answer: 1 } },
+      { kind: 'true_false', prompt: 'D', payload: { correct: true } },
+    ]);
+    expect(out.map((q) => q.payload.correct)).toEqual([true, false, true, true]);
+  });
+
+  it('coerces a numeric timeline year to a string and absorbs key drift', () => {
+    const out = normalizeQuizQuestions([
+      {
+        kind: 'timeline',
+        prompt: 'Order these',
+        payload: {
+          events: [
+            { year: 1914, label: 'WWI begins' },
+            { date: '1939', event: 'WWII begins' },
+          ],
+        },
+      },
+    ]);
+    expect(out[0].payload.events).toEqual([
+      { year: '1914', label: 'WWI begins' },
+      { year: '1939', label: 'WWII begins' },
+    ]);
+  });
+
+  it('absorbs equation expectedExpression key drift', () => {
+    const out = normalizeQuizQuestions([
+      { kind: 'equation', prompt: 'Solve', payload: { answer: '2x + 1' } },
+    ]);
+    expect(out[0].payload.expectedExpression).toBe('2x + 1');
+  });
+});
+
+describe('safeParseQuizQuestions (Phase 1)', () => {
+  const good = (i: number) => ({
+    kind: 'mc' as const,
+    prompt: `Q${i}`,
+    payload: { options: ['a', 'b', 'c', 'd'], correctIndex: 0 },
+  });
+  // 3 options is structurally invalid (McPayloadSchema requires exactly 4).
+  const bad = { kind: 'mc' as const, prompt: 'bad', payload: { options: ['a', 'b', 'c'], correctIndex: 0 } };
+
+  it('drops the unrecoverable question and keeps the good ones above the floor', () => {
+    const res = safeParseQuizQuestions([good(1), bad, good(2), good(3)] as never, 3);
+    expect(res.dropped).toBe(1);
+    expect(res.questions).toHaveLength(3);
+  });
+
+  it('returns the original list when salvage would fall below the floor', () => {
+    const res = safeParseQuizQuestions([good(1), bad] as never, 3);
+    expect(res.dropped).toBe(0);
+    expect(res.questions).toHaveLength(2);
+  });
+});
+
+describe('runSemanticChecks (Phase 1)', () => {
+  const parse = (questions: unknown[]) =>
+    QuizSetV2Schema.parse({ title: 't', questions }).questions;
+
+  it('passes a clean set', () => {
+    const qs = parse([
+      { kind: 'mc', prompt: 'Q', payload: { options: ['a', 'b', 'c', 'd'], correctIndex: 1 } },
+    ]);
+    expect(runSemanticChecks(qs)).toBeNull();
+  });
+
+  it('flags duplicate timeline years', () => {
+    const qs = parse([
+      {
+        kind: 'timeline',
+        prompt: 'Order',
+        payload: {
+          events: [
+            { year: '1900', label: 'A' },
+            { year: '1900', label: 'B' },
+            { year: '1950', label: 'C' },
+          ],
+        },
+      },
+    ]);
+    expect(runSemanticChecks(qs)).toMatch(/duplicate year/i);
+  });
+
+  it('flags an unsolvable word_bank (answer not in the bank)', () => {
+    const qs = parse([
+      {
+        kind: 'word_bank',
+        prompt: 'Fill it',
+        payload: {
+          template: 'The capital is {{0}}.',
+          slots: [{ correctAnswer: 'Paris' }],
+          wordBank: ['London', 'Berlin'],
+        },
+      },
+    ]);
+    expect(runSemanticChecks(qs)).toMatch(/unsolvable|missing from wordBank/i);
   });
 });

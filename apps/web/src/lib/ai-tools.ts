@@ -368,6 +368,19 @@ export function quizPayloadCatalogFor(kinds: QuestionKind[]): string {
   }).join('\n');
 }
 
+/**
+ * The canonical CORRECT-vs-WRONG `mc` payload-nesting example shown to the model.
+ * Single-sourced here (next to the payload catalog) so the path quiz prompt and
+ * any future caller can't drift from the schema — buildQuizPrompt imports this
+ * instead of hand-inlining the shape.
+ */
+export function quizShapeExamples(): string {
+  return [
+    'CORRECT shape:   `{"kind":"mc","prompt":"…","payload":{"options":["a","b","c","d"],"correctIndex":0}}`',
+    'WRONG (rejected): `{"kind":"mc","prompt":"…","options":["a","b","c","d"],"correctIndex":0}`',
+  ].join('\n');
+}
+
 // QUIZ_TOOL_V2 is the kind-aware quiz-generation tool. Each question
 // carries an explicit `kind` discriminator and a kind-specific `payload`.
 // Anthropic tool inputs don't support discriminated unions cleanly, so the
@@ -820,7 +833,11 @@ export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
                       'One line: the concrete, testable thing the learner can DO after this slot, phrased verb-first (e.g. "Conjugate regular -ar verbs in the present tense"). The slot quiz is written to test THIS.',
                   },
                 },
-                required: ['title', 'kind', 'topicHint'],
+                // `objective` is required so every slot carries the verb-first,
+                // testable outcome its quiz is written against (the alignment
+                // anchor). normalizePathStructure still falls back to topicHint
+                // if an odd response omits it, so this can't hard-fail a path.
+                required: ['title', 'kind', 'topicHint', 'objective'],
               },
               description:
                 'Ordered slots: learning slots with a "review" interleaved after ~every 2 of them; the last slot kind MUST be "assessment".',
@@ -830,9 +847,11 @@ export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
           },
           required: ['title', 'description', 'slots'],
         },
+        // Bounded to 6 to match the "3–6 sections" guidance — the prose limit
+        // alone let GLM emit up to 10-phase paths the UI renders poorly.
         description: '3–6 sequential phases ("sections") of the path.',
         minItems: 1,
-        maxItems: 10,
+        maxItems: 6,
       },
     },
     required: ['title', 'description', 'phases'],

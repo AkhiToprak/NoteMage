@@ -107,6 +107,11 @@ export interface StructuredCallCtx<T> {
    *  resolver — set it from `plan.gemini=true` to force every stage
    *  through Gemini for one specific generation. */
   providerOverride?: Provider;
+  /** OpenRouter sticky-routing token (X-Session-Id). One per runPathGeneration,
+   *  stable across all its calls + sweeps, so they land on the same upstream and
+   *  the corpus prefix cache actually hits. Ignored on the Anthropic/Gemini
+   *  branches. */
+  sessionId?: string;
   /** Mark the unused generic so callers don't have to widen at consumption. */
   _phantom?: T;
 }
@@ -198,10 +203,17 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
     return await forcedStructuredCallOpenRouter<T>({
       system,
       tool: ctx.anthropicTool,
-      tools: ctx.anthropicTools ?? PATH_TOOLS_STABLE,
+      // GLM/OpenRouter: send ONLY the forced tool, not the 4-tool stable array.
+      // GLM's implicit cache keys on the SYSTEM-PROMPT prefix, not the tools
+      // block, so the byte-stable 4-tool array (which the Anthropic branch needs
+      // for ITS prompt cache) is pure token waste here — 3 unused tool schemas ×
+      // every call. An explicit `anthropicTools` override (e.g. the onboarding
+      // preview tool) is still honored.
+      tools: ctx.anthropicTools ?? [ctx.anthropicTool],
       userMessage: ctx.userMessage,
       maxAttempts: ctx.maxAttempts,
       model,
+      sessionId: ctx.sessionId,
       onUsage: (usage) =>
         ctx.onUsage({
           provider: 'openrouter',

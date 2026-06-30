@@ -9,6 +9,7 @@ import {
   bootstrapReminderSweep,
 } from '@/lib/background-jobs';
 import { runJob } from '@/lib/background-job-runner';
+import { recoverStalePaths } from '@/lib/path-sweeper';
 
 // Shared worker loop. Two entrypoints use it:
 //   • src/worker.ts          — the standalone `pnpm worker` process.
@@ -73,6 +74,12 @@ export async function runWorkerLoop(): Promise<void> {
   // (bucketed dedupeKey), and tolerant of the job table not existing yet.
   await bootstrapReminderSweep().catch((error) => {
     console.warn('[worker] reminder-sweep bootstrap deferred', error);
+  });
+
+  // Revive paths a prior process left wedged in `generating` (redeploy mid-run).
+  // Idempotent + dedupe-keyed; tolerant of the job table not existing yet.
+  await recoverStalePaths().catch((error) => {
+    console.warn('[worker] stale-path recovery deferred', error);
   });
 
   while (true) {

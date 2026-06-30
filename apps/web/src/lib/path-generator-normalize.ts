@@ -15,6 +15,7 @@
 // gets a clean Zod error message.
 
 import type { PathStructureToolInput } from './ai-tools';
+import { QuizQuestionV2Schema, type QuizQuestionV2 } from '@notemage/shared';
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -24,6 +25,27 @@ function asNonEmptyString(v: unknown): string | null {
   if (typeof v !== 'string') return null;
   const trimmed = v.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+// Coerce a value that should be a boolean back to one. GLM under forced tools
+// intermittently returns `true_false`'s `correct` as the STRING "true"/"false"
+// (or "yes"/"no"/"1"/"0", or the number 1/0), which fails `z.boolean()` and
+// nukes the whole quiz into a retry. Returns null when there's nothing sane to
+// coerce, so the caller leaves the payload untouched and Zod produces a clean
+// error for the repair loop.
+function asBoolean(v: unknown): boolean | null {
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'number') {
+    if (v === 1) return true;
+    if (v === 0) return false;
+    return null;
+  }
+  if (typeof v === 'string') {
+    const s = v.trim().toLowerCase();
+    if (s === 'true' || s === 't' || s === 'yes' || s === 'y' || s === '1') return true;
+    if (s === 'false' || s === 'f' || s === 'no' || s === 'n' || s === '0') return false;
+  }
+  return null;
 }
 
 // Coerce a value that should be `string[]` back to that shape. Handles:
@@ -532,6 +554,70 @@ function normalizeSentenceReorderPayload(
   return payload;
 }
 
+// `true_false`: canonical shape is `{ correct: boolean }`. Pull the boolean out
+// of the common drift keys and string/number encodings; leave the payload as-is
+// when nothing coerces (Zod then fails cleanly → repair loop).
+function normalizeTrueFalsePayload(payload: Record<string, unknown>): Record<string, unknown> {
+  const candidate =
+    payload.correct ??
+    payload.answer ??
+    payload.correctAnswer ??
+    payload.isCorrect ??
+    payload.isTrue ??
+    payload.value;
+  const b = asBoolean(candidate);
+  return b === null ? payload : { correct: b };
+}
+
+// `timeline`: canonical shape is `{ events: [{ year: string, label: string }] }`.
+// The model frequently emits a NUMERIC year (`1914` not `"1914"`) and drifted
+// keys (`date`/`event`/`text`). Coerce each event; count bounds (min 3) stay with
+// Zod so an under-filled timeline surfaces as a clean error for the repair loop.
+function normalizeTimelinePayload(payload: Record<string, unknown>): Record<string, unknown> {
+  const list = toUnknownArray(payload.events ?? payload.timeline ?? payload.items ?? payload.entries);
+  if (list.length === 0) return payload;
+  const events: Array<{ year: string; label: string }> = [];
+  for (const e of list) {
+    if (!isPlainObject(e)) continue;
+    const yearRaw = e.year ?? e.date ?? e.when ?? e.time ?? e.period;
+    const year =
+      typeof yearRaw === 'number' ? String(yearRaw) : asNonEmptyString(yearRaw);
+    const label =
+      asNonEmptyString(e.label) ??
+      asNonEmptyString(e.event) ??
+      asNonEmptyString(e.text) ??
+      asNonEmptyString(e.description) ??
+      asNonEmptyString(e.title);
+    if (year && label) events.push({ year, label });
+  }
+  return events.length > 0 ? { events } : payload;
+}
+
+// `equation`: canonical shape carries `expectedExpression` (a FINAL answer; Zod
+// strips any `=` and rejects an empty/degenerate result). Coerce the common key
+// drift; do NOT pre-strip (ExpectedExpressionSchema owns that). When the model
+// gave nothing usable, leave the payload so Zod's clean error drives the repair
+// loop rather than silently storing an ungradeable equation.
+function normalizeEquationPayload(payload: Record<string, unknown>): Record<string, unknown> {
+  const expr =
+    asNonEmptyString(payload.expectedExpression) ??
+    asNonEmptyString(payload.expression) ??
+    asNonEmptyString(payload.answer) ??
+    asNonEmptyString(payload.expected) ??
+    asNonEmptyString(payload.correctAnswer) ??
+    asNonEmptyString(payload.correct);
+  if (!expr) return payload;
+  const out: Record<string, unknown> = { expectedExpression: expr };
+  if (typeof payload.tolerance === 'number') out.tolerance = payload.tolerance;
+  const variables = toStringArray(payload.variables);
+  if (variables.length > 0) out.variables = variables;
+  const accepted = toStringArray(
+    payload.acceptedExpressions ?? payload.alternativeAnswers ?? payload.alternatives,
+  );
+  if (accepted.length > 0) out.acceptedExpressions = accepted;
+  return out;
+}
+
 function normalizeQuestionPayload(
   kind: string,
   payload: Record<string, unknown>,
@@ -539,6 +625,8 @@ function normalizeQuestionPayload(
   switch (kind) {
     case 'mc':
       return normalizeMcPayload(payload);
+    case 'true_false':
+      return normalizeTrueFalsePayload(payload);
     case 'fill_blank':
       return normalizeFillBlankPayload(payload);
     case 'translation':
@@ -549,6 +637,10 @@ function normalizeQuestionPayload(
       return normalizeMatchPairsPayload(payload);
     case 'sentence_reorder':
       return normalizeSentenceReorderPayload(payload);
+    case 'equation':
+      return normalizeEquationPayload(payload);
+    case 'timeline':
+      return normalizeTimelinePayload(payload);
     default:
       return payload;
   }
@@ -591,6 +683,68 @@ export function normalizeQuizQuestions(raw: unknown): NormalizedQuizQuestion[] {
     out.push(normalized);
   }
   return out;
+}
+
+// Per-question salvage (mirrors the per-diagram drop in path-generator.ts:
+// `resolveDiagrams`). `QuizSetV2Schema.safeParse` is all-or-nothing — one
+// unrecoverable question (e.g. an `mc` with 3 options after normalization)
+// fails the WHOLE set and forces a full regenerate. Instead, validate each
+// normalized question on its own and KEEP the good ones, provided at least
+// `minItems` survive. When too few survive we return the ORIGINAL list so the
+// downstream full-set parse still fires and produces a clean error for the
+// repair loop (rather than silently shipping a 1-question "quiz").
+export function safeParseQuizQuestions(
+  normalized: NormalizedQuizQuestion[],
+  minItems: number,
+): { questions: NormalizedQuizQuestion[]; dropped: number } {
+  const good: NormalizedQuizQuestion[] = [];
+  for (const q of normalized) {
+    if (QuizQuestionV2Schema.safeParse(q).success) good.push(q);
+  }
+  const dropped = normalized.length - good.length;
+  if (dropped > 0 && good.length >= minItems) {
+    return { questions: good, dropped };
+  }
+  return { questions: normalized, dropped: 0 };
+}
+
+// Semantic value checks on ALREADY-Zod-validated questions — catches the class
+// of "structurally valid but semantically broken" output that a JSON schema
+// cannot (research: 15–25% of schema-valid LLM outputs have wrong values).
+// Returns null on pass, or the FIRST specific failure as a diagnostic string
+// that the repair loop folds back as a corrective notice (specific errors
+// repair ~77% vs vague ~45%).
+//
+// Deliberately LEAN: `mc` (correctIndex in [0,3] + exactly 4 options),
+// `equation` (no `=`), and `fill_blank` (≥1 acceptable answer) are ALREADY
+// guaranteed by their tight Zod schemas, so re-checking them only risks
+// false-positive repair churn. We check only the genuinely-additive,
+// high-precision, low-false-positive cases that Zod can't express.
+export function runSemanticChecks(questions: QuizQuestionV2[]): string | null {
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    if (q.kind === 'timeline') {
+      const years = q.payload.events.map((e) => e.year.trim().toLowerCase());
+      if (new Set(years).size < years.length) {
+        return `Question ${i + 1} (timeline): duplicate year values — each event needs a distinct year so the ordering is unambiguous.`;
+      }
+    } else if (q.kind === 'match_pairs') {
+      const lefts = q.payload.pairs.map((p) => p.left.trim().toLowerCase());
+      const rights = q.payload.pairs.map((p) => p.right.trim().toLowerCase());
+      if (new Set(lefts).size < lefts.length || new Set(rights).size < rights.length) {
+        return `Question ${i + 1} (match_pairs): duplicate left or right values make the matching ambiguous — every term and every definition must be unique.`;
+      }
+    } else if (q.kind === 'word_bank') {
+      // Solvability: every blank's answer must be a token in the bank.
+      const bank = q.payload.wordBank.map((w) => w.trim().toLowerCase());
+      for (const slot of q.payload.slots) {
+        if (!bank.includes(slot.correctAnswer.trim().toLowerCase())) {
+          return `Question ${i + 1} (word_bank): the answer "${slot.correctAnswer}" is missing from wordBank — the puzzle is unsolvable.`;
+        }
+      }
+    }
+  }
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────

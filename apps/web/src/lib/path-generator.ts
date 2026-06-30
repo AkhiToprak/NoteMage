@@ -86,6 +86,9 @@ import {
   type DiagramClozePayload,
 } from '@notemage/shared';
 import { randomUUID } from 'crypto';
+import type { ZodError } from 'zod';
+import { generateWithRepair } from './generate-with-repair';
+import { createSemaphore } from './concurrency';
 import { copyImage } from './storage';
 import { buildLegacyColumns } from './quiz-grading';
 import { db } from './db';
@@ -96,6 +99,8 @@ import {
   normalizePathStructure,
   normalizeQuizQuestions,
   normalizeTheoryInput,
+  safeParseQuizQuestions,
+  runSemanticChecks,
   type NormalizedFlashcardsInput,
 } from './path-generator-normalize';
 import { allowedKindsForSubjects, coerceSubjectIds, type SubjectId } from './path-subjects';
@@ -161,9 +166,19 @@ export type GeneratedPathStructure = PathStructureToolInput;
 // Helpers
 // ─────────────────────────────────────────────────────────────────────
 
-/** Trim a Zod error message so it stays readable inside a retry prompt. */
-function truncateError(message: string): string {
-  return message.length > 600 ? `${message.slice(0, 600)}…` : message;
+/**
+ * Compact a ZodError into a few `path: message` clauses instead of the full
+ * multi-hundred-token `.message`. A specific, structured diagnostic drives far
+ * better self-repair than a vague "invalid" (research: specific errors repair
+ * ~77% vs ~45% for vague), and it keeps the corrective prompt cheap.
+ */
+function formatZodError(error: ZodError): string {
+  const issues = error.issues.slice(0, 4).map((issue) => {
+    const path = issue.path.length > 0 ? issue.path.join('.') : 'root';
+    return `${path}: ${issue.message}`;
+  });
+  const extra = error.issues.length > 4 ? ` (+${error.issues.length - 4} more)` : '';
+  return issues.join('; ') + extra;
 }
 
 /** How many times Stage B re-attempts one activity's AI call before giving
@@ -178,6 +193,17 @@ const MAX_ACTIVITY_ATTEMPTS = 3;
 // (Haiku, high-volume) gets one extra sweep; its real fix is prompt reliability.
 const PATH_RETRY_SWEEPS_ULTRA = 3;
 const PATH_RETRY_SWEEPS_BASIC = 1;
+
+// How many slots a single generation pass works on concurrently. Slots are
+// independent except for the learning→review content dependency, which the
+// two-wave-per-phase ordering already enforces — so this just bounds how many
+// run at once (and thus peak in-flight OpenRouter calls). Default 5 (≈4× faster
+// than serial on a 14-slot path while staying within typical rate limits); set
+// PATH_GENERATION_CONCURRENCY=1 to revert to fully serial behavior.
+const PATH_SLOT_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.PATH_GENERATION_CONCURRENCY ?? '5') || 5,
+);
 
 /** Short, safe preview of a raw AI tool output, for failure diagnostics. */
 function previewToolOutput(raw: unknown): string {
@@ -237,12 +263,16 @@ function addNormalizedUsage(meter: UsageMeter, u: NormalizedUsage): void {
     outputTokens: 0,
     cacheReadTokens: 0,
     cacheWriteTokens: 0,
+    costUsdExact: 0,
   };
   m.calls += 1;
   m.inputTokens += u.inputTokens;
   m.outputTokens += u.outputTokens;
   m.cacheReadTokens += u.cacheReadTokens;
   m.cacheWriteTokens += u.cacheWriteTokens;
+  // OpenRouter returns the real billed USD inline; accumulate it so the ledger
+  // records exact cost instead of re-deriving from the approximate rate table.
+  m.costUsdExact += u.costUsd ?? 0;
   meter.perModel[u.model] = m;
   meter.byProvider[u.provider] += 1;
 }
@@ -273,6 +303,9 @@ function reportMeterUsage(meter: UsageMeter, feature: string, userId: string | n
       outputTokens: m.outputTokens,
       cacheReadTokens: m.cacheReadTokens,
       cacheWriteTokens: m.cacheWriteTokens,
+      // Prefer OpenRouter's exact billed amount; logAiUsage falls back to the
+      // derived rate when this is undefined (Anthropic/Gemini paths).
+      costUsd: m.costUsdExact > 0 ? m.costUsdExact : undefined,
     });
   }
 }
@@ -807,6 +840,11 @@ interface PlanForGeneration {
   figuresSkippedReason: string | null;
   /** Cross-sweep figure telemetry accumulator, attached by runPathGeneration. */
   figureStats?: FigureStats;
+  /** OpenRouter sticky-routing token for this run, attached by runPathGeneration
+   *  AFTER load (loadPlanForGeneration doesn't know the run). Every Stage B
+   *  forcedStructuredCall reads it so all of a run's GLM calls + sweeps land on
+   *  the same upstream → reliable corpus prefix-cache hits. */
+  sessionId?: string;
   phases: PhaseForGeneration[];
 }
 
@@ -921,10 +959,125 @@ function recordFigureResolution(
 }
 
 /**
- * Load a plan into the orchestrator's working shape. Returns null if the
- * plan doesn't exist (caller should treat as a no-op).
+ * The corpus-derived artifacts that are STABLE for the life of one
+ * runPathGeneration (materialIds don't change between sweeps). Typed as a `Pick`
+ * of PlanForGeneration — NOT a standalone struct — so that if a new
+ * corpus-derived field is ever added to PlanForGeneration, this cache and
+ * buildCorpusCache's return both fail to compile until it's accounted for
+ * (preventing a silently-stale cached value).
  */
-async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration | null> {
+type RunCorpusCache = Pick<
+  PlanForGeneration,
+  | 'corpus'
+  | 'sourceIndex'
+  | 'imageCatalog'
+  | 'availableImages'
+  | 'sourceImageCount'
+  | 'catalogImageCount'
+  | 'figuresSkippedReason'
+  | 'theoryFiguresEnabled'
+  | 'flashcardFiguresEnabled'
+  | 'quizFiguresEnabled'
+  | 'diagramsEnabled'
+>;
+
+/**
+ * Build the run-stable corpus + image catalog ONCE (lifted out of
+ * loadPlanForGeneration so sweeps can reuse it). Rebuilds the same material
+ * corpus Stage A used so every Stage B activity is grounded in the learner's
+ * content; if a material was deleted since creation, loadMaterialCorpus returns
+ * null and generation proceeds without it rather than aborting.
+ *
+ * Theory visuals: diagrams + figures are all-tiers. Captions are pre-warmed at
+ * import (P1), so captionMissing only heals pre-feature/OneNote/sweep-killed gaps
+ * — and because it writes captions to the DB, the cache means it runs at most
+ * once per run. The whole figure build is best-effort: any failure leaves the
+ * catalog null and figures are simply never offered (a path never fails over
+ * visuals).
+ */
+async function buildCorpusCache(args: {
+  userId: string;
+  materialIds: string[];
+  ultra: boolean;
+  planId: string;
+  title: string;
+  subjectLabels: SubjectId[];
+}): Promise<RunCorpusCache> {
+  const { userId, materialIds, ultra, planId, title, subjectLabels } = args;
+  const corpusEntries = await loadMaterialCorpus(userId, materialIds);
+  const corpus = corpusEntries
+    ? renderMaterialCorpus(corpusEntries, pathContentCap(ultra))
+    : null;
+  // Source-highlighting — index the corpus by title so each activity's persistence
+  // can resolve a model-emitted `source.label` to its origin Page/Document id.
+  const sourceIndex = corpusEntries ? buildSourceIdentityIndex(corpusEntries) : null;
+
+  const diagramsEnabled = process.env.PATH_THEORY_DIAGRAMS_DISABLED !== '1';
+  const theoryFiguresEnabled = process.env.PATH_THEORY_FIGURES_DISABLED !== '1';
+  const flashcardFiguresEnabled = process.env.PATH_FLASHCARD_FIGURES_DISABLED !== '1';
+  const quizFiguresEnabled = process.env.PATH_QUIZ_FIGURES_DISABLED !== '1';
+  let imageCatalog: string | null = null;
+  let availableImages: SourceImage[] = [];
+  let figuresSkippedReason: string | null = null;
+  if (theoryFiguresEnabled || flashcardFiguresEnabled || quizFiguresEnabled) {
+    try {
+      availableImages = await loadSourceImages(userId, materialIds, {
+        planId,
+        title,
+        subjectLabels,
+      });
+      if (availableImages.length === 0) {
+        figuresSkippedReason = 'no_source_images';
+      } else {
+        await captionMissing(availableImages, { userId });
+        const rendered = renderImageCatalog(availableImages);
+        if (rendered.length > 0) {
+          imageCatalog = rendered;
+        } else {
+          figuresSkippedReason = 'no_catalog_captions';
+        }
+      }
+    } catch (error) {
+      logTelemetry(userId, 'path.theory.image_catalog_failed', {
+        planId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      imageCatalog = null;
+      availableImages = [];
+      figuresSkippedReason = 'catalog_build_failed';
+    }
+    if (figuresSkippedReason) {
+      logTelemetry(userId, 'path.figures.skipped', { planId, reason: figuresSkippedReason });
+    }
+  }
+  const catalogImageCount = availableImages.filter(
+    (i) => i.caption && i.caption.trim().length > 0
+  ).length;
+
+  return {
+    corpus,
+    sourceIndex,
+    imageCatalog,
+    availableImages,
+    sourceImageCount: availableImages.length,
+    catalogImageCount,
+    figuresSkippedReason,
+    theoryFiguresEnabled,
+    flashcardFiguresEnabled,
+    quizFiguresEnabled,
+    diagramsEnabled,
+  };
+}
+
+/**
+ * Load a plan into the orchestrator's working shape. Returns null if the
+ * plan doesn't exist (caller should treat as a no-op). Pass `corpusCache` on
+ * sweep reloads to reuse the run-stable corpus instead of rebuilding it.
+ */
+async function loadPlanForGeneration(
+  planId: string,
+  corpusCache?: RunCorpusCache,
+): Promise<PlanForGeneration | null> {
   const plan = await db.studyPlan.findUnique({
     where: { id: planId },
     include: {
@@ -956,75 +1109,19 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
   const resolvedSubjects: SubjectId[] = subjects.length > 0 ? subjects : ['general'];
   const resolvedWeights: number[] = subjects.length > 0 ? subjectWeights : [1];
 
-  // Rebuild the same material corpus Stage A used so every Stage B activity
-  // call is grounded in the learner's content. If a material was deleted
-  // since the path was created, loadMaterialCorpus returns null — generate
-  // without it rather than aborting the whole path.
-  const corpusEntries = await loadMaterialCorpus(plan.userId, plan.materialIds);
-  const corpus = corpusEntries
-    ? renderMaterialCorpus(corpusEntries, pathContentCap(plan.ultra))
-    : null;
-  // Source-highlighting feature — index the corpus by title so each activity's
-  // persistence step can resolve a model-emitted `source.label` back to its
-  // origin Page/Document id. Built once per path (cheap) and threaded into every
-  // Stage B activity via the gen context. Null when no materials are loaded.
-  const sourceIndex = corpusEntries ? buildSourceIdentityIndex(corpusEntries) : null;
-
-  // Theory visuals. Diagrams are all-tiers (no added AI cost) so they ride a
-  // simple kill-switch. Figures are all-tiers too: captions are pre-warmed at
-  // import time (P1), so generation adds zero vision tokens for fresh imports —
-  // captionMissing only heals pre-feature/OneNote/sweep-killed gaps. Theory,
-  // flashcard (P3) and quiz (P4) figures share ONE catalog (deterministic +
-  // 1h-cached); each feature has its own kill-switch and is gated at its
-  // consumption site, so the catalog is built whenever ANY is enabled. The whole
-  // build is best-effort — any failure leaves imageCatalog null and figures are
-  // simply never offered, so a path never fails over visuals.
-  const diagramsEnabled = process.env.PATH_THEORY_DIAGRAMS_DISABLED !== '1';
-  const theoryFiguresEnabled = process.env.PATH_THEORY_FIGURES_DISABLED !== '1';
-  const flashcardFiguresEnabled = process.env.PATH_FLASHCARD_FIGURES_DISABLED !== '1';
-  const quizFiguresEnabled = process.env.PATH_QUIZ_FIGURES_DISABLED !== '1';
-  let imageCatalog: string | null = null;
-  let availableImages: SourceImage[] = [];
-  // P5 — a wholesale figure skip always records WHY, so an empty catalog is
-  // never silent. Generation continues text-only regardless.
-  let figuresSkippedReason: string | null = null;
-  if (theoryFiguresEnabled || flashcardFiguresEnabled || quizFiguresEnabled) {
-    try {
-      availableImages = await loadSourceImages(plan.userId, plan.materialIds, {
-        planId: plan.id,
-        title: plan.title,
-        subjectLabels: resolvedSubjects,
-      });
-      if (availableImages.length === 0) {
-        figuresSkippedReason = 'no_source_images';
-      } else {
-        await captionMissing(availableImages, { userId: plan.userId });
-        const rendered = renderImageCatalog(availableImages);
-        if (rendered.length > 0) {
-          imageCatalog = rendered;
-        } else {
-          figuresSkippedReason = 'no_catalog_captions';
-        }
-      }
-    } catch (error) {
-      logTelemetry(plan.userId, 'path.theory.image_catalog_failed', {
-        planId: plan.id,
-        message: error instanceof Error ? error.message : String(error),
-      });
-      imageCatalog = null;
-      availableImages = [];
-      figuresSkippedReason = 'catalog_build_failed';
-    }
-    if (figuresSkippedReason) {
-      logTelemetry(plan.userId, 'path.figures.skipped', {
-        planId: plan.id,
-        reason: figuresSkippedReason,
-      });
-    }
-  }
-  const catalogImageCount = availableImages.filter(
-    (i) => i.caption && i.caption.trim().length > 0
-  ).length;
+  // Corpus + image catalog are STABLE for the life of a run (materialIds are
+  // fixed), so runPathGeneration builds them ONCE and passes the cache into every
+  // sweep reload — eliminating 1–3 redundant corpus re-renders + DB reads (and
+  // any repeat captionMissing work) per path. On the first load there's no cache,
+  // so we build it here. See buildCorpusCache for the lifted body.
+  const cc = corpusCache ?? (await buildCorpusCache({
+    userId: plan.userId,
+    materialIds: plan.materialIds,
+    ultra: plan.ultra,
+    planId: plan.id,
+    title: plan.title,
+    subjectLabels: resolvedSubjects,
+  }));
 
   return {
     id: plan.id,
@@ -1038,17 +1135,7 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     ultra: plan.ultra,
     gemini: plan.gemini,
     language: normalizePathLanguage(plan.language),
-    corpus,
-    sourceIndex,
-    imageCatalog,
-    availableImages,
-    sourceImageCount: availableImages.length,
-    catalogImageCount,
-    figuresSkippedReason,
-    theoryFiguresEnabled,
-    flashcardFiguresEnabled,
-    quizFiguresEnabled,
-    diagramsEnabled,
+    ...cc,
     usage: emptyMeter(),
     phases: plan.phases.map((p) => ({
       title: p.title,
@@ -1533,78 +1620,69 @@ async function generateTheoryActivity(
   const ctx = makeSlotContentContext(plan, phase, slot);
   const { system, tail } = buildTheoryPrompt(ctx);
 
-  // Retry on validation failure or missing examples. examples are optional
-  // in the schema, so an example-less section is accepted once the retries
-  // are spent — a thin section beats a blocked checkpoint.
-  let input: TheorySection | null = null;
-  let exampleLess: TheorySection | null = null;
-  // Source-highlighting — the raw `source` anchor from the ACCEPTED attempt
-  // (schema parse strips it, so capture it off the normalized input separately).
+  // Validate-and-repair (generateWithRepair: call → validate → re-call once with
+  // the SPECIFIC error folded back as a CoT-repair notice). `examples` are
+  // optional in the schema, so a valid-but-example-less section is kept as a
+  // fallback and we ask ONCE more for an example (theoryInputToTipTap renders
+  // fine without one) — never a hard failure. The sweep (runGenerationPass) is
+  // the OUTER net; this is the inner repair — distinct layers, not collapsed.
+  // Source-highlighting: the raw `source` anchor is captured off the normalized
+  // input (schema parse strips it) inside parse.
   let rawTheorySource: unknown = null;
-  let lastError = '';
-  for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !input; attempt++) {
-    const attemptTail =
-      attempt === 1
-        ? tail
-        : [
-            tail,
-            '',
-            '--- RETRY NOTICE ---',
-            lastError,
-            '`examples` MUST be a non-empty JSON array of { label, explanation } objects. Regenerate the full section.',
-          ].join('\n');
-    try {
-      const raw = await forcedStructuredCall<unknown>({
+  let exampleLess: TheorySection | null = null;
+  const outcome = await generateWithRepair<TheorySection>({
+    call: (corrective) =>
+      forcedStructuredCall<unknown>({
         stage: 'theory',
         corpus: plan.corpus,
         staticInstructions: system,
-        dynamicInstructions: attemptTail,
+        dynamicInstructions: corrective
+          ? [
+              tail,
+              '',
+              '--- REPAIR NOTICE ---',
+              'Your previous theory section was rejected. Explain what went wrong in one sentence, then output the corrected JSON.',
+              `Error: ${corrective}`,
+            ].join('\n')
+          : tail,
         anthropicTool: THEORY_SECTION_TOOL,
         userMessage: `Write the theory section for slot "${slot.title}".`,
         providerOverride: plan.gemini ? 'gemini' : undefined,
+        sessionId: plan.sessionId,
         onUsage: (u) => addNormalizedUsage(plan.usage, u),
-      });
+      }),
+    parse: (raw) => {
       const normalized = normalizeTheoryInput(raw);
       const parsed = TheorySectionSchema.safeParse(normalized);
-      if (parsed.success && parsed.data.examples.length > 0) {
-        input = parsed.data;
-        rawTheorySource = normalized.source ?? null;
-      } else if (parsed.success) {
-        exampleLess = parsed.data;
-        rawTheorySource = normalized.source ?? null;
-        lastError = 'Your previous theory section had an empty `examples` array.';
+      if (!parsed.success) {
         logTelemetry(plan.userId, 'path.theory.retry', {
           planId: plan.id,
           slotId: slot.id,
-          attempt,
-          reason: 'no_examples',
-        });
-      } else {
-        lastError = `Your previous theory section failed validation: ${truncateError(
-          parsed.error.message
-        )}`;
-        logTelemetry(plan.userId, 'path.theory.retry', {
-          planId: plan.id,
-          slotId: slot.id,
-          attempt,
           reason: 'validation_failed',
         });
+        return { ok: false, error: formatZodError(parsed.error) };
       }
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error);
-      logTelemetry(plan.userId, 'path.theory.retry', {
-        planId: plan.id,
-        slotId: slot.id,
-        attempt,
-        reason: 'call_failed',
-      });
-    }
-  }
+      rawTheorySource = normalized.source ?? null;
+      if (parsed.data.examples.length === 0) {
+        exampleLess = parsed.data;
+        logTelemetry(plan.userId, 'path.theory.retry', {
+          planId: plan.id,
+          slotId: slot.id,
+          reason: 'no_examples',
+        });
+        return {
+          ok: false,
+          error: '`examples` MUST be a non-empty JSON array of { label, explanation } objects.',
+        };
+      }
+      return { ok: true, data: parsed.data };
+    },
+  });
 
   // Accept an example-less section rather than failing the checkpoint.
-  const resolved = input ?? exampleLess;
+  const resolved = outcome.data ?? exampleLess;
   if (!resolved) {
-    throw new Error(`Theory generation failed: ${lastError}`);
+    throw new Error(`Theory generation failed: ${outcome.lastError}`);
   }
 
   // Theory visuals — validate the model's figures (drop hallucinated refs) and
@@ -1769,58 +1847,50 @@ async function generateFlashcardsActivity(
   const ctx = makeSlotContentContext(plan, phase, slot, theoryText);
   const { system, tail } = buildFlashcardsPrompt(ctx);
 
-  // The model intermittently returns an empty / unusable `flashcards` array
-  // under the forced-tool call. Retry up to MAX_ACTIVITY_ATTEMPTS with a
-  // corrective notice; the raw output is logged so a persistent failure is
-  // diagnosable from telemetry.
-  let resolved: NormalizedFlashcardsInput | null = null;
-  let lastDetail = '';
-  for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !resolved; attempt++) {
-    const attemptTail =
-      attempt === 1
-        ? tail
-        : [
-            tail,
-            '',
-            '--- RETRY NOTICE ---',
-            'Your previous response had an empty or unusable `flashcards` array.',
-            '`flashcards` MUST be a non-empty JSON array of { question, answer } objects.',
-          ].join('\n');
-    try {
-      const raw = await forcedStructuredCall<unknown>({
+  // Validate-and-repair: the model intermittently returns an empty / unusable
+  // `flashcards` array under the forced tool. Re-call once with the failure
+  // folded back as a CoT-repair notice. The prune-vs-fail fallback survives
+  // after the repair attempts are spent. The sweep is the outer net.
+  const outcome = await generateWithRepair<NormalizedFlashcardsInput>({
+    call: (corrective) =>
+      forcedStructuredCall<unknown>({
         stage: 'flashcards',
         corpus: plan.corpus,
         staticInstructions: system,
-        dynamicInstructions: attemptTail,
+        dynamicInstructions: corrective
+          ? [
+              tail,
+              '',
+              '--- REPAIR NOTICE ---',
+              'Your previous flashcards response was unusable. Explain what went wrong in one sentence, then output the corrected JSON.',
+              `Error: ${corrective}`,
+              '`flashcards` MUST be a non-empty JSON array of { question, answer } objects.',
+            ].join('\n')
+          : tail,
         anthropicTool: FLASHCARDS_FOR_SLOT_TOOL,
         userMessage: `Generate flashcards for slot "${slot.title}" — only as many as the material supports. The flashcards array must not be empty.`,
         providerOverride: plan.gemini ? 'gemini' : undefined,
+        sessionId: plan.sessionId,
         onUsage: (u) => addNormalizedUsage(plan.usage, u),
-      });
+      }),
+    parse: (raw) => {
       const normalized = normalizeFlashcardsInput(raw);
-      if (normalized.flashcards.length > 0) {
-        resolved = normalized;
-      } else {
-        lastDetail = `empty set; raw output: ${previewToolOutput(raw)}`;
+      if (normalized.flashcards.length === 0) {
         logTelemetry(plan.userId, 'path.flashcards.retry', {
           planId: plan.id,
           slotId: slot.id,
-          attempt,
           reason: 'empty_set',
           preview: previewToolOutput(raw),
         });
+        return {
+          ok: false,
+          error: 'The `flashcards` array was empty or contained no valid { question, answer } objects.',
+        };
       }
-    } catch (error) {
-      lastDetail = error instanceof Error ? error.message : String(error);
-      logTelemetry(plan.userId, 'path.flashcards.retry', {
-        planId: plan.id,
-        slotId: slot.id,
-        attempt,
-        reason: 'call_failed',
-      });
-    }
-  }
-  if (!resolved) {
+      return { ok: true, data: normalized };
+    },
+  });
+  if (!outcome.data) {
     // Prune-vs-fail. Thin theory legitimately supports no cards → prune the
     // activity (the theory lesson still stands) instead of failing the
     // checkpoint. Rich theory with no cards is a real failure and still throws
@@ -1830,9 +1900,9 @@ async function generateFlashcardsActivity(
       await recordPrunedActivity(plan, slot, 'flashcards', 'thin_theory');
       return;
     }
-    throw new Error(`Flashcards generation returned no usable cards (${lastDetail})`);
+    throw new Error(`Flashcards generation returned no usable cards (${outcome.lastError})`);
   }
-  const input = resolved;
+  const input = outcome.data;
 
   // Figure-reuse (P3): validate the model's per-card figures against the catalog
   // (drop hallucinated/duplicate refs, cap at 4), then SNAPSHOT each referenced
@@ -1970,6 +2040,7 @@ async function callQuizDispatch(
     anthropicTool: QUIZ_FOR_SLOT_TOOL,
     userMessage: `Generate the quiz for slot "${slotTitle}". The questions array must not be empty.`,
     providerOverride: plan.gemini ? 'gemini' : undefined,
+    sessionId: plan.sessionId,
     onUsage: (u) => addNormalizedUsage(plan.usage, u),
     ultra: plan.ultra,
   });
@@ -1979,14 +2050,27 @@ type ValidatedQuizSet = ReturnType<typeof QuizSetV2Schema.parse>;
 
 type QuizParseResult = { ok: true; data: ValidatedQuizSet } | { ok: false; error: string };
 
-function parseQuizInput(raw: QuizForSlotToolInput, fallbackTitle: string): QuizParseResult {
+function parseQuizInput(
+  raw: QuizForSlotToolInput,
+  fallbackTitle: string,
+  minItems = 3,
+): QuizParseResult {
   const normalizedQuestions = normalizeQuizQuestions(raw.questions);
+  // Per-question salvage: drop only the individually-unrecoverable questions
+  // (provided ≥ minItems survive) so one bad item can't nuke an otherwise-good
+  // quiz into a full regenerate. Below the floor we keep the original list so
+  // the full-set parse fires and surfaces a clean error.
+  const { questions: salvaged } = safeParseQuizQuestions(normalizedQuestions, minItems);
   const parsed = QuizSetV2Schema.safeParse({
     title: raw.title || fallbackTitle,
-    questions: normalizedQuestions,
+    questions: salvaged,
   });
-  if (parsed.success) return { ok: true, data: parsed.data };
-  return { ok: false, error: parsed.error.message };
+  if (!parsed.success) return { ok: false, error: parsed.error.message };
+  // Value-level checks Zod can't express (e.g. an unsolvable word_bank). A
+  // failure here returns a specific diagnostic that drives the corrective retry.
+  const semantic = runSemanticChecks(parsed.data.questions);
+  if (semantic) return { ok: false, error: semantic };
+  return { ok: true, data: parsed.data };
 }
 
 /**
@@ -2004,7 +2088,11 @@ async function tryDegradedQuiz(
   system: string,
   baseTail: string
 ): Promise<ValidatedQuizSet | null> {
-  const count = slot.kind === 'final_exam' ? '8–12 questions' : '3–5 questions';
+  // Slightly fewer questions for the final exam here than the normal ask: the
+  // degraded path is also the truncation safety net (a long, rich final exam is
+  // the main `finish_reason=length` risk), and mc/true_false questions are short
+  // enough that 8–10 comfortably fit the output budget.
+  const count = slot.kind === 'final_exam' ? '8–10 questions' : '3–5 questions';
 
   // Prefer `mc` + `true_false` (lowest drift) but intersect with what the
   // subject allows so the degraded output passes the post-filter. If neither
@@ -2032,14 +2120,14 @@ async function tryDegradedQuiz(
     baseTail,
     '',
     '--- SIMPLIFIED RETRY ---',
-    'The previous attempts produced an unusable quiz. Generate a SIMPLER quiz now so the learner still gets one.',
+    'The previous attempts produced an unusable quiz (possibly too long to finish). Generate a SIMPLER, SHORTER quiz now so the learner still gets one.',
     `Use ONLY these question kinds: ${degradedKinds.join(', ')} — no other kinds.`,
-    `Produce ${count}.`,
+    `Produce ${count}. Keep every prompt and payload concise.`,
     degradedCatalog,
   ].join('\n');
   try {
     const raw = await callQuizDispatch(plan, slot.title, system, degradedTail);
-    const result = parseQuizInput(raw, slot.title);
+    const result = parseQuizInput(raw, slot.title, slot.kind === 'final_exam' ? 8 : 3);
     if (result.ok) {
       // Apply the same subject filter as the normal path.
       const filtered = result.data.questions.filter((q) => allowedSet.has(q.kind));
@@ -2078,117 +2166,85 @@ async function generateQuizActivity(
   // it, and `PATH_QUIZ_MODEL` pins the quiz model. `plan.ultra` is still passed
   // through callQuizDispatch (it drives the legacy upgrade + the structure tier).
 
-  // Validate the v2 shape — the tool schema accepts a generic payload
-  // object, so we Zod-check it (after normalizing common drift shapes)
-  // before persisting. Retry up to MAX_ACTIVITY_ATTEMPTS, feeding the
-  // failure reason back as a corrective notice each time.
-  let parseResult: ValidatedQuizSet | null = null;
-  let lastError = '';
-  for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !parseResult; attempt++) {
-    const attemptTail =
-      attempt === 1
-        ? tail
-        : [
-            tail,
-            '',
-            '--- RETRY NOTICE ---',
-            `Your previous quiz was unusable: ${lastError}`,
-            'Regenerate the entire quiz. The `questions` array MUST be non-empty and every question must match the exact payload shape for its kind.',
-          ].join('\n');
-    try {
-      const raw = await callQuizDispatch(plan, slot.title, system, attemptTail);
-      const result = parseQuizInput(raw, slot.title);
-      if (result.ok) {
-        parseResult = result.data;
-      } else {
-        lastError = truncateError(result.error);
+  // Validate-and-repair with the kind-filter folded IN. parseQuizInput normalizes
+  // drift, salvages per-question, runs Zod + semantic checks; here we ALSO drop
+  // questions whose kind isn't allowed for the subject. A Zod failure OR a
+  // disallowed-kind shortfall both become a SPECIFIC corrective notice on the one
+  // repair attempt — collapsing the former separate 3-attempt loop + kind-filter
+  // retry into a single loop. tryDegradedQuiz is the last resort (a simpler ask,
+  // not a repair). The sweep (runGenerationPass) remains the OUTER net.
+  const allowedKinds = allowedKindsForSubjects(plan.subjects);
+  const allowedSet = new Set<QuestionKind>(allowedKinds);
+  const minCount = slot.kind === 'final_exam' ? 8 : 3;
+
+  const outcome = await generateWithRepair<ValidatedQuizSet>({
+    call: (corrective) =>
+      callQuizDispatch(
+        plan,
+        slot.title,
+        system,
+        corrective
+          ? [
+              tail,
+              '',
+              '--- REPAIR NOTICE ---',
+              'Your previous quiz was rejected. Explain what went wrong in one sentence, then output the corrected JSON.',
+              `Error: ${corrective}`,
+            ].join('\n')
+          : tail,
+      ),
+    parse: (raw) => {
+      const result = parseQuizInput(raw as QuizForSlotToolInput, slot.title, minCount);
+      if (!result.ok) {
         logTelemetry(plan.userId, 'path.quiz.retry', {
           planId: plan.id,
           slotId: slot.id,
-          attempt,
           reason: 'validation_failed',
           preview: previewToolOutput(raw),
         });
+        return { ok: false, error: result.error };
       }
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error);
-      logTelemetry(plan.userId, 'path.quiz.retry', {
-        planId: plan.id,
-        slotId: slot.id,
-        attempt,
-        reason: 'call_failed',
-      });
-    }
-  }
-  if (!parseResult) {
+      const filtered = result.data.questions.filter((q) => allowedSet.has(q.kind));
+      const dropped = result.data.questions.length - filtered.length;
+      if (dropped > 0) {
+        logTelemetry(plan.userId, 'path.quiz.dropped_kind', {
+          planId: plan.id,
+          slotId: slot.id,
+          dropped,
+          allowed: allowedKinds,
+          subjects: plan.subjects,
+        });
+      }
+      if (filtered.length < minCount) {
+        logTelemetry(plan.userId, 'path.quiz.retry', {
+          planId: plan.id,
+          slotId: slot.id,
+          reason: 'kind_filter_under_min',
+          survivors: filtered.length,
+          minCount,
+        });
+        return {
+          ok: false,
+          error: `Only ${filtered.length} of ${result.data.questions.length} questions used an allowed kind. Use ONLY these kinds: ${allowedKinds.join(', ')} — and produce at least ${minCount} questions.`,
+        };
+      }
+      return { ok: true, data: { ...result.data, questions: filtered } };
+    },
+  });
+
+  let parsed: ValidatedQuizSet | null = outcome.data;
+  if (!parsed) {
     // Degrade before giving up: a simpler mc/true_false quiz beats a hole.
-    parseResult = await tryDegradedQuiz(plan, slot, system, tail);
-    if (!parseResult) {
-      throw new Error(`Quiz generation failed: ${lastError}`);
-    }
-  }
-  let parsed: ValidatedQuizSet = parseResult;
-
-  const allowedKinds = allowedKindsForSubjects(plan.subjects);
-  const allowedSet = new Set<QuestionKind>(allowedKinds);
-  const beforeFilter = parsed.questions.length;
-  let questions = parsed.questions.filter((q) => allowedSet.has(q.kind));
-  const droppedFirst = beforeFilter - questions.length;
-  if (droppedFirst > 0) {
-    logTelemetry(plan.userId, 'path.quiz.dropped_kind', {
-      planId: plan.id,
-      slotId: slot.id,
-      attempt: 1,
-      dropped: droppedFirst,
-      allowed: allowedKinds,
-      subjects: plan.subjects,
-    });
-  }
-
-  const minCount = slot.kind === 'final_exam' ? 8 : 3;
-  if (questions.length < minCount) {
-    logTelemetry(plan.userId, 'path.quiz.retry', {
-      planId: plan.id,
-      slotId: slot.id,
-      reason: 'kind_filter_under_min',
-      survivors: questions.length,
-      minCount,
-    });
-    const correctiveTail = [
-      tail,
-      '',
-      '--- RETRY NOTICE ---',
-      'Your previous response included questions whose `kind` is outside the allowed list for this subject. Regenerate the entire quiz.',
-      `Allowed kinds (use ONLY these): ${allowedKinds.join(', ')}.`,
-      'Drop any kind not on this list.',
-    ].join('\n');
-    try {
-      const retryInput = await callQuizDispatch(plan, slot.title, system, correctiveTail);
-      const retryResult = parseQuizInput(retryInput, slot.title);
-      if (retryResult.ok) {
-        const retryParsed = retryResult.data;
-        const retryFiltered = retryParsed.questions.filter((q) => allowedSet.has(q.kind));
-        const droppedRetry = retryParsed.questions.length - retryFiltered.length;
-        if (droppedRetry > 0) {
-          logTelemetry(plan.userId, 'path.quiz.dropped_kind', {
-            planId: plan.id,
-            slotId: slot.id,
-            attempt: 2,
-            dropped: droppedRetry,
-            allowed: allowedKinds,
-            subjects: plan.subjects,
-          });
-        }
-        if (retryFiltered.length > questions.length) {
-          questions = retryFiltered;
-          parsed = retryParsed;
-        }
-      }
-    } catch (error) {
-      console.error('[path-generator] quiz retry failed', error);
+    // tryDegradedQuiz already applies the subject filter internally.
+    parsed = await tryDegradedQuiz(plan, slot, system, tail);
+    if (!parsed) {
+      throw new Error(`Quiz generation failed: ${outcome.lastError}`);
     }
   }
 
+  // Idempotent final gate (the main path filtered inside parse; degraded filters
+  // internally) — also catches an all-disallowed degraded set.
+  const questions = parsed.questions.filter((q) => allowedSet.has(q.kind));
   if (questions.length === 0) {
     throw new Error(
       `Quiz produced no questions whose kind is allowed for subjects [${plan.subjects.join(', ')}]`
@@ -2438,6 +2494,101 @@ async function isCancelRequested(planId: string): Promise<boolean> {
  * usage accumulates into `plan.usage`, so the caller can carry a single meter
  * across retry sweeps. No status side effects — the caller owns final status.
  */
+/**
+ * Generate ONE slot's still-missing activities: theory first (so a learning
+ * slot's flashcards are built from the exact text the learner read), then
+ * flashcards + quiz in parallel. Returns whether any activity failed (logging
+ * each failure). Throws PathGenerationCancelled if the user cancels — checked
+ * before the slot's first AI call and again at the theory→(flashcards/quiz)
+ * boundary, so a cancel stops new spend promptly. (In-flight calls in the
+ * current wave still settle — cancel cost is bounded to ≤ PATH_SLOT_CONCURRENCY
+ * slots, vs ≤1 when serial; an acceptable trade for the speedup.)
+ */
+async function processSlot(
+  plan: PlanForGeneration,
+  phase: PhaseForGeneration,
+  slot: SlotForGeneration,
+  planId: string,
+  progressTotal: number,
+  completedRef: { value: number },
+): Promise<{ slotId: string; failed: boolean }> {
+  // Idempotency: skip kinds the slot already has, plus kinds Stage B
+  // intentionally pruned (complete-by-design) — this is what lets a retry sweep /
+  // regenerate only re-attempt the activities that previously failed.
+  const wantedKinds = expectedActivityKinds(slot.kind);
+  const missingKinds = wantedKinds.filter(
+    (k) => !slot.existingActivityKinds.has(k) && !slot.prunedActivityKinds.has(k),
+  );
+  if (missingKinds.length === 0) {
+    return { slotId: slot.id, failed: false };
+  }
+
+  if (await isCancelRequested(planId)) throw new PathGenerationCancelled();
+
+  // Best-effort progress caption (reads the wave-start snapshot; the authoritative
+  // count is tallied once per wave in runGenerationPass, not mutated here).
+  await writeProgress(planId, {
+    totalSlots: progressTotal,
+    completedSlots: completedRef.value,
+    currentSlot: { id: slot.id, title: slot.title },
+    currentActivity: missingKinds[0],
+  });
+
+  // Continue numbering after any pre-existing activities so sortOrder stays
+  // monotonically increasing across runs.
+  const sortOrderBase = slot.existingActivityKinds.size;
+  const sortOrderByKind = new Map<PathActivityKind, number>(
+    missingKinds.map((kind, i) => [kind, sortOrderBase + i]),
+  );
+
+  let failed = false;
+  const recordFailure = (kind: PathActivityKind, reason: unknown) => {
+    failed = true;
+    const message = reason instanceof Error ? reason.message : String(reason);
+    logTelemetry(plan.userId, 'path.generation.activity_failed', {
+      planId,
+      slotId: slot.id,
+      activityKind: kind,
+      message,
+    });
+  };
+
+  let theoryText: string | undefined;
+  if (missingKinds.includes('theory')) {
+    try {
+      theoryText = await generateTheoryActivity(plan, phase, slot, sortOrderByKind.get('theory')!);
+    } catch (err) {
+      recordFailure('theory', err);
+    }
+  }
+
+  if (await isCancelRequested(planId)) throw new PathGenerationCancelled();
+
+  // The remaining activities are independent — fire them in parallel with
+  // allSettled so one failure doesn't take down the others.
+  const parallelKinds = missingKinds.filter((kind) => kind !== 'theory');
+  const results = await Promise.allSettled(
+    parallelKinds.map((kind) => {
+      const sortOrder = sortOrderByKind.get(kind)!;
+      if (kind === 'flashcards')
+        return generateFlashcardsActivity(plan, phase, slot, sortOrder, theoryText);
+      return generateQuizActivity(plan, phase, slot, sortOrder);
+    }),
+  );
+  results.forEach((res, i) => {
+    if (res.status === 'rejected') recordFailure(parallelKinds[i], res.reason);
+  });
+
+  return { slotId: slot.id, failed };
+}
+
+/** True when a slot still has at least one activity to generate this run. */
+function slotNeedsWork(slot: SlotForGeneration): boolean {
+  return expectedActivityKinds(slot.kind).some(
+    (k) => !slot.existingActivityKinds.has(k) && !slot.prunedActivityKinds.has(k),
+  );
+}
+
 async function runGenerationPass(
   plan: PlanForGeneration,
   planId: string,
@@ -2446,119 +2597,75 @@ async function runGenerationPass(
 ): Promise<string[]> {
   const failedSlotIds: string[] = [];
   // Seed with work finished in earlier sweeps so the scoped progress bar keeps
-  // climbing across retries instead of snapping back to 0 / N each sweep.
-  let completedSlots = completedSlotsBase;
+  // climbing across retries instead of snapping back to 0 / N each sweep. Held in
+  // a ref so the wave tally (the ONLY writer) is the single source of truth — the
+  // old `completedSlots += 1` inside each slot lost updates under parallelism.
+  const completed = { value: completedSlotsBase };
+  const semaphore = createSemaphore(PATH_SLOT_CONCURRENCY);
 
+  // Phases run SEQUENTIALLY so a later phase's review / final-exam always reads
+  // earlier phases' committed theory. WITHIN a phase, slots run in two waves:
+  // all `learning` slots in parallel, THEN all `review`/`assessment` slots in
+  // parallel — the review wave reads the learning wave's just-committed theory
+  // (the one real cross-slot dependency: resolveDiagramsForSet → loadSlotTheoryBody).
+  // enforceSpacedReviews guarantees reviews only ever cover PRECEDING learning
+  // slots, so two waves per phase is a correct (and simple) topological order.
   for (const phase of plan.phases) {
-    for (const slot of phase.slots) {
-      // Idempotency: skip kinds the slot already has, plus kinds Stage B
-      // intentionally pruned (complete-by-design). This is also what lets each
-      // retry sweep — and `POST /api/learn/paths/[planId]/regenerate` — only
-      // re-attempt the activities that previously failed.
-      const wantedKinds = expectedActivityKinds(slot.kind);
-      const missingKinds = wantedKinds.filter(
-        (k) => !slot.existingActivityKinds.has(k) && !slot.prunedActivityKinds.has(k)
+    const pending = phase.slots.filter(slotNeedsWork);
+    const learningWave = pending.filter((s) => s.kind === 'learning');
+    const reviewWave = pending.filter((s) => s.kind !== 'learning');
+
+    for (const wave of [learningWave, reviewWave]) {
+      if (wave.length === 0) continue;
+
+      // Cooperative cancel before paying for a whole wave.
+      if (await isCancelRequested(planId)) throw new PathGenerationCancelled();
+
+      // Snapshot for the per-slot progress captions; the authoritative increment
+      // happens in the tally below (race-free — only this loop writes `completed`).
+      const completedRef = { value: completed.value };
+      const results = await Promise.allSettled(
+        wave.map((slot) =>
+          semaphore.run(() => processSlot(plan, phase, slot, planId, progressTotal, completedRef)),
+        ),
       );
 
-      // Already-complete (or fully-pruned) slots aren't part of this run's
-      // progress — don't count them, so a regenerate of N gaps reports against
-      // those N rather than every slot in the path.
-      if (missingKinds.length === 0) {
-        continue;
+      // Tally from the settled results: count successes ONCE, collect failed
+      // slots, surface a cancel, and propagate any unexpected (infra) throw.
+      let cancelled = false;
+      let infraError: unknown = null;
+      const succeeded: string[] = [];
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          if (r.value.failed) failedSlotIds.push(r.value.slotId);
+          else succeeded.push(r.value.slotId);
+        } else if (r.reason instanceof PathGenerationCancelled) {
+          cancelled = true;
+        } else if (!infraError) {
+          infraError = r.reason;
+        }
       }
+      completed.value += succeeded.length;
 
-      // Cooperative cancel: bail before paying for the next checkpoint if the
-      // user cancelled (status → `cancelling`) or deleted the path mid-run.
-      // Unwinds via PathGenerationCancelled so runPathGeneration can clean up.
-      if (await isCancelRequested(planId)) {
+      // Cancel wins: stop before the next wave/phase.
+      if (cancelled || (await isCancelRequested(planId))) {
         throw new PathGenerationCancelled();
       }
+      if (infraError) {
+        throw infraError instanceof Error ? infraError : new Error(String(infraError));
+      }
 
       await writeProgress(planId, {
         totalSlots: progressTotal,
-        completedSlots,
-        currentSlot: { id: slot.id, title: slot.title },
-        currentActivity: missingKinds[0],
-      });
-
-      // Continue numbering after any pre-existing activities so the slot's
-      // sortOrder stays monotonically increasing across runs.
-      const sortOrderBase = slot.existingActivityKinds.size;
-      const sortOrderByKind = new Map<PathActivityKind, number>(
-        missingKinds.map((kind, i) => [kind, sortOrderBase + i])
-      );
-
-      const recordFailure = (kind: PathActivityKind, reason: unknown) => {
-        const message = reason instanceof Error ? reason.message : String(reason);
-        failedSlotIds.push(slot.id);
-        logTelemetry(plan.userId, 'path.generation.activity_failed', {
-          planId,
-          slotId: slot.id,
-          activityKind: kind,
-          message,
-        });
-      };
-
-      // Snapshot the failure count BEFORE this slot's work so we can tell, after,
-      // whether every missing activity succeeded. Only fully-succeeded slots may
-      // advance the counter — otherwise the end-of-pass count would include
-      // failed slots while the next sweep's seed (progressTotal − still-pending)
-      // excludes them, dipping the bar backward at the sweep boundary.
-      const failuresBefore = failedSlotIds.length;
-
-      // Theory first, so a learning slot's flashcards are built from the exact
-      // text the learner just read instead of the bare topic hint — that keeps
-      // the card count honest and stops the model padding with repeats. Theory
-      // and flashcards only co-occur on `learning` slots; review/assessment
-      // slots have no theory, so this adds no extra latency there.
-      let theoryText: string | undefined;
-      if (missingKinds.includes('theory')) {
-        try {
-          theoryText = await generateTheoryActivity(
-            plan,
-            phase,
-            slot,
-            sortOrderByKind.get('theory')!
-          );
-        } catch (err) {
-          recordFailure('theory', err);
-        }
-      }
-
-      // The remaining activities are independent — fire them in parallel with
-      // allSettled so one failure doesn't take down the others.
-      const parallelKinds = missingKinds.filter((kind) => kind !== 'theory');
-      const results = await Promise.allSettled(
-        parallelKinds.map((kind) => {
-          const sortOrder = sortOrderByKind.get(kind)!;
-          if (kind === 'flashcards')
-            return generateFlashcardsActivity(plan, phase, slot, sortOrder, theoryText);
-          return generateQuizActivity(plan, phase, slot, sortOrder);
-        })
-      );
-      results.forEach((res, i) => {
-        if (res.status === 'rejected') {
-          recordFailure(parallelKinds[i], res.reason);
-        }
-      });
-
-      // A slot only counts toward progress when every missing activity landed.
-      // (writeProgress still runs on failure so the "writing …" caption clears.)
-      const slotSucceeded = failedSlotIds.length === failuresBefore;
-      if (slotSucceeded) {
-        completedSlots += 1;
-      }
-      await writeProgress(planId, {
-        totalSlots: progressTotal,
-        completedSlots,
+        completedSlots: completed.value,
         currentSlot: null,
         currentActivity: null,
       });
-      if (slotSucceeded) {
+      for (const slotId of succeeded) {
         logTelemetry(plan.userId, 'path.generation.slot_completed', {
           planId,
-          slotId: slot.id,
-          slotIndex: completedSlots,
+          slotId,
+          slotIndex: completed.value,
           totalSlots: progressTotal,
         });
       }
@@ -2577,6 +2684,36 @@ async function runPathGeneration(
     console.error(`[path-generator] plan ${planId} not found`);
     return;
   }
+
+  // One OpenRouter sticky-routing token for the WHOLE run (all sweeps): keeps
+  // every GLM call on the same upstream so the shared corpus prefix actually
+  // hits the implicit cache instead of being load-balanced across upstreams that
+  // each cache-miss. Keyed by planId so a later regenerate can reuse a still-warm
+  // upstream. Disable with OPENROUTER_STICKY_ROUTING_DISABLED=1.
+  const sessionId =
+    process.env.OPENROUTER_STICKY_ROUTING_DISABLED === '1' ? undefined : `path-${planId}`;
+  plan.sessionId = sessionId;
+
+  // Corpus + image catalog are stable for the run — capture them from the first
+  // load and feed them into every sweep reload, so we don't re-render ~600k chars
+  // + re-query images (and re-run captionMissing) each sweep. Rollback:
+  // OPENROUTER_CORPUS_CACHE_DISABLED=1.
+  const corpusCache: RunCorpusCache | undefined =
+    process.env.OPENROUTER_CORPUS_CACHE_DISABLED === '1'
+      ? undefined
+      : {
+          corpus: plan.corpus,
+          sourceIndex: plan.sourceIndex,
+          imageCatalog: plan.imageCatalog,
+          availableImages: plan.availableImages,
+          sourceImageCount: plan.sourceImageCount,
+          catalogImageCount: plan.catalogImageCount,
+          figuresSkippedReason: plan.figuresSkippedReason,
+          theoryFiguresEnabled: plan.theoryFiguresEnabled,
+          flashcardFiguresEnabled: plan.flashcardFiguresEnabled,
+          quizFiguresEnabled: plan.quizFiguresEnabled,
+          diagramsEnabled: plan.diagramsEnabled,
+        };
 
   // One figure-telemetry accumulator for the whole generation, re-bound to each
   // sweep's freshly-loaded plan (figure-reuse P4).
@@ -2601,13 +2738,22 @@ async function runPathGeneration(
     return;
   }
 
-  await db.studyPlan.update({
-    where: { id: planId },
-    data: {
-      generationStatus: 'generating',
-      generationError: null,
-    },
+  // Claim the run by flipping to `generating` — but NEVER resurrect a path the
+  // user cancelled (status `cancelling`) or hard-deleted. This guard is
+  // load-bearing now that generatePath rethrows on a crash: a job retry that
+  // re-enters here after a cancel landed must NOT flip `cancelling` → `generating`
+  // and keep spending. `updateMany` (not `update`) so a vanished/cancelling row
+  // is a no-op we can detect, not a throw.
+  const claimed = await db.studyPlan.updateMany({
+    where: { id: planId, generationStatus: { not: CANCELLING_STATUS } },
+    data: { generationStatus: 'generating', generationError: null },
   });
+  if (claimed.count === 0) {
+    // Cancelled (or deleted) between load and claim — the DELETE route owns
+    // cleanup + any refund; stop here without generating.
+    logTelemetry(plan.userId, 'path.generation.cancelled', { planId, race: 'pre_start' });
+    return;
+  }
   logTelemetry(plan.userId, 'path.generation.started', { planId, totalSlots: total });
 
   // One token meter shared across every sweep so cost telemetry stays accurate
@@ -2627,9 +2773,10 @@ async function runPathGeneration(
       if (sweep > 0) {
         // Re-load so the existing/pruned activity sets reflect the prior pass,
         // then carry the accumulated usage forward into the fresh plan object.
-        const fresh = await loadPlanForGeneration(planId);
+        const fresh = await loadPlanForGeneration(planId, corpusCache);
         if (!fresh) break;
         fresh.usage = usage;
+        fresh.sessionId = sessionId;
         plan = fresh;
         attachFigureStats(plan, figureStats);
         logTelemetry(plan.userId, 'path.generation.sweep', {
@@ -2661,30 +2808,9 @@ async function runPathGeneration(
     throw error;
   }
 
-  // Reserve-and-settle: if an ULTRA path produced NOTHING after every sweep,
-  // refund the credit it reserved at creation — a worthless empty path must not
-  // cost one of the user's 3 monthly ultra credits. Strict by design (zero
-  // generated activities) so it can't be farmed: a refundable path has no usable
-  // content. `allowRefund` is set only by the create flow, so the free
-  // regenerate path can never re-trigger it (idempotent in practice).
-  if (opts.allowRefund && plan.ultra) {
-    const generatedCount = await db.checkpointActivity.count({
-      where: { slot: { phase: { planId } } },
-    });
-    if (generatedCount === 0) {
-      await refundUsage(plan.userId, 'ultra_path');
-      logTelemetry(plan.userId, 'path.credit.refunded', {
-        planId,
-        feature: 'ultra_path',
-        reason: 'total_generation_failure',
-      });
-    }
-  }
-
   // Stage B always finishes `ready`: incomplete checkpoints never block the
   // path (path-gating treats them as passable) and surface their own
   // Regenerate affordance. `failed` is reserved for catastrophic failure.
-  // (Phase 5 will branch the terminal status on any remaining failures.)
   //
   // Guarded so a cancel that landed AFTER our last checkpoint but BEFORE this
   // write can't be resurrected: only flip `generating` → `ready`. If the row was
@@ -2708,7 +2834,45 @@ async function runPathGeneration(
     }
     return;
   }
-  await invalidateDashboardCache(plan.userId);
+
+  // Reserve-and-settle refund — fires ONLY after the path is durably `ready`
+  // (above). If an ULTRA path produced NOTHING, refund the credit it reserved at
+  // creation: a worthless empty path must not cost one of the 3 monthly ultra
+  // credits. Doing it AFTER the `ready` commit (not before) is what closes the
+  // crash-then-retry free-path hole: a run that crashes mid-generation never
+  // reaches here, so a later successful retry can't be paired with a refund.
+  // Strict (zero activities) so it can't be farmed; `allowRefund` is set only by
+  // the create flow, never by regenerate/sweeper.
+  //
+  // The whole block is best-effort: a throw here (the refund OR its count query)
+  // would escape to generatePath's catch and overwrite this durably-`ready` row
+  // with `failed`, bricking a good path. A missed refund is a recoverable billing
+  // miss; a corrupted status is a UX disaster — so swallow our own errors.
+  if (opts.allowRefund && plan.ultra) {
+    try {
+      const generatedCount = await db.checkpointActivity.count({
+        where: { slot: { phase: { planId } } },
+      });
+      if (generatedCount === 0) {
+        await refundUsage(plan.userId, 'ultra_path');
+        logTelemetry(plan.userId, 'path.credit.refunded', {
+          planId,
+          feature: 'ultra_path',
+          reason: 'total_generation_failure',
+        });
+      }
+    } catch (e) {
+      console.error('[path-generator] ultra refund failed — leaving path ready', e);
+    }
+  }
+
+  // Best-effort from here on: the path is durably `ready` and any ultra refund
+  // has fired. A throw AFTER the refund would let a job retry pair that refund
+  // with a fresh successful run (a free ultra path), so nothing past this point
+  // may throw — invalidateDashboardCache is the only awaited call that could.
+  await invalidateDashboardCache(plan.userId).catch((e) =>
+    console.error('[path-generator] dashboard cache invalidation failed', e)
+  );
   logTelemetry(plan.userId, 'path.generation.completed', {
     planId,
     totalSlots: total,
@@ -2752,12 +2916,18 @@ async function runPathGeneration(
 
 /**
  * Public Stage-B entry point. Thin wrapper over {@link runPathGeneration} that
- * guarantees a catastrophic throw is recorded as `generationStatus: 'failed'`
- * instead of leaving the row stuck in `generating` forever — regenerate, reset
- * AND delete all refuse a `generating` row, so a swallowed throw bricks the
- * path with no in-app recourse. (Mirrors `translatePath`'s contract.) NB: a
- * killed *process* — e.g. a redeploy mid-run — never reaches this catch; the
- * stale-`generating` escape hatch in those routes covers that case.
+ * records a catastrophic throw as `generationStatus: 'failed'` (so the UI never
+ * shows a row stuck in `generating` forever — regenerate, reset AND delete all
+ * refuse a `generating` row) AND re-throws it so the background-job runner sees
+ * the failure and applies its retry/backoff (1m→5m→15m, up to maxAttempts). The
+ * re-entry is idempotent — `runGenerationPass` skips already-generated slots — so
+ * a retry resumes rather than restarts. NB: a killed *process* (redeploy mid-run)
+ * never reaches this catch; the worker's stale-lease reclaim + the boot-time
+ * stale-path sweeper cover that case.
+ *
+ * Activity-level failures do NOT throw (runPathGeneration returns the failed-slot
+ * list and settles `ready`), so they never trigger a job retry — only genuine
+ * orchestrator/infrastructure crashes do.
  */
 export async function generatePath(
   planId: string,
@@ -2768,6 +2938,8 @@ export async function generatePath(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[path-generator] generation failed', message);
+    // Settle the row to `failed` BEFORE re-throwing so the DB is always
+    // consistent even if the job runner's retry never lands. Best-effort.
     await db.studyPlan
       .update({
         where: { id: planId },
@@ -2776,5 +2948,8 @@ export async function generatePath(
       })
       .then((plan) => invalidateDashboardCache(plan.userId))
       .catch((e) => console.error('[path-generator] failed to mark plan failed', e));
+    // Re-throw so failOrRetryJob fires (queue retry with backoff) instead of the
+    // job runner recording a false success.
+    throw error;
   }
 }

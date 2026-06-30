@@ -59,6 +59,9 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
   /** GLM model slug (e.g. `z-ai/glm-4.7`). */
   model: string;
   maxTokens?: number;
+  /** OpenRouter sticky-routing token (X-Session-Id) — keeps a run's calls on one
+   *  upstream for reliable prefix-cache hits. */
+  sessionId?: string;
   onUsage?: (usage: OpenRouterUsage) => void;
 }): Promise<T> {
   const {
@@ -69,6 +72,7 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
     maxAttempts = 2,
     model,
     maxTokens = GLM_MAX_OUTPUT_TOKENS,
+    sessionId,
     onUsage,
   } = opts;
   const toolArray = (tools ?? [tool]).map(anthropicToolToOpenAI);
@@ -83,6 +87,7 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
         toolChoice: { type: 'function', function: { name: tool.name } },
         maxTokens,
         disableReasoning: true,
+        sessionId,
       });
       onUsage?.(result.usage);
       // `finish_reason: 'length'` means GLM was cut off at max_tokens — the
@@ -108,7 +113,12 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
       lastError = error;
       if (isNonRetryable(error)) throw error;
       if (attempt < maxAttempts) {
-        await sleep(1000 * Math.pow(2, attempt - 1));
+        // Exponential backoff with FULL JITTER. When the path generator fires
+        // many slots concurrently (PATH_GENERATION_CONCURRENCY), a shared 429 (or
+        // 5xx) would otherwise make every in-flight call retry at the exact same
+        // offset — a self-inflicted thundering herd. Jitter spreads the retries.
+        const base = 1000 * Math.pow(2, attempt - 1);
+        await sleep(base / 2 + Math.random() * (base / 2));
       }
     }
   }

@@ -79,8 +79,11 @@ export function usePathGenerationStream(
   const everConnectedRef = useRef(false);
 
   useEffect(() => {
-    // Open attempts allowed before a stream that NEVER connected gives up.
-    const MAX_OPEN_ATTEMPTS = 6;
+    // Open attempts allowed before a stream that NEVER connected stops retrying.
+    // Generous (with capped backoff this spans several minutes) so a Cloudflare-
+    // buffered first chunk has ample time to punch through before we stop — the
+    // false-"snag" failures came from giving up too early here.
+    const MAX_OPEN_ATTEMPTS = 15;
     const backoffMs = (n: number) => Math.min(1000 * 2 ** n, 15_000);
 
     const closeSource = () => {
@@ -181,10 +184,16 @@ export function usePathGenerationStream(
         if (cancelled) return;
         const giveUp = !everConnectedRef.current && retryRef.current >= MAX_OPEN_ATTEMPTS;
         if (giveUp) {
+          // The LIVE progress view couldn't open — but generation is fully
+          // decoupled and still running on the server (it'll finish in the
+          // background). Do NOT report a failure (that produced the false
+          // "Generation hit a snag" card while the path actually completed):
+          // keep a non-failed `generating` state and tell the user to reload.
           setState((prev) => ({
             ...prev,
-            status: 'failed',
-            errorMessage: 'Could not open progress stream',
+            status: 'generating',
+            errorMessage:
+              "Couldn't open the live progress view — your path is still being built in the background. Reload in a moment to see it.",
             open: false,
           }));
           return;
