@@ -119,7 +119,7 @@ export const authOptions: NextAuthOptions = {
         // Dormant until TURNSTILE_SECRET_KEY is set (src/lib/login-challenge.ts).
         let ip = 'unknown';
         try {
-          ip = getIpFromHeaders(headers() as unknown as Headers);
+          ip = getIpFromHeaders(await headers());
         } catch {
           // headers() can throw outside a request context — skip the gate.
         }
@@ -314,8 +314,8 @@ export const authOptions: NextAuthOptions = {
       // skip the IP cap. Provider email verification is our fallback.
       let ip = 'unknown';
       try {
-        const h = headers();
-        ip = getIpFromHeaders(h as unknown as Headers);
+        const h = await headers();
+        ip = getIpFromHeaders(h);
       } catch {
         // ignore
       }

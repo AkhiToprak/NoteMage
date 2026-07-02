@@ -95,11 +95,14 @@ export async function enforceIpCap(ip: string): Promise<IpCapResult> {
 }
 
 /**
- * Read the client IP from a plain `Headers` object — used from the NextAuth
- * signIn callback via `next/headers`. Shares the trusted-proxy precedence with
- * getClientIp() via src/lib/client-ip.ts (TRUSTED_PROXY_HOPS).
+ * Read the client IP from a headers-like object — used from the NextAuth
+ * signIn callback via `next/headers`. Structural (not `Headers`) because
+ * `next/headers`'s awaited `headers()` returns a distinct `ReadonlyHeaders`
+ * type that isn't nominally a `Headers` but has the same `.get()`. Shares the
+ * trusted-proxy precedence with getClientIp() via src/lib/client-ip.ts
+ * (TRUSTED_PROXY_HOPS).
  */
-export function getIpFromHeaders(headers: Headers): string {
+export function getIpFromHeaders(headers: { get(name: string): string | null }): string {
   return clientIpFromHeaders(headers.get('x-forwarded-for'), headers.get('x-real-ip'));
 }
 

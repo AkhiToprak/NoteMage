@@ -56,6 +56,11 @@
   font-size: 13.5px;
   color: var(--ink);
 }
+/* The global `input:focus-visible` baseline (globals.css) beats a bare class
+   on specificity (type+pseudo-class > class alone) regardless of source
+   order — match its tier to actually suppress it. The pill's own
+   :focus-within ring above is this input's focus indicator. */
+.searchInput:focus-visible { outline: none; }
 .searchInput::placeholder { color: var(--muted); }
 /* Hide the native search clear/decoration so the pill stays clean. */
 .searchInput::-webkit-search-decoration,
