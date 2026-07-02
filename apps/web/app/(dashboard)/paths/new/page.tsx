@@ -811,7 +811,11 @@ function Step3Pace({
               </div>
             ))}
           </div>
-          <div className={s.ultraNote}>Limited to 3 a month</div>
+          {!isAdmin && (
+            <div className={s.ultraNote}>
+              Limited to {ultraUsage && ultraUsage.limit > 0 ? ultraUsage.limit : 3} a month
+            </div>
+          )}
         </div>
 
         {/* Focus brief */}
@@ -991,12 +995,16 @@ function Step4Analyze({
 // ── Step 5 — Review what Mage found ──────────────────────────────────────────
 
 function Step5Review({
-  state, onChange, onBack, onBuild,
+  state, onChange, onBack, onBuild, quotaHint, buildBlocked,
 }: {
   state: WizardState;
   onChange: (patch: Partial<WizardState>) => void;
   onBack: () => void;
   onBuild: () => void;
+  /** Quota meter/warning row rendered above the footer (null when nothing to say). */
+  quotaHint?: React.ReactNode;
+  /** True when a hard quota (daily paths / fair-use tokens) blocks building. */
+  buildBlocked?: boolean;
 }) {
   const [adding, setAdding] = React.useState(false);
   const [draft, setDraft] = React.useState('');
@@ -1112,11 +1120,12 @@ function Step5Review({
         {aside}
       </div>
 
+      {quotaHint}
       <div className={s.foot}>
         <span className={`${s.footNote} ${s.webOnly}`}>Mage found {state.topics.length} topics across {sources} {sources === 1 ? 'source' : 'sources'}.</span>
         <div className={s.footBtns}>
           <button type="button" className={`${ui.btn} ${ui.ghost}`} onClick={onBack}>Back</button>
-          <button type="button" className={`${ui.btn} ${ui.primary} ${s.footGrow}`} disabled={state.topics.length === 0} onClick={onBuild}>
+          <button type="button" className={`${ui.btn} ${ui.primary} ${s.footGrow}`} disabled={state.topics.length === 0 || buildBlocked === true} onClick={onBuild}>
             <MS name="auto_awesome" className={ui.ic} /> Build my path
           </button>
         </div>
@@ -1482,7 +1491,10 @@ export default function StudyPackNewPage() {
   const [step, setStep] = React.useState<Step>(1);
   const [state, setState] = React.useReducer((s0: WizardState, patch: Partial<WizardState>) => ({ ...s0, ...patch }), DEFAULT_STATE);
 
-  const [ultraUsage, setUltraUsage] = React.useState<{ used: number; limit: number } | null>(null);
+  type Meter = { used: number; limit: number };
+  const [ultraUsage, setUltraUsage] = React.useState<Meter | null>(null);
+  const [dailyUsage, setDailyUsage] = React.useState<Meter | null>(null);
+  const [tokenUsage, setTokenUsage] = React.useState<Meter | null>(null);
   React.useEffect(() => {
     if (!canUseUltra) return;
     let cancelled = false;
@@ -1491,9 +1503,39 @@ export default function StudyPackNewPage() {
       const features = j.data?.features as Array<{ featureType: string; used: number; limit: number }> | undefined;
       const entry = features?.find((f) => f.featureType === 'ultra_path');
       if (entry) setUltraUsage({ used: entry.used, limit: entry.limit });
+      const daily = j.data?.dailyPaths as Meter | undefined;
+      if (daily && daily.limit > 0) setDailyUsage(daily);
+      const tokens = j.data?.tokenBudget as Meter | undefined;
+      if (tokens && tokens.limit > 0) setTokenUsage(tokens);
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [canUseUltra]);
+
+  // Quota meters for the Review step. The create route enforces all of these
+  // server-side (admins bypass); this is the friendly early warning. Escalation:
+  // quiet count → amber (1 path left / ≥80% fair-use) → stop + disabled Build.
+  const dailyLeft = dailyUsage ? Math.max(0, dailyUsage.limit - dailyUsage.used) : null;
+  const tokenPct = tokenUsage ? Math.round((tokenUsage.used / tokenUsage.limit) * 100) : null;
+  const dailyBlocked = !isAdmin && dailyLeft !== null && dailyLeft <= 0;
+  const tokenBlocked = !isAdmin && tokenPct !== null && tokenPct >= 100;
+  const showTokenHint = tokenPct !== null && tokenPct >= 80;
+  const quotaHint =
+    !isAdmin && (dailyLeft !== null || showTokenHint) ? (
+      <div className={s.quotaRow}>
+        {dailyBlocked ? (
+          <span className={s.quotaStop}><MS name="hourglass_top" className={s.ic} /> Daily path limit reached — resets tomorrow.</span>
+        ) : dailyLeft === 1 ? (
+          <span className={`${ui.pill} ${ui.pillAmber}`}><MS name="bolt" className={s.ic} /> 1 path left today</span>
+        ) : dailyLeft !== null ? (
+          <span className={s.footNote}>{dailyLeft} of {dailyUsage!.limit} paths left today</span>
+        ) : null}
+        {tokenBlocked ? (
+          <span className={s.quotaStop}><MS name="data_usage" className={s.ic} /> Monthly fair-use reached — resets on the 1st.</span>
+        ) : showTokenHint ? (
+          <span className={`${ui.pill} ${ui.pillAmber}`}><MS name="data_usage" className={s.ic} /> Fair-use {tokenPct}% used</span>
+        ) : null}
+      </div>
+    ) : null;
 
   // Existing-pack mode (?packId): skip Step 1's upload, load the pack's
   // material, and jump to the goal step. Read from window (not useSearchParams,
@@ -1533,7 +1575,7 @@ export default function StudyPackNewPage() {
   else if (step === 2) body = <Step2Goal state={state} onChange={setState} onBack={goBack} onContinue={advance} />;
   else if (step === 3) body = <Step3Pace state={state} onChange={setState} onBack={goBack} onBuild={advance} canUseUltra={canUseUltra} isAdmin={isAdmin} ultraUsage={ultraUsage} />;
   else if (step === 4) body = <Step4Analyze state={state} onChange={setState} onDone={advance} onBack={goBack} />;
-  else if (step === 5) body = <Step5Review state={state} onChange={setState} onBack={goBack} onBuild={advance} />;
+  else if (step === 5) body = <Step5Review state={state} onChange={setState} onBack={goBack} onBuild={advance} quotaHint={quotaHint} buildBlocked={dailyBlocked || tokenBlocked} />;
   else body = (
     <Step6Build
       state={state} onChange={setState} packId={state.packId}

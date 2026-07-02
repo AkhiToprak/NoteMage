@@ -3,8 +3,9 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef, useState } from 'react';
-import { openProCheckout } from '@/lib/lemonsqueezy-client';
-import { type BillingInterval } from '@/lib/tiers';
+import { openProCheckout, PPP_CHECKOUT_CONFIGURED } from '@/lib/lemonsqueezy-client';
+import { isPppCurrency, type BillingInterval } from '@/lib/tiers';
+import { useCurrency } from '@/hooks/useCurrency';
 
 /**
  * Starts the NoteMage Pro upgrade flow for a logged-in user via the Lemon
@@ -22,6 +23,7 @@ import { type BillingInterval } from '@/lib/tiers';
 export function useUpgrade(onSuccess?: () => void) {
   const { data: session, update } = useSession();
   const router = useRouter();
+  const { currency } = useCurrency();
   const [upgrading, setUpgrading] = useState(false);
   // Held in a ref so a fresh inline callback each render doesn't churn the
   // memoised startUpgrade identity.
@@ -41,6 +43,9 @@ export function useUpgrade(onSuccess?: () => void) {
         userId,
         email: session?.user?.email ?? undefined,
         interval,
+        // PPP price group by IP-resolved display currency (INR/BRL/TRY) —
+        // only once all PPP variants are wired, matching what pricing showed.
+        ppp: PPP_CHECKOUT_CONFIGURED && isPppCurrency(currency),
         onCompleted: async (subscriptionId) => {
           // The webhook is authoritative — /sync just shortens the latency. We
           // attempt it best-effort when LS handed us a subscription id, but the
@@ -86,7 +91,7 @@ export function useUpgrade(onSuccess?: () => void) {
       // Re-enable once the overlay is up; payment continues inside it.
       setUpgrading(false);
     }
-  }, [session?.user?.id, session?.user?.email, router, update]);
+  }, [session?.user?.id, session?.user?.email, router, update, currency]);
 
   return { startUpgrade, upgrading };
 }

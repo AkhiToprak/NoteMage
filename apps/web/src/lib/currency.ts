@@ -7,9 +7,12 @@
  * resolved server-side (src/lib/exchange-rates.ts + src/lib/geo-currency.ts via
  * /api/currency) and passed into formatPrice by the useCurrency hook.
  *
- * CHF is our canonical billing currency, so CHF renders exactly. Every other
- * currency is an on-page *estimate* (converted from CHF) and is prefixed with
- * "≈" — the real charge + conversion happen at the Lemon Squeezy checkout.
+ * CHF is our canonical billing currency (the Lemon Squeezy store is CHF and
+ * its currency can't be changed with live subscriptions), so CHF renders
+ * exactly. Every other currency is an on-page *estimate* (converted from CHF)
+ * and is prefixed with "≈" — the real charge + conversion happen at the Lemon
+ * Squeezy checkout. Price POINTS are chosen so the big markets all land under
+ * 10 (CHF 7.90 ≈ $9.75 ≈ €8.60/mo).
  */
 
 export const SUPPORTED_CURRENCIES = [
@@ -34,17 +37,18 @@ export type CurrencyCode = (typeof SUPPORTED_CURRENCIES)[number];
  * override these on every request that reaches /api/currency.
  */
 export const FALLBACK_RATES: Record<CurrencyCode, number> = {
+  // Snapshot of the live ECB feed 2026-07-02 — refresh when visibly stale.
   CHF: 1,
-  EUR: 1.04,
-  USD: 1.12,
-  GBP: 0.89,
-  JPY: 168.5,
-  CAD: 1.53,
-  AUD: 1.72,
-  INR: 93.5,
-  BRL: 5.62,
-  KRW: 1495,
-  TRY: 36.2,
+  EUR: 1.09,
+  USD: 1.24,
+  GBP: 0.93,
+  JPY: 200,
+  CAD: 1.76,
+  AUD: 1.8,
+  INR: 118,
+  BRL: 6.44,
+  KRW: 1919,
+  TRY: 57.9,
 };
 
 const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {

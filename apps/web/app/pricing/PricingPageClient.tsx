@@ -7,12 +7,14 @@ import MageFooter from '@/components/landing/MageFooter';
 import {
   TIERS,
   monthlyEquivalent,
+  proPriceCHF,
   yearlySavingsPct,
   INTERVAL_LABEL,
   INTERVAL_SUFFIX,
   type BillingInterval,
 } from '@/lib/tiers';
 import { useCurrency } from '@/hooks/useCurrency';
+import { PPP_CHECKOUT_CONFIGURED } from '@/lib/lemonsqueezy-client';
 import styles from './Pricing.module.css';
 
 const INTERVALS: BillingInterval[] = ['weekly', 'monthly', 'yearly'];
@@ -67,7 +69,10 @@ export default function PricingPageClient() {
   const [interval, setInterval] = useState<BillingInterval>('yearly');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  const savings = yearlySavingsPct('PRO');
+  // PPP price points show only once their checkout variants are wired — never
+  // display a discount the checkout wouldn't charge.
+  const priceCurrency = PPP_CHECKOUT_CONFIGURED ? currency : undefined;
+  const savings = yearlySavingsPct('PRO', priceCurrency);
 
   const plans = [
     {
@@ -91,13 +96,12 @@ export default function PricingPageClient() {
       features: [
         'Unlimited AI flashcards, quizzes & chat*',
         'Unlimited AI study paths',
-        '3 Ultra paths / month',
-        '450 PDF pages / month',
-        'Inline AI editing',
+        `${TIERS.PRO.limits.ultra_path} Ultra paths / month`,
+        `${TIERS.PRO.limits.pdf_import} PDF pages / month`,
         'Everything in Free',
       ],
       ctaLabel: 'Go Pro  →',
-      note: '*Fair use ~1M tokens / month',
+      note: '*Fair use ~4M tokens / month',
     },
   ];
 
@@ -108,11 +112,10 @@ export default function PricingPageClient() {
         { label: 'AI flashcard sets', free: '1 / mo', pro: 'Unlimited*' },
         { label: 'AI presentations', free: '1 / mo', pro: 'Unlimited*' },
         { label: 'Study paths', free: '—', pro: 'Unlimited*' },
-        { label: 'Ultra paths', free: '—', pro: '3 / mo' },
+        { label: 'Ultra paths', free: '—', pro: `${TIERS.PRO.limits.ultra_path} / mo` },
         { label: 'AI quizzes', free: '2 / mo', pro: 'Unlimited*' },
         { label: 'Mage chat messages', free: '50 / mo', pro: 'Unlimited*' },
-        { label: 'Inline AI editing', free: '—', pro: 'Unlimited*' },
-        { label: 'PDF pages', free: '50 total', pro: '450 / mo' },
+        { label: 'PDF pages', free: '50 total', pro: `${TIERS.PRO.limits.pdf_import} / mo` },
       ],
     },
     {
@@ -129,7 +132,7 @@ export default function PricingPageClient() {
 
   const proSub =
     interval === 'yearly'
-      ? `≈ ${formatPrice(monthlyEquivalent('PRO'))}/mo · billed yearly`
+      ? `≈ ${formatPrice(monthlyEquivalent('PRO', priceCurrency))}/mo · billed yearly`
       : interval === 'monthly'
         ? 'Billed monthly · cancel anytime'
         : 'Billed weekly · cancel anytime';
@@ -176,9 +179,9 @@ export default function PricingPageClient() {
         <section className={styles.cards}>
           {plans.map((plan) => {
             // Free is always "CHF 0" (formatPrice maps 0 → "Free", which would double
-            // the plan name). Pro drops a trailing ".00" so round prices read "CHF 99".
+            // the plan name). Pro drops a trailing ".00" so round prices read "CHF 64".
             const amount = plan.pro
-              ? formatPrice(TIERS.PRO.price[interval]).replace(/([.,])00\b/, '')
+              ? formatPrice(proPriceCHF(interval, priceCurrency)).replace(/([.,])00\b/, '')
               : 'CHF 0';
             const suffix = plan.pro ? INTERVAL_SUFFIX[interval] : '';
             const sub = plan.pro ? proSub : 'Free forever — no card needed';
@@ -252,8 +255,8 @@ export default function PricingPageClient() {
             </table>
           </div>
           <p className={styles.fineprint}>
-            *Pro usage is subject to a fair-use policy (~1M tokens/month) — far more than any student
-            realistically uses. It’s only there to prevent abuse.
+            *Pro usage is subject to a fair-use policy (~4M tokens/month, up to 5 new paths/day) —
+            far more than any student realistically uses. It’s only there to prevent abuse.
           </p>
         </section>
 

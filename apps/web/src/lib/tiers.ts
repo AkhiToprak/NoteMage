@@ -43,11 +43,13 @@ export interface TierConfig {
   name: string;
   /**
    * Canonical headline price (CHF / month). Kept for non-interval surfaces
-   * (FAQ copy, admin MRR estimate) — equal to `price.monthly`. Interval-aware
+   * (admin MRR estimate) — equal to `price.monthly`. Interval-aware
    * surfaces should read `price[interval]` instead.
    */
   priceCHF: number;
-  /** Per-interval CHF prices. The pricing page + onboarding switch on these. */
+  /** Per-interval CHF prices. The pricing page + onboarding switch on these.
+   *  Points chosen to land under 10 in the major display currencies:
+   *  CHF 7.90 ≈ $9.75 ≈ €8.60 per month. */
   price: TierPricing;
   /** Monthly token budget (input + output combined). */
   tokenLimit: number;
@@ -88,22 +90,32 @@ export const TIERS: Record<TierKey, TierConfig> = {
   },
   PRO: {
     name: 'Pro',
-    priceCHF: 12.99,
-    price: { weekly: 4.5, monthly: 12.99, yearly: 99 },
-    tokenLimit: 1_000_000,
+    priceCHF: 7.9,
+    price: { weekly: 3.2, monthly: 7.9, yearly: 64 },
+    // The REAL global COGS bound: checkTokenBudget sums AiUsageEvent in+out
+    // tokens across EVERY AI surface (paths included — one big ultra ≈ 385k).
+    // 4M ≈ $5 worst-case COGS at measured GLM rates (~$1.25/M budget tokens
+    // incl. unbudgeted cache reads) vs ~$7–9 net on CHF 7.90 — sized so
+    // "unlimited basic paths" (AI_PATHS_PER_DAY pacing) never trips it in
+    // legitimate use. Keep tokenLimit ≥ ~10× a big ultra run or paths eat chat.
+    tokenLimit: 4_000_000,
     limits: {
       ai_flashcards: -1,
       ai_pptx: -1,
-      ai_study_plan: -1,
-      ultra_path: 30, // anti-abuse safety cap, ~1/day. Paths run on GLM-5.2
-      // (~12¢ each), so 30/mo = ~$3.60 worst-case COGS vs 12.99 CHF revenue.
+      ai_study_plan: -1, // basic paths unlimited monthly — paced by AI_PATHS_PER_DAY + tokenLimit
+      ultra_path: 3, // matches the long-standing marketing copy AND the observed
+      // real max (3/user/mo). MEASURED COGS ~$0.48 avg / ~$1.20 large-corpus per
+      // path → worst case ≈ $3.60/mo. The premium is the 600k-char corpus + 3
+      // retry sweeps, not the model (all paths run GLM-5.2).
       ai_quizzes: -1,
       scholar_chat: -1,
       ai_inline_edit: -1,
       pdf_import: 450, // pages per month
       youtube_transcript: 1000, // ⚠️ MINUTES of video per month — placeholder, set final number
       video_ingest: 1000, // MINUTES of video per month (worst-case COGS ~$1.85/mo); never -1
-      path_regenerate: 50, // monthly anti-abuse cap on path re-generations
+      path_regenerate: 10, // monthly anti-abuse cap on path re-generations —
+      // each regen is a FULL path generation (~$0.5–1.2), so 50 was a bigger
+      // exposure than the ultra cap itself; 10 covers real recovery use.
       path_translate: 50, // monthly anti-abuse cap on on-demand path translations
       code_execute: 3000, // monthly anti-abuse cap on sandboxed code runs
     },
@@ -149,19 +161,55 @@ export const INTERVAL_LABEL: Record<BillingInterval, string> = {
   yearly: 'Yearly',
 };
 
-/** The CHF the yearly plan costs per month (yearly ÷ 12). 0 when no yearly price. */
-export function monthlyEquivalent(tier: TierKey): number {
-  const { yearly } = TIERS[tier].price;
+/**
+ * Purchasing-power-adjusted price group. Visitors whose display currency is in
+ * PPP_CURRENCIES see (and check out at) these CHF price points instead of the
+ * base Pro prices — at 2026-07 rates they convert to ≈₹154/₹496/₹4,019,
+ * ≈R$8.40/R$27/R$219, ≈₺75/₺243/₺1,967. One group (not per-country prices)
+ * keeps Lemon Squeezy setup to 3 extra variants, and the lowest point still
+ * clears typical per-user AI COGS ~2× (see memory pro-unit-economics-2026-07).
+ * Checkout routes to the dedicated PPP variants via the *_PPP env URLs in
+ * lemonsqueezy-client.ts; while those are unset, PPP visitors gracefully fall
+ * back to the base-price checkout (and see base prices — PPP_CHECKOUT_CONFIGURED).
+ */
+/**
+ * Daily pacing limit on AI path creations (basic + ultra combined), enforced
+ * at the create route by counting today's `source: 'ai'` StudyPlans. Basic
+ * paths are "unlimited" per month for Pro — this bounds single-day bursts
+ * (covers a realistic "import my whole semester" evening) while tokenLimit
+ * remains the monthly COGS ceiling. Admins bypass.
+ */
+export const AI_PATHS_PER_DAY = 5;
+
+export const PPP_CURRENCIES: readonly string[] = ['INR', 'BRL', 'TRY'];
+export const PPP_PRICE: TierPricing = { weekly: 1.3, monthly: 4.2, yearly: 34 };
+
+/** True when a display currency belongs to the PPP price group. */
+export function isPppCurrency(currency: string | undefined): boolean {
+  return !!currency && PPP_CURRENCIES.includes(currency);
+}
+
+/** Region-aware Pro price in CHF: the PPP group price for PPP currencies, else base. */
+export function proPriceCHF(interval: BillingInterval, currency?: string): number {
+  return isPppCurrency(currency) ? PPP_PRICE[interval] : TIERS.PRO.price[interval];
+}
+
+/** The CHF the yearly plan costs per month (yearly ÷ 12). 0 when no yearly price.
+ *  Pass the visitor's currency to get the PPP group's figure where it applies. */
+export function monthlyEquivalent(tier: TierKey, currency?: string): number {
+  const yearly = tier === 'PRO' ? proPriceCHF('yearly', currency) : TIERS[tier].price.yearly;
   return yearly > 0 ? yearly / 12 : 0;
 }
 
 /**
  * Whole-percent saved by paying yearly instead of 12× monthly. Computed from the
  * prices so the "Save N%" badge can never drift from what we actually charge.
- * Returns 0 when either price is missing (e.g. the FREE tier).
+ * Returns 0 when either price is missing (e.g. the FREE tier). Currency-aware
+ * for the PPP group, like monthlyEquivalent.
  */
-export function yearlySavingsPct(tier: TierKey): number {
-  const { monthly, yearly } = TIERS[tier].price;
+export function yearlySavingsPct(tier: TierKey, currency?: string): number {
+  const monthly = tier === 'PRO' ? proPriceCHF('monthly', currency) : TIERS[tier].price.monthly;
+  const yearly = tier === 'PRO' ? proPriceCHF('yearly', currency) : TIERS[tier].price.yearly;
   if (monthly <= 0 || yearly <= 0) return 0;
   const monthlyAnnualised = monthly * 12;
   return Math.round(((monthlyAnnualised - yearly) / monthlyAnnualised) * 100);

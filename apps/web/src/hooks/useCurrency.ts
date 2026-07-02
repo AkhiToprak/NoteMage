@@ -8,7 +8,10 @@ interface CurrencyResponse {
   rates: Record<string, number>;
 }
 
-const STORAGE_KEY = 'nm_currency_v1';
+// v3: canonical currency is CHF again (LS store can't leave CHF). Each bump
+// orphans caches whose rates are based on the previous canonical currency —
+// v2 briefly held USD-based rates that would misprice CHF amounts by ~24%.
+const STORAGE_KEY = 'nm_currency_v3';
 
 /** Last resolved currency + rates, if a previous visit cached them. Client-only. */
 function readCached(): CurrencyResponse | null {

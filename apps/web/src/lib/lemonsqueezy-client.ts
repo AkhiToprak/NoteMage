@@ -34,14 +34,38 @@ const CHECKOUT_URL_BY_INTERVAL: Record<BillingInterval, string | undefined> = {
   yearly: process.env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL_YEARLY,
 };
 
+// PPP price group (INR/BRL/TRY visitors — see PPP_PRICE in tiers.ts): buy URLs
+// of the dedicated discounted LS variants. Unset → those visitors fall back to
+// the base-price URLs above, so the group can ship one variant at a time.
+const CHECKOUT_URL_BY_INTERVAL_PPP: Record<BillingInterval, string | undefined> = {
+  weekly: process.env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL_WEEKLY_PPP,
+  monthly: process.env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL_MONTHLY_PPP,
+  yearly: process.env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL_YEARLY_PPP,
+};
+
 /**
- * Resolve the checkout URL for a chosen cadence. Falls back to the generic
- * product URL (which shows LS's own cadence picker) whenever a per-interval URL
- * isn't configured — so leaving the new env vars unset is a graceful no-op that
- * preserves today's behavior, never a break.
+ * True once ALL three PPP variant URLs are configured. Display surfaces AND
+ * useUpgrade gate the PPP price points on this, so a visitor is never shown a
+ * discount the checkout wouldn't charge (or vice versa) while the variants are
+ * only partially wired.
  */
-function resolveCheckoutUrl(interval?: BillingInterval): string {
-  const specific = interval ? CHECKOUT_URL_BY_INTERVAL[interval] : undefined;
+export const PPP_CHECKOUT_CONFIGURED = Boolean(
+  CHECKOUT_URL_BY_INTERVAL_PPP.weekly &&
+    CHECKOUT_URL_BY_INTERVAL_PPP.monthly &&
+    CHECKOUT_URL_BY_INTERVAL_PPP.yearly
+);
+
+/**
+ * Resolve the checkout URL for a chosen cadence (+ PPP price group). Falls back
+ * PPP → base interval URL → generic product URL (LS's own cadence picker), so
+ * an unset env var is always a graceful no-op, never a break. `ppp` comes from
+ * the visitor's IP-resolved display currency (useCurrency → isPppCurrency); a
+ * determined user could still open a PPP link directly — accepted, the PPP
+ * price stays COGS-positive.
+ */
+function resolveCheckoutUrl(interval?: BillingInterval, ppp?: boolean): string {
+  const regional = ppp && interval ? CHECKOUT_URL_BY_INTERVAL_PPP[interval] : undefined;
+  const specific = regional || (interval ? CHECKOUT_URL_BY_INTERVAL[interval] : undefined);
   const base = specific || process.env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL;
   if (!base) throw new Error('NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL is not set');
   return base;
@@ -108,6 +132,8 @@ export interface OpenProCheckoutOptions {
    * per-interval URL is configured; otherwise the generic product URL is used.
    */
   interval?: BillingInterval;
+  /** Visitor is in the PPP price group (isPppCurrency) — use the discounted variant. */
+  ppp?: boolean;
   /**
    * Fires on Checkout.Success after payment is taken. The LS subscription id is
    * passed when available (so callers can hit /sync for an immediate provision);
@@ -124,7 +150,7 @@ export interface OpenProCheckoutOptions {
  * fallback.
  */
 export async function openProCheckout(opts: OpenProCheckoutOptions): Promise<void> {
-  const base = resolveCheckoutUrl(opts.interval);
+  const base = resolveCheckoutUrl(opts.interval, opts.ppp);
 
   onCompletedCb = opts.onCompleted ?? null;
 

@@ -424,31 +424,6 @@
     "ast_hash": "2490eeb8b7bc9cff7d1b9cbacc2632a8",
     "semantic_hash": "2490eeb8b7bc9cff7d1b9cbacc2632a8"
   },
-  "apps/web/src/components/pricing/BillingIntervalToggle.tsx": {
-    "mtime": 1782509949.1743987,
-    "ast_hash": "31f985d270e17fc1f71618926cedac33",
-    "semantic_hash": "31f985d270e17fc1f71618926cedac33"
-  },
-  "apps/web/src/components/pricing/FAQ.tsx": {
-    "mtime": 1782509949.1755054,
-    "ast_hash": "ebac73a2c6f1c155fc83d1f49c9811b9",
-    "semantic_hash": "ebac73a2c6f1c155fc83d1f49c9811b9"
-  },
-  "apps/web/src/components/pricing/FeatureComparison.tsx": {
-    "mtime": 1782570450.758191,
-    "ast_hash": "1ce3d907ffef02b70eb4b3f46dab0714",
-    "semantic_hash": ""
-  },
-  "apps/web/src/components/pricing/PricingCard.tsx": {
-    "mtime": 1782567541.4134274,
-    "ast_hash": "72613f5163b9627371910a5843c02c02",
-    "semantic_hash": ""
-  },
-  "apps/web/src/components/pricing/PricingHero.tsx": {
-    "mtime": 1782509949.1740437,
-    "ast_hash": "179149bd30c9e347e6943aa9e1489771",
-    "semantic_hash": "179149bd30c9e347e6943aa9e1489771"
-  },
   "apps/web/src/components/profile/AboutLadder.tsx": {
     "mtime": 1782509949.161843,
     "ast_hash": "cd5a60e8d8ac398d25b3a4f35e1524c2",
@@ -745,9 +720,9 @@
     "semantic_hash": "7a7a4488a088962fa724aef5fbfb4c6a"
   },
   "apps/web/src/hooks/useCurrency.ts": {
-    "mtime": 1782509948.9876328,
-    "ast_hash": "7ddf7a4e4b1f38814a7185c6edace8df",
-    "semantic_hash": "7ddf7a4e4b1f38814a7185c6edace8df"
+    "mtime": 1783018803.1757703,
+    "ast_hash": "d50574141e905a27523c26a6bec59f29",
+    "semantic_hash": ""
   },
   "apps/web/src/hooks/useDirectUpload.ts": {
     "mtime": 1782509948.988006,
@@ -785,8 +760,8 @@
     "semantic_hash": "9446e3199f91d0b371d04ae04f745978"
   },
   "apps/web/src/hooks/useUpgrade.ts": {
-    "mtime": 1782567541.4176302,
-    "ast_hash": "0d8c17e5230057bcbc8d38b44a98e1d3",
+    "mtime": 1783017833.5813959,
+    "ast_hash": "5fa1cd6733de52f17f82886fdb77434c",
     "semantic_hash": ""
   },
   "apps/web/src/lib/achievement-checker.ts": {
@@ -915,9 +890,9 @@
     "semantic_hash": "36ecc9ea5807ddc900c6a360f2908c89"
   },
   "apps/web/src/lib/currency.ts": {
-    "mtime": 1782509949.0000648,
-    "ast_hash": "25b8c79b1de3dbc877ba8fe6a7eb7672",
-    "semantic_hash": "25b8c79b1de3dbc877ba8fe6a7eb7672"
+    "mtime": 1783018772.7459133,
+    "ast_hash": "e6d2a4cf751f17d750821fb13bc1bf70",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/db.ts": {
     "mtime": 1782509949.05624,
@@ -950,9 +925,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/lib/exchange-rates.ts": {
-    "mtime": 1782509949.0334816,
+    "mtime": 1783018777.4059682,
     "ast_hash": "a7864c324b338e07c2e8b4c0ec4825f1",
-    "semantic_hash": "a7864c324b338e07c2e8b4c0ec4825f1"
+    "semantic_hash": ""
   },
   "apps/web/src/lib/feature-flags.ts": {
     "mtime": 1782943501.2696314,
@@ -990,9 +965,9 @@
     "semantic_hash": "e862cbe72e1694ac45cd6a0216c0976f"
   },
   "apps/web/src/lib/geo-currency.ts": {
-    "mtime": 1782509949.050722,
+    "mtime": 1783018795.922118,
     "ast_hash": "c8321ff39cc9f97f295876d969aa6309",
-    "semantic_hash": "c8321ff39cc9f97f295876d969aa6309"
+    "semantic_hash": ""
   },
   "apps/web/src/lib/greetings.ts": {
     "mtime": 1782509949.018716,
@@ -1035,8 +1010,8 @@
     "semantic_hash": "3e63d3492d1de819c1ed6cd434b7b05c"
   },
   "apps/web/src/lib/lemonsqueezy-client.ts": {
-    "mtime": 1782567541.4209619,
-    "ast_hash": "0433dae9056084fbaeb92a429a81c680",
+    "mtime": 1783017828.6116006,
+    "ast_hash": "0ae79e0ed047e27f5311ce74989b5937",
     "semantic_hash": ""
   },
   "apps/web/src/lib/lemonsqueezy.ts": {
@@ -1545,8 +1520,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/lib/tiers.ts": {
-    "mtime": 1782635856.7213497,
-    "ast_hash": "8a920788ae3306e712b8ebacf76873f9",
+    "mtime": 1783019336.55762,
+    "ast_hash": "c008de0b8160d1cd2d79b8f9d42c9046",
     "semantic_hash": ""
   },
   "apps/web/src/lib/timeline-sort.ts": {
@@ -1710,7 +1685,7 @@
     "semantic_hash": ""
   },
   "apps/web/app/(admin)/admin/stats/page.tsx": {
-    "mtime": 1782781807.6072638,
+    "mtime": 1783018864.4600034,
     "ast_hash": "f47ae1e20ac76e858948415c43dbefdc",
     "semantic_hash": ""
   },
@@ -1805,9 +1780,9 @@
     "semantic_hash": ""
   },
   "apps/web/app/api/admin/stats/route.ts": {
-    "mtime": 1782509949.238749,
+    "mtime": 1783018862.5793662,
     "ast_hash": "fa3040ea5e2c7ffece3b6a860be54c1a",
-    "semantic_hash": "fa3040ea5e2c7ffece3b6a860be54c1a"
+    "semantic_hash": ""
   },
   "apps/web/app/api/admin/users/[id]/cosmetics/route.ts": {
     "mtime": 1782509949.2479155,
@@ -1895,9 +1870,9 @@
     "semantic_hash": "4a6c2829f26218c1d35ce5b3e8070a06"
   },
   "apps/web/app/api/currency/route.ts": {
-    "mtime": 1782509949.2052603,
+    "mtime": 1783018869.5611532,
     "ast_hash": "00ef3ae548f9d124bb9a230778bf4e00",
-    "semantic_hash": "00ef3ae548f9d124bb9a230778bf4e00"
+    "semantic_hash": ""
   },
   "apps/web/app/api/dashboard/route.ts": {
     "mtime": 1782567541.3914669,
@@ -2035,8 +2010,8 @@
     "semantic_hash": "c10492eb7bbebfe802a0e4e2ea91ff1d"
   },
   "apps/web/app/api/learn/paths/route.ts": {
-    "mtime": 1782943501.2656283,
-    "ast_hash": "8289a66900224f42a014e2ba3afd6e44",
+    "mtime": 1783019372.5069158,
+    "ast_hash": "b55ac18486948406b436c647ec5374c4",
     "semantic_hash": ""
   },
   "apps/web/app/api/learn/slots/[slotId]/assessment/route.ts": {
@@ -2245,8 +2220,8 @@
     "semantic_hash": "357049286e8dcb2ddc97fd5cb45dc256"
   },
   "apps/web/app/api/user/usage/route.ts": {
-    "mtime": 1782567541.3975613,
-    "ast_hash": "0a148548615006af7490eb7772e6d8da",
+    "mtime": 1783019818.987184,
+    "ast_hash": "4928bc539aa485fced621062e59102cb",
     "semantic_hash": ""
   },
   "apps/web/app/api/user/username/route.ts": {
@@ -2315,8 +2290,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/pricing/PricingPageClient.tsx": {
-    "mtime": 1782567541.398622,
-    "ast_hash": "42ca46aab058ece95fe781698703c078",
+    "mtime": 1783019376.5114183,
+    "ast_hash": "95013ca2506ac35aad0f29a916ae53f6",
     "semantic_hash": ""
   },
   "apps/web/app/pricing/page.tsx": {
@@ -83365,8 +83340,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/onboarding/SignupFlow.tsx": {
-    "mtime": 1782567541.4130793,
-    "ast_hash": "780cb72122a0c64be1bfcac3ee5093c0",
+    "mtime": 1783018860.2646024,
+    "ast_hash": "1ed7bdd342c2fa39c5af82b1615f6c25",
     "semantic_hash": ""
   },
   "apps/web/app/api/user/grading-system/route.ts": {
@@ -83810,8 +83785,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/paths/new/page.tsx": {
-    "mtime": 1783015133.344933,
-    "ast_hash": "bdf6ec7153459941063d47e7f211e478",
+    "mtime": 1783019881.0359356,
+    "ast_hash": "49f765b3c746eabfa88319f0e425ff6c",
     "semantic_hash": ""
   },
   "apps/web/app/api/material/[id]/inventory/route.ts": {

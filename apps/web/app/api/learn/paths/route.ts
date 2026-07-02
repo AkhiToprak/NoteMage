@@ -17,6 +17,7 @@ import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
 import { pathContentCap } from '@/lib/path-corpus-fit';
 import { staleGenerationCutoff } from '@/lib/path-loader';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
+import { AI_PATHS_PER_DAY, TIERS } from '@/lib/tiers';
 import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { acquireRedisLock, stableHash } from '@/lib/redis-cache';
 import { checkTokenBudget } from '@/lib/token-budget';
@@ -110,6 +111,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Daily pacing on AI path creations (basic paths are monthly-unlimited for
+    // Pro — AI_PATHS_PER_DAY in tiers.ts). Counts today's AI-created plans;
+    // tokenLimit stays the monthly COGS ceiling. Admins bypass (dev/testing).
+    const { role } = await db.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (role !== 'admin') {
+      const now = new Date();
+      const dayStart = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      );
+      const createdToday = await db.studyPlan.count({
+        where: { userId, source: 'ai', createdAt: { gte: dayStart } },
+      });
+      if (createdToday >= AI_PATHS_PER_DAY) {
+        return tooManyRequestsResponse(
+          `Daily path limit reached (${AI_PATHS_PER_DAY}/day) — resets at midnight UTC.`
+        );
+      }
+    }
+
     const body = (await request.json().catch(() => ({}))) as CreatePathBody;
     const title = body.title?.trim().slice(0, 200);
     if (!title) return badRequestResponse('Title is required');
@@ -139,7 +162,7 @@ export async function POST(request: NextRequest) {
       }
       return tooManyRequestsResponse(
         ultra
-          ? 'Ultra path limit reached — Ultra is a Pro feature, capped at 3 per month.'
+          ? `Ultra path limit reached — Ultra is a Pro feature, capped at ${TIERS.PRO.limits.ultra_path} per month.`
           : 'Monthly AI path generation limit reached. Upgrade your plan for more.'
       );
     }

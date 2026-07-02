@@ -15,11 +15,13 @@ import { getNativePlatform } from '@/lib/native-bridge';
 import {
   TIERS,
   monthlyEquivalent,
+  proPriceCHF,
   yearlySavingsPct,
   INTERVAL_LABEL,
   type BillingInterval,
 } from '@/lib/tiers';
 import { useCurrency } from '@/hooks/useCurrency';
+import { PPP_CHECKOUT_CONFIGURED } from '@/lib/lemonsqueezy-client';
 import styles from './SignupFlow.module.css';
 
 /* ─────────── shared SVG glyphs (mirrors Login / start-signup) ─────────── */
@@ -121,7 +123,10 @@ export default function SignupFlow() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status: sessionStatus, update: updateSession } = useSession();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currency } = useCurrency();
+  // PPP price points show only once their checkout variants are wired — never
+  // display a discount the checkout wouldn't charge (matches useUpgrade's gate).
+  const priceCurrency = PPP_CHECKOUT_CONFIGURED ? currency : undefined;
 
   const [step, setStep] = useState<StepId>('account');
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
@@ -881,13 +886,13 @@ export default function SignupFlow() {
     /* ── plan ── */
     const proConf = TIERS.PRO;
     const freeConf = TIERS.FREE;
-    const proPrice = formatPrice(proConf.price[billingInterval]);
+    const proPrice = formatPrice(proPriceCHF(billingInterval, priceCurrency));
     const proSuffix = billingInterval === 'weekly' ? '/wk' : billingInterval === 'monthly' ? '/mo' : '/yr';
     const proSubline =
       billingInterval === 'yearly'
-        ? `≈ ${formatPrice(monthlyEquivalent('PRO'))}/mo · billed yearly`
+        ? `≈ ${formatPrice(monthlyEquivalent('PRO', priceCurrency))}/mo · billed yearly`
         : null;
-    const savePct = yearlySavingsPct('PRO');
+    const savePct = yearlySavingsPct('PRO', priceCurrency);
 
     const freeBullets = [
       '1 AI flashcard set',
