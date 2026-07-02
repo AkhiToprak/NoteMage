@@ -113,9 +113,9 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
               {!isImmersive && (isAppShell ? <AppMobileNav /> : <MobileBottomNav />)}
             </div>
             {/* Global Mage panel. Fixed overlay, sits outside the chrome flow
-              and rides on top of every route. Opened from the sidebar "Ask Mage"
-              card and the highlight-to-ask CTA (the floating launcher button was
-              removed). Phase 10: MageAutoOpen opens the panel for redirected
+              and rides on top of every route. Opened from the highlight-to-ask
+              CTA (the sidebar "Ask Mage" card and the floating launcher button
+              were removed). Phase 10: MageAutoOpen opens the panel for redirected
               /learn/chats deep-links (?mage=open); MageSelectionAction is the
               highlight-to-ask floating CTA. */}
             <MagePanel />

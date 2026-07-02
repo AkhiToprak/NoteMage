@@ -13,6 +13,7 @@
   --mn-ink-soft: #5b6273;
   --mn-accent: #4326b8;
   --mn-lilac: #ede9ff;
+  --mn-lilac-soft: #f4f1ff;
   --mn-focus: #7c5cff;
   --mn-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -23,6 +24,18 @@
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Dark theme (legacy Neon Scholar). Renders outside `.shell`, so re-declare the
+   local --mn-* tokens with dark values; every rule below reads them and flips. */
+:global([data-theme='dark']) .nav {
+  --mn-surface: #21213e;
+  --mn-border: #35355c;
+  --mn-ink-soft: #dfdeeb;
+  --mn-accent: #c4a9ff;
+  --mn-lilac: #2f2a55;
+  --mn-lilac-soft: rgb(174 137 255 / 0.08);
+  --mn-focus: #8c52ff;
 }
 
 /* Phone only. Shown ≤760px — the exact width at which AppSidebar hides, so
@@ -94,7 +107,7 @@
 
 /* Interactive states */
 .tab:hover .iconWrap {
-  background: #f4f1ff;
+  background: var(--mn-lilac-soft);
 }
 .active:hover .iconWrap {
   background: var(--mn-lilac);

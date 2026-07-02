@@ -520,13 +520,13 @@ export default function AccountSettingsPage() {
       )}
 
       {/* ── Danger zone ── */}
-      <SettingsCard style={{ borderColor: '#f2d6d2' }}>
+      <SettingsCard style={{ borderColor: 'var(--danger-line)' }}>
         <CardHead icon="warning" tint="rose" title="Delete account" desc="Permanently remove your account and all your data." />
         <button
           type="button"
           onClick={() => setDeleteOpen(true)}
           className={`${ui.btn} ${ui.small}`}
-          style={{ alignSelf: 'flex-start', background: '#fbeceb', color: '#c0392b', border: '1px solid #f2c4be' }}
+          style={{ alignSelf: 'flex-start', background: 'var(--danger-soft)', color: 'var(--danger-ink)', border: '1px solid var(--danger-line)' }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
             delete_forever
@@ -638,13 +638,13 @@ function DeleteAccountModal({
           gap: 16,
           maxWidth: 400,
           width: '100%',
-          border: '1px solid #f2c4be',
+          border: '1px solid var(--danger-line)',
           boxShadow: '0 24px 64px rgba(24,32,47,0.28)',
         }}
       >
         <span
           aria-hidden
-          style={{ width: 52, height: 52, borderRadius: 15, background: '#fbeceb', color: '#c0392b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: 52, height: 52, borderRadius: 15, background: 'var(--danger-soft)', color: 'var(--danger-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 28 }}>
             warning
@@ -658,7 +658,7 @@ function DeleteAccountModal({
         </p>
         <div style={{ width: '100%' }}>
           <label htmlFor="del-acct-confirm" style={{ display: 'block', fontSize: 12.5, color: 'var(--body)', marginBottom: 8 }}>
-            Type <strong style={{ color: '#c0392b' }}>DELETE</strong> to confirm
+            Type <strong style={{ color: 'var(--danger-ink)' }}>DELETE</strong> to confirm
           </label>
           <input
             id="del-acct-confirm"
@@ -685,10 +685,10 @@ function DeleteAccountModal({
             type="button"
             disabled={deleting || text !== 'DELETE'}
             onClick={onConfirm}
-            className={ui.btn}
+            className={`${ui.btn} del-confirm-btn`}
             style={{
               flex: 1,
-              background: text === 'DELETE' ? '#c0392b' : '#e7b4ad',
+              background: text === 'DELETE' ? 'var(--danger)' : 'var(--del-disabled, #e7b4ad)',
               color: '#fff',
               cursor: deleting || text !== 'DELETE' ? 'not-allowed' : 'pointer',
               opacity: deleting ? 0.7 : 1,

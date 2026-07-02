@@ -400,11 +400,10 @@ function PathDetailInner({ planId, initialPath }: { planId: string; initialPath:
           <div className="path-banner" style={{ margin: '0 0 16px' }}>
             <style>{`
               @keyframes spin { to { transform: rotate(360deg); } }
-              .path-banner { --danger: #c0392b; }
               .path-spin { animation: spin 0.8s linear infinite; }
               .path-stop-btn { transition: transform 0.12s cubic-bezier(0.22,1,0.36,1); }
               .path-stop-btn:active { transform: translateY(1px); }
-              .path-stop-btn--ghost:hover { background: #f6f3ec; }
+              .path-stop-btn--ghost:hover { background: var(--hover); }
               .path-stop-btn--ghost:focus-visible { outline: 2px solid var(--border); outline-offset: 2px; }
               .path-stop-btn--danger:hover { opacity: 0.92; }
               .path-stop-btn--danger:focus-visible { outline: 2px solid var(--danger); outline-offset: 2px; }
@@ -627,7 +626,6 @@ function PathDetailInner({ planId, initialPath }: { planId: string; initialPath:
           <div className="path-banner" style={{ margin: '0 0 16px' }}>
             <style>{`
               @keyframes spin { to { transform: rotate(360deg); } }
-              .path-banner { --danger: #c0392b; }
               .path-spin { animation: spin 0.8s linear infinite; }
               .path-stop-btn--primary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
               @media (prefers-reduced-motion: reduce) { .path-spin { animation: none; } }

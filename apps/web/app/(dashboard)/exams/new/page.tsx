@@ -321,8 +321,8 @@ export default function NewExamPage() {
               gap: 8,
               padding: '11px 14px',
               borderRadius: 'var(--rm)',
-              background: '#fdecea',
-              color: '#b4341f',
+              background: 'var(--danger-soft)',
+              color: 'var(--danger-ink)',
               fontSize: 13.5,
             }}
           >

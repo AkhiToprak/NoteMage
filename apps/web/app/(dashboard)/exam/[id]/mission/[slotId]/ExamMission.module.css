@@ -12,6 +12,7 @@
   flex-direction: column;
   gap: 18px;
 }
+:global([data-theme='dark']) .page { --st-red-ink: #fea1b0; }
 
 .back {
   display: inline-flex;
@@ -52,7 +53,7 @@
   padding: 20px 22px;
 }
 .kicker { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
-.goalCard { background: var(--lilac-soft); border: 1px solid #e4ddff; border-radius: var(--rc); padding: 16px 18px; }
+.goalCard { background: var(--lilac-soft); border: 1px solid var(--tint-border); border-radius: var(--rc); padding: 16px 18px; }
 .goalText { margin: 8px 0 0; font-size: 15px; font-weight: 600; color: var(--ink); line-height: 1.5; }
 
 /* current-task hero */
@@ -115,14 +116,14 @@
   font-family: inherit;
   transition: background-color 0.16s var(--ease), transform 0.16s var(--ease), border-color 0.16s var(--ease);
 }
-.missionCard:hover { background: #faf7ef; }
+.missionCard:hover { background: var(--hover); }
 .missionCard:active { transform: translateY(0.5px); }
 .missionCard:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.missionCardNow { border-color: #d9ccff; box-shadow: var(--shadow-raise); }
+.missionCardNow { border-color: var(--tint-border); box-shadow: var(--shadow-raise); }
 .missionIcon { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; }
 .miDone { background: var(--green-soft); color: var(--green-ink); }
 .miNow { background: var(--lilac); color: var(--accent); }
-.miTodo { background: #efeade; color: var(--muted); }
+.miTodo { background: var(--badge); color: var(--muted); }
 .missionName { font-size: 14.5px; font-weight: 700; color: var(--ink); }
 .missionState { font-size: 12px; color: var(--body); }
 .missionStateDone { color: var(--green-ink); }
@@ -139,11 +140,11 @@
 .railPct { font-size: 14px; font-weight: 800; color: var(--ink); }
 .sourceRow { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-top: 1px solid var(--border-soft); }
 .sourceRow:first-of-type { border-top: none; }
-.sourceIcon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 9px; background: #f3efe6; color: var(--ink-soft); flex-shrink: 0; }
+.sourceIcon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 9px; background: var(--badge); color: var(--ink-soft); flex-shrink: 0; }
 .sourceName { font-size: 13.5px; font-weight: 600; color: var(--ink); }
 .sourceMeta { font-size: 12px; color: var(--body); }
 
-.askCard { background: var(--lilac-soft); border: 1px solid #e4ddff; border-radius: var(--rc); padding: 16px 18px; }
+.askCard { background: var(--lilac-soft); border: 1px solid var(--tint-border); border-radius: var(--rc); padding: 16px 18px; }
 .askHead { display: flex; align-items: center; gap: 8px; }
 .askMascot { width: 26px; height: 26px; object-fit: contain; }
 .askTitle { font-size: 13.5px; font-weight: 800; color: var(--accent); }
@@ -170,7 +171,7 @@
   font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer;
   transition: background-color 0.16s var(--ease), transform 0.16s var(--ease);
 }
-.practiceBtn:hover { background: #fff8ea; }
+.practiceBtn:hover { background: var(--amber-soft); }
 .practiceBtn:active { transform: translateY(1px); }
 .practiceBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .practiceBtn:disabled { opacity: 0.6; cursor: default; }

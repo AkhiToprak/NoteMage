@@ -190,6 +190,10 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#faf7f0' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a1a36' },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -247,10 +251,11 @@ export default function RootLayout({
         />
         <script
           dangerouslySetInnerHTML={{
-            // Dark mode isn't designed yet — lock first paint to light, ignoring
-            // any persisted 'notemage-theme'. Restore the localStorage-driven
-            // script when a dark theme ships.
-            __html: `document.documentElement.dataset.theme='light';document.documentElement.style.colorScheme='light';`,
+            // FOUC-free theme resolver, runs before first paint. Explicit
+            // 'light'/'dark' in localStorage wins; anything else (incl. a
+            // storage exception) falls through to the OS preference. Only a
+            // total failure leaves the SSR light default from <html>.
+            __html: `try{var p=null;try{p=localStorage.getItem('notemage-theme')}catch(e){}var t=(p==='light'||p==='dark')?p:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t}catch(e){}`,
           }}
         />
       </head>

@@ -23,14 +23,19 @@ const STORAGE_KEY = 'notemage-theme';
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function getSystemTheme(): ResolvedTheme {
-  if (typeof window === 'undefined') return 'dark';
+  // SSR fallback matches the light default rendered on <html> in layout.tsx.
+  if (typeof window === 'undefined') return 'light';
   return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 }
 
 function readStoredPreference(): ThemePreference {
-  // Dark mode isn't designed for the cream redesign yet — the app is locked to
-  // light. Ignore any persisted preference until the theme toggle is reinstated.
-  return 'light';
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+    return 'system';
+  } catch {
+    return 'system';
+  }
 }
 
 function applyTheme(resolved: ResolvedTheme) {
@@ -40,7 +45,7 @@ function applyTheme(resolved: ResolvedTheme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreferenceState] = useState<ThemePreference>('light');
+  const [preference, setPreferenceState] = useState<ThemePreference>('system');
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>('light');
   const [hydrated, setHydrated] = useState(false);
 

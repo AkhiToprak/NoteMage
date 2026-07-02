@@ -14,7 +14,7 @@ import slider from './StudyPlanBits.module.css';
 const KIND_TONE: Record<'study' | 'review' | 'mock' | 'final', { bg: string; fg: string }> = {
   study: { bg: 'var(--lilac-soft)', fg: 'var(--accent)' },
   review: { bg: 'var(--amber-soft)', fg: 'var(--amber-ink)' },
-  mock: { bg: 'rgba(202,165,58,0.18)', fg: '#8a6a1c' },
+  mock: { bg: 'var(--amber-soft)', fg: 'var(--amber-ink)' },
   final: { bg: 'var(--green-soft)', fg: 'var(--green-ink)' },
 };
 
@@ -50,7 +50,7 @@ export function UrgencyBadge({ urgency }: { urgency: number | null }) {
   const label = urgency >= 3 ? 'Urgent' : urgency === 2 ? 'Needs practice' : 'Almost there';
   const tone =
     urgency >= 3
-      ? { bg: '#fdecea', fg: '#a32d18' }
+      ? { bg: 'var(--danger-soft)', fg: 'var(--danger-ink)' }
       : urgency === 2
         ? { bg: 'var(--amber-soft)', fg: 'var(--amber-ink)' }
         : { bg: 'var(--green-soft)', fg: 'var(--green-ink)' };
@@ -75,7 +75,7 @@ export function UrgencyBadge({ urgency }: { urgency: number | null }) {
 }
 
 const STATUS_META: Record<PlanItemStatus, { label: string; bg: string; fg: string }> = {
-  not_started: { label: 'Not started', bg: '#efeade', fg: 'var(--muted)' },
+  not_started: { label: 'Not started', bg: 'var(--badge)', fg: 'var(--muted)' },
   in_progress: { label: 'In progress', bg: 'var(--lilac-soft)', fg: 'var(--accent)' },
   done: { label: 'Done', bg: 'var(--green-soft)', fg: 'var(--green-ink)' },
 };

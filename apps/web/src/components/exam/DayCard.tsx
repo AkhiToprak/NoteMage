@@ -114,7 +114,7 @@ export function DayCard({
               <span style={{ fontSize: 12, color: 'var(--muted)' }}>· {totalMinutes} min</span>
             )}
           </div>
-          <div style={{ width: '100%', height: 5, borderRadius: 999, background: '#eee7da', overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: 5, borderRadius: 999, background: 'var(--track)', overflow: 'hidden' }}>
             <div
               style={{
                 height: '100%',

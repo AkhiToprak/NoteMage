@@ -155,7 +155,9 @@ function countdownLabel(days: number): string {
 function ringColor(v: number): string {
   if (v >= 85) return 'var(--green)';
   if (v >= 40) return 'var(--gold)';
-  return '#d4592f';
+  // low-readiness alarm — the destructive red family (flips in dark); --amber
+  // would collide with the mid band's --gold.
+  return 'var(--danger)';
 }
 
 function readEditParam(): string | null {
@@ -493,7 +495,7 @@ function ExamHub(props: HubProps) {
               <LegendItem color="var(--st-red-ink)" label="Weak" />
               <LegendItem color="var(--amber)" label="Review" />
               <LegendItem color="var(--st-red-strong)" label="Exam-critical" />
-              <LegendItem color="#caa53a" label="Gate" />
+              <LegendItem color="var(--gold)" label="Gate" />
             </div>
 
             {/* linked learning path node list */}
@@ -702,7 +704,7 @@ function Ring({ value, size = 108, muted = false }: { value: number; size?: numb
       aria-label={muted ? 'Readiness not measured yet' : `${Math.round(v)}% ready`}
       style={{ display: 'block', flexShrink: 0 }}
     >
-      <circle cx={center} cy={center} r={r} fill="none" stroke="#eee7da" strokeWidth={stroke} />
+      <circle cx={center} cy={center} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
       {!muted ? (
         <circle
           cx={center}
@@ -957,7 +959,7 @@ function ManageSection({
               scope.items.map((it) => (
                 <div
                   key={`${it.itemType}:${it.itemId}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, background: '#faf7ef' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, background: 'var(--hover)' }}
                 >
                   <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 19, color: 'var(--muted)' }}>
                     {SCOPE_ICON[it.itemType]}
@@ -1020,7 +1022,7 @@ function SetupState({ examId, onEdit }: { examId: string; onEdit: () => void }) 
  */
 function MockExamLauncher({ examId }: { examId: string }) {
   return (
-    <section className={styles.card} style={{ borderColor: '#d9ccff', boxShadow: 'var(--shadow-raise)' }}>
+    <section className={styles.card} style={{ borderColor: 'var(--tint-border)', boxShadow: 'var(--shadow-raise)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', justifyContent: 'space-between' }}>
         <div style={{ minWidth: 0, flex: '1 1 280px' }}>
           <h3 className={styles.cardTitle}>Rehearse with a mock exam</h3>

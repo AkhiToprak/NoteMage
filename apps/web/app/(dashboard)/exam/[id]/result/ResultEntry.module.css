@@ -14,6 +14,10 @@
   flex-direction: column;
   gap: 18px;
 }
+:global([data-theme='dark']) .page {
+  --st-red-ink: #fea1b0;
+  --st-red-soft: rgb(255 128 149 / 0.12);
+}
 
 .center {
   min-height: 50vh;
@@ -91,7 +95,7 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--body);
-  background: #f1ece0;
+  background: var(--badge);
   padding: 2px 8px;
   border-radius: 999px;
 }
@@ -103,7 +107,7 @@
   height: 52px;
   border-radius: 14px;
   border: 1px solid var(--amber-line);
-  background: #f4eee2;
+  background: var(--badge);
   color: var(--ink);
   display: inline-flex;
   align-items: center;
@@ -112,7 +116,7 @@
   flex-shrink: 0;
   transition: transform 0.16s var(--ease), background 0.16s var(--ease), opacity 0.16s var(--ease);
 }
-.stepBtn:hover { background: #ece4d2; }
+.stepBtn:hover { background: var(--hover); }
 .stepBtn:active { transform: scale(0.94); }
 .stepBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .stepBtn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -124,7 +128,7 @@
   min-height: 84px;
   border-radius: 16px;
   background: var(--lilac-soft, #efeaff);
-  border: 1px solid #ddd2ff;
+  border: 1px solid var(--tint-border);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -152,7 +156,7 @@
     color 0.2s var(--ease),
     box-shadow 0.2s var(--ease);
 }
-.bandPill:hover { background: #f4eee2; }
+.bandPill:hover { background: var(--hover); }
 .bandPill:active { transform: scale(0.97); }
 .bandPill:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .bandPillOn {
@@ -176,8 +180,8 @@
   font-size: 13.5px;
   font-weight: 600;
 }
-.bannerGood { background: #e7f6ec; color: #1c7a45; }
-.bannerOk { background: #fef4e1; color: #9a6b16; }
+.bannerGood { background: var(--green-soft); color: var(--green-ink); }
+.bannerOk { background: var(--amber-soft); color: var(--amber-ink); }
 .bannerBad { background: var(--st-red-soft); color: var(--st-red-ink); }
 .bannerStar {
   margin-left: auto;
@@ -215,7 +219,7 @@
     color 0.2s var(--ease),
     box-shadow 0.2s var(--ease);
 }
-.choice:hover { background: #f4eee2; }
+.choice:hover { background: var(--hover); }
 .choice:active { transform: scale(0.95); }
 .choice:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .choiceOn {
@@ -260,7 +264,7 @@
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid var(--amber-line);
-  background: #faf7ef;
+  background: var(--bg);
   color: var(--ink);
   font-size: 14px;
   font-family: inherit;

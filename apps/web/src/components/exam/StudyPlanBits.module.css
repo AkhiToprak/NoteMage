@@ -19,7 +19,7 @@
   right: 0;
   height: 6px;
   border-radius: 999px;
-  background: #eee7da;
+  background: var(--track);
 }
 .fill {
   position: absolute;

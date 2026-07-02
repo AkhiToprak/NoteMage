@@ -410,7 +410,7 @@ export default function ProfileView({
                 style={{
                   position: 'relative',
                   overflow: 'hidden',
-                  background: '#7c5cff',
+                  background: 'var(--primary)',
                   borderRadius: 22,
                   boxShadow: '0 12px 26px rgba(124,92,255,0.32)',
                   padding: '22px 24px',
@@ -812,7 +812,7 @@ function EditProfileModal({
               style={{
                 background: 'rgba(207,34,46,0.08)',
                 border: '1px solid rgba(207,34,46,0.4)',
-                color: '#cf222e',
+                color: 'var(--danger-ink)',
                 borderRadius: 12,
                 padding: '12px 16px',
                 fontSize: 13,
@@ -1046,7 +1046,7 @@ function UsernameModal({
                 <span
                   className="material-symbols-outlined"
                   aria-label={usernameStatus === 'taken' ? 'Taken' : 'Invalid'}
-                  style={{ fontSize: 18, color: '#cf222e', fontVariationSettings: "'FILL' 1" }}
+                  style={{ fontSize: 18, color: 'var(--danger-ink)', fontVariationSettings: "'FILL' 1" }}
                 >
                   cancel
                 </span>
@@ -1060,7 +1060,7 @@ function UsernameModal({
               color: usernameStatus === 'available'
                 ? 'var(--success, #2da44e)'
                 : usernameStatus === 'taken' || usernameStatus === 'invalid'
-                  ? '#cf222e'
+                  ? 'var(--danger-ink)'
                   : 'var(--body)',
               minHeight: '1lh',
             }}
@@ -1072,7 +1072,7 @@ function UsernameModal({
         </div>
 
         {modalError && (
-          <p role="alert" style={{ margin: 0, fontSize: 13, color: '#cf222e' }}>{modalError}</p>
+          <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--danger-ink)' }}>{modalError}</p>
         )}
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
@@ -1236,14 +1236,14 @@ function AchievementsSection({ initialUnlocked }: { initialUnlocked: UnlockedIte
             display: 'flex',
             alignItems: 'center',
             gap: 16,
-            background: '#f4f1ff',
-            border: '1.4px solid #cbb9ff',
+            background: 'var(--lilac-soft)',
+            border: '1.4px solid var(--tint-border)',
             borderRadius: 18,
             boxShadow: '0 6px 18px rgba(124,92,255,0.10)',
             padding: '18px 20px',
           }}
         >
-          <span style={{ width: 48, height: 48, borderRadius: 999, background: '#e7deff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ width: 48, height: 48, borderRadius: 999, background: 'var(--lilac-press)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 26, color: 'var(--accent)' }} aria-hidden>{latestIcon}</span>
           </span>
           <div style={{ minWidth: 0 }}>
@@ -1253,7 +1253,7 @@ function AchievementsSection({ initialUnlocked }: { initialUnlocked: UnlockedIte
           </div>
         </div>
       ) : (
-        <div style={{ marginTop: 14, background: '#f4f1ff', border: '1.4px solid #cbb9ff', borderRadius: 18, padding: 20, textAlign: 'center' }}>
+        <div style={{ marginTop: 14, background: 'var(--lilac-soft)', border: '1.4px solid var(--tint-border)', borderRadius: 18, padding: 20, textAlign: 'center' }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>No achievements yet</div>
           <div style={{ marginTop: 4, fontSize: 13, color: 'var(--body)' }}>Keep studying to earn your first.</div>
         </div>

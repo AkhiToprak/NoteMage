@@ -612,7 +612,7 @@
   text-decoration: none;
   transition: background-color 0.16s var(--ease), transform 0.16s var(--ease);
 }
-.railBtn:hover { background: #e3dcff; }
+.railBtn:hover { background: var(--lilac-press); }
 .railBtn:active { transform: translateY(1px); }
 .railBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
@@ -675,7 +675,7 @@
   flex: 1;
   height: 8px;
   border-radius: 999px;
-  background: #ece7db;
+  background: var(--track);
   overflow: hidden;
 }
 .barFill {
@@ -735,7 +735,7 @@
   text-decoration: none;
   transition: background-color 0.16s var(--ease), transform 0.16s var(--ease);
 }
-.backPill:hover { background: #f6f3ec; }
+.backPill:hover { background: var(--hover); }
 .backPill:active { transform: translateY(1px); }
 .backPill:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
@@ -977,3 +977,39 @@
   .nodeGenerating, .nodeGenerating :global(.material-symbols-outlined),
   .buildingHintIcon :global(.material-symbols-outlined) { animation: none; }
 }
+
+/* ── dark theme (legacy purple-navy) — file-local overrides for the one-offs
+   the shell palette doesn't cover: locked/inactive warm-grey tiles, the gold
+   trophy family (kept vivid), and the colored "3D" bottom shadows on nodes.
+   Light literals above stay byte-identical. --gold is theme-neutral so gold
+   fills read the same; only gold washes/inks flip. */
+:global([data-theme='dark']) .secNumLocked,
+:global([data-theme='dark']) .secBadgeLocked,
+:global([data-theme='dark']) .nodeLocked,
+:global([data-theme='dark']) .nodeGenerating,
+:global([data-theme='dark']) .buildingHintIcon,
+:global([data-theme='dark']) .miniDotLocked,
+:global([data-theme='dark']) .lockedPill,
+:global([data-theme='dark']) .railRowIconLocked,
+:global([data-theme='dark']) .missionIconLocked {
+  background: #2d2d52;
+}
+:global([data-theme='dark']) .nodeLocked { box-shadow: 0 3px 0 #20203c; }
+:global([data-theme='dark']) .nodeGenerating { box-shadow: 0 3px 0 #20203c; }
+
+/* default lilac + done-green node tiles: darken the colored bottom shadow */
+:global([data-theme='dark']) .nodeTile { box-shadow: 0 3px 0 #241f45; }
+:global([data-theme='dark']) .nodeDone { box-shadow: 0 3px 0 #0f5a2d; }
+
+/* gold-locked node tile: dim gold wash + light gold ink */
+:global([data-theme='dark']) .nodeGateLocked {
+  background: rgb(255 200 61 / 0.14);
+  color: #ffde59;
+  box-shadow: 0 3px 0 rgb(255 200 61 / 0.30);
+}
+/* gate shield + exam medallion locked variants (gold/neutral washes) */
+:global([data-theme='dark']) .gateShieldLocked {
+  background: rgb(255 200 61 / 0.14);
+  color: #ffde59;
+}
+:global([data-theme='dark']) .examMedalLocked { background: #2d2d52; }

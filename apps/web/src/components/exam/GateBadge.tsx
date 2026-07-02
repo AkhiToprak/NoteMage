@@ -21,7 +21,7 @@ interface GateConfig {
 }
 
 const GATE_CONFIG: Record<GateState, GateConfig> = {
-  locked: { icon: 'lock', label: () => 'Locked', bg: '#efeade', ink: 'var(--body)' },
+  locked: { icon: 'lock', label: () => 'Locked', bg: 'var(--badge)', ink: 'var(--body)' },
   required: {
     icon: 'flag',
     label: (t) => (typeof t === 'number' ? `${Math.round(t)}% to pass` : 'Pass to continue'),
@@ -29,8 +29,7 @@ const GATE_CONFIG: Record<GateState, GateConfig> = {
     ink: 'var(--amber-ink)',
   },
   passed: { icon: 'check_circle', label: () => 'Passed', bg: 'var(--green-soft)', ink: 'var(--green-ink)' },
-  // The cream shell has no red token; this soft red matches --error (#c0392b).
-  failed: { icon: 'replay', label: () => 'Retake', bg: '#fdecea', ink: '#b4341f' },
+  failed: { icon: 'replay', label: () => 'Retake', bg: 'var(--danger-soft)', ink: 'var(--danger-ink)' },
 };
 
 export function GateBadge({ state, threshold, size = 'md' }: GateBadgeProps) {

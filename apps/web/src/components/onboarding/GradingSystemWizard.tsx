@@ -8,17 +8,21 @@ import { GRADING_SYSTEMS, type GradingSystem } from '@/lib/grading-systems';
    DashboardChrome level), so it carries a self-contained palette rather than
    relying on `.shell`-scoped CSS variables. */
 
+/* Colors flow through CSS vars (light defaults + dark overrides declared in the
+   scoped <style> below, keyed off [data-theme='dark'] on <html>). The picker
+   renders outside `.shell`, so it can't read shell tokens; under /start it's
+   pinned data-theme="light" and stays cream. Every C.* usage is unchanged. */
 const C = {
-  backdrop: 'rgba(38,34,58,0.55)',
-  panel: '#fffdf8',
-  ink: '#2c2840',
-  body: '#6c6982',
-  accent: '#7c5cff',
-  lilacSoft: '#f4f1ff',
-  border: '#e9e4d8',
-  borderSel: '#7c5cff',
-  field: '#ffffff',
-  disabled: '#c9bdf5',
+  backdrop: 'var(--gw-backdrop)',
+  panel: 'var(--gw-panel)',
+  ink: 'var(--gw-ink)',
+  body: 'var(--gw-body)',
+  accent: 'var(--gw-accent)',
+  lilacSoft: 'var(--gw-lilac-soft)',
+  border: 'var(--gw-border)',
+  borderSel: 'var(--gw-border-sel)',
+  field: 'var(--gw-field)',
+  disabled: 'var(--gw-disabled)',
 };
 
 /** Short "range · best" or "best→worst" hint shown under each system label. */
@@ -124,6 +128,7 @@ export default function GradingSystemWizard({
       role="dialog"
       aria-modal="true"
       aria-labelledby="grading-wizard-title"
+      className="gw-root"
       style={{
         position: 'fixed',
         inset: 0,
@@ -136,6 +141,32 @@ export default function GradingSystemWizard({
         padding: 16,
       }}
     >
+      <style>{`
+        .gw-root {
+          --gw-backdrop: rgba(38,34,58,0.55);
+          --gw-panel: #fffdf8;
+          --gw-ink: #2c2840;
+          --gw-body: #6c6982;
+          --gw-accent: #7c5cff;
+          --gw-lilac-soft: #f4f1ff;
+          --gw-border: #e9e4d8;
+          --gw-border-sel: #7c5cff;
+          --gw-field: #ffffff;
+          --gw-disabled: #c9bdf5;
+        }
+        [data-theme='dark'] .gw-root {
+          --gw-backdrop: rgba(8, 6, 24, 0.6);
+          --gw-panel: #21213e;
+          --gw-ink: #ffffff;
+          --gw-body: #a5a5be;
+          --gw-accent: #c4a9ff;
+          --gw-lilac-soft: rgb(174 137 255 / 0.08);
+          --gw-border: #35355c;
+          --gw-border-sel: rgb(174 137 255 / 0.28);
+          --gw-field: #272746;
+          --gw-disabled: #4a4470;
+        }
+      `}</style>
       <div
         style={{
           background: C.panel,

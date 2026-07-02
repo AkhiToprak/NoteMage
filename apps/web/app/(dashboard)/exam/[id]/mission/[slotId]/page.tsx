@@ -203,7 +203,7 @@ function Mission({
         {!isGated && best != null ? (
           <span
             className={`${ui.pill} ${best >= PASS_GATE ? ui.pillGreen : ''}`}
-            style={best >= PASS_GATE ? undefined : { background: '#fdecea', color: '#b4341f' }}
+            style={best >= PASS_GATE ? undefined : { background: 'var(--danger-soft)', color: 'var(--danger-ink)' }}
           >
             Quiz score {Math.round(best)}%
           </span>

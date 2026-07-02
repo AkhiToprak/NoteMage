@@ -18,6 +18,12 @@
   flex-direction: column;
   gap: 22px;
 }
+/* dark: legacy soft-red family (soft-red tint on navy + pink ink) */
+:global([data-theme='dark']) .page {
+  --st-red-ink: #fea1b0;
+  --st-red-soft: rgb(255 128 149 / 0.12);
+  --st-red-strong: #ff8095;
+}
 
 /* ---- header ---- */
 .back {
@@ -255,7 +261,7 @@
   transition: background-color 0.16s var(--ease), transform 0.16s var(--ease);
 }
 .nodeRow:first-of-type { border-top: none; }
-.nodeRow:hover { background: #faf7ef; }
+.nodeRow:hover { background: var(--hover); }
 .nodeRow:active { transform: translateY(0.5px); }
 .nodeRow:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
 
@@ -274,8 +280,8 @@
 .icWeak { background: var(--st-red-soft); color: var(--st-red-ink); }
 .icUrgent { background: var(--st-red-soft); color: var(--st-red-strong); }
 .icReview { background: var(--amber-soft); color: var(--amber-ink); }
-.icGate { background: #fbf1d6; color: #8a6a12; }
-.icIdle { background: #efeade; color: var(--muted); }
+.icGate { background: var(--amber-soft); color: var(--amber-ink); }
+.icIdle { background: var(--badge); color: var(--muted); }
 .icActive { background: var(--lilac); color: var(--accent); }
 
 .nodeMain { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
@@ -306,8 +312,8 @@
 .bWeak { background: var(--st-red-soft); color: var(--st-red-ink); }
 .bUrgent { background: var(--st-red-soft); color: var(--st-red-strong); }
 .bReview { background: var(--amber-soft); color: var(--amber-ink); }
-.bGate { background: #fbf1d6; color: #8a6a12; }
-.bIdle { background: #efeade; color: var(--ink-soft); }
+.bGate { background: var(--amber-soft); color: var(--amber-ink); }
+.bIdle { background: var(--badge); color: var(--ink-soft); }
 
 .openInPath {
   display: inline-flex;
@@ -388,7 +394,7 @@
   flex-shrink: 0;
   transition: background-color 0.16s var(--ease), transform 0.16s var(--ease);
 }
-.practiceBtn:hover { background: #e3ddff; }
+.practiceBtn:hover { background: var(--lilac-press); }
 .practiceBtn:active { transform: translateY(0.5px); }
 .practiceBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .practiceBtn:disabled { opacity: 0.55; cursor: default; }
@@ -411,7 +417,7 @@
   cursor: pointer;
   transition: background-color 0.16s var(--ease), transform 0.16s var(--ease);
 }
-.weakSessionBtn:hover { background: #f6f3ec; }
+.weakSessionBtn:hover { background: var(--hover); }
 .weakSessionBtn:active { transform: translateY(1px); }
 .weakSessionBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .weakSessionBtn:disabled { opacity: 0.6; cursor: default; }
@@ -421,7 +427,7 @@
 .tip {
   position: relative;
   background: var(--lilac-soft);
-  border: 1px solid #e4ddff;
+  border: 1px solid var(--tint-border);
   border-radius: var(--rc);
   padding: 16px 18px;
   overflow: hidden;

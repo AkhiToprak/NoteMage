@@ -1003,10 +1003,35 @@ export function MagePanel() {
           --mage-lilac: #ede9ff;
           --mage-lilac-soft: #f4f1ff;
           --mage-accent: #4326b8;
+          --mage-icon-bg: #f4f0e8;
+          --mage-icon-hover: #ece6d8;
           --mage-shadow: 0 1px 2px rgba(24, 32, 47, 0.04), 0 8px 22px rgba(24, 32, 47, 0.06);
           transition:
             transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
             opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        /* Dark theme — the panel rides outside .shell, so its scoped vars are
+           remapped here (keyed off [data-theme='dark'] on <html>) rather than
+           inherited. Light block above is unchanged; children re-resolve. */
+        [data-theme='dark'] .mage-panel {
+          --surface-container-low: #1a1a36;
+          --surface-container: #21213e;
+          --surface-container-high: #272746;
+          --surface-bright: #272746;
+          --outline: #35355c;
+          --outline-variant: #35355c;
+          --on-surface: #ffffff;
+          --on-surface-variant: #c9c8db;
+          --primary: #8c52ff;
+          --primary-dim: #6d39dd;
+          --on-primary: #ffffff;
+          --error: #ff8095;
+          --mage-lilac: #2f2a55;
+          --mage-lilac-soft: rgb(174 137 255 / 0.08);
+          --mage-accent: #c4a9ff;
+          --mage-icon-bg: #272746;
+          --mage-icon-hover: #35355c;
+          --mage-shadow: 0 1px 2px rgba(0, 0, 0, 0.30), 0 8px 22px rgba(0, 0, 0, 0.40);
         }
         .mage-scrim {
           transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1019,7 +1044,7 @@ export function MagePanel() {
           height: 36px;
           border-radius: 11px;
           border: none;
-          background: #f4f0e8;
+          background: var(--mage-icon-bg);
           color: var(--on-surface);
           cursor: pointer;
           flex-shrink: 0;
@@ -1027,7 +1052,7 @@ export function MagePanel() {
             background 0.14s cubic-bezier(0.22, 1, 0.36, 1),
             transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
         }
-        .mage-icon-btn:hover { background: #ece6d8; color: var(--on-surface); }
+        .mage-icon-btn:hover { background: var(--mage-icon-hover); color: var(--on-surface); }
         .mage-icon-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         .mage-icon-btn:active { transform: scale(0.92); }
         .mage-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }

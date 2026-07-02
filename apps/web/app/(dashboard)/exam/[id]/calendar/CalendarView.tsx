@@ -255,7 +255,7 @@ function CalendarScreen({
           <div className={styles.legendItems}>
             <Legend color="var(--accent)" label="Study" />
             <Legend color="var(--amber)" label="Review" />
-            <Legend color="#caa53a" label="Mock" />
+            <Legend color="var(--gold)" label="Mock" />
             <Legend color="var(--green)" label="Final revision" />
             <Legend color="var(--muted)" label="Done" />
           </div>

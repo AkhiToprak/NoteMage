@@ -14,6 +14,10 @@
   flex-direction: column;
   gap: 18px;
 }
+:global([data-theme='dark']) .page {
+  --st-red-ink: #fea1b0;
+  --st-red-soft: rgb(255 128 149 / 0.12);
+}
 
 /* ---- loading / not-found / error center ---- */
 .center {
@@ -144,9 +148,9 @@
   -webkit-user-select: none;
   user-select: none;
 }
-.reasonRow:hover { background: #faf7ef; }
+.reasonRow:hover { background: var(--hover); }
 .reasonRow:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
-.reasonRow:active { background: #f4eedf; }
+.reasonRow:active { background: var(--track); }
 
 /* custom checkbox */
 .checkbox {
@@ -203,7 +207,7 @@
 .mageCard {
   width: 100%;
   background: var(--lilac-soft, #efeaff);
-  border: 1px solid #e4ddff;
+  border: 1px solid var(--tint-border);
   border-radius: var(--rc);
   padding: 18px 20px;
   display: flex;

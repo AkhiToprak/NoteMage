@@ -66,8 +66,8 @@ const TINTS: Record<Tint, { bg: string; fg: string }> = {
   lilac: { bg: 'var(--lilac-soft)', fg: 'var(--accent)' },
   amber: { bg: 'var(--amber-soft)', fg: 'var(--amber-ink)' },
   green: { bg: 'var(--green-soft)', fg: 'var(--green-ink)' },
-  gold: { bg: '#fdf3d6', fg: '#9a6a12' },
-  rose: { bg: '#fbeceb', fg: '#c0392b' },
+  gold: { bg: 'var(--amber-soft)', fg: 'var(--amber-ink)' },
+  rose: { bg: 'var(--danger-soft)', fg: 'var(--danger-ink)' },
 };
 
 export function CardHead({
@@ -146,7 +146,7 @@ export function SettingsToggle({
         padding: 0,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.45 : 1,
-        background: checked ? 'var(--primary)' : '#e4ddcd',
+        background: checked ? 'var(--primary)' : 'var(--switch-off, #e4ddcd)',
         transition: 'background-color 0.18s var(--ease)',
       }}
     >
@@ -167,6 +167,7 @@ export function SettingsToggle({
       />
       <style>{`
         .set-switch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        [data-theme='dark'] .set-switch { --switch-off: #35355c; }
         @media (prefers-reduced-motion: reduce) {
           .set-switch, .set-switch > span { transition: none !important; }
         }
@@ -298,7 +299,7 @@ export function StatusLine({ status }: { status: StatusMsg }) {
         margin: 0,
         fontSize: 13.5,
         fontWeight: 600,
-        color: status.type === 'success' ? 'var(--green-ink)' : '#c0392b',
+        color: status.type === 'success' ? 'var(--green-ink)' : 'var(--danger-ink)',
       }}
     >
       {status.msg}

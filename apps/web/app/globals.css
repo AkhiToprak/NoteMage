@@ -374,8 +374,10 @@
    vanishes (e.g. the YouTube budget label in VideoMaterialPicker). This scope
    remaps the rework semantic tokens to the warm cream palette so any such
    component reads correctly on light. Apply it to the wrapper around a rework
-   component embedded in a cream surface. */
-.nm-rework-cream {
+   component embedded in a cream surface. Light-only: in dark mode the AppShell
+   itself goes dark, so embedded rework components should keep their dark tokens
+   rather than be force-remapped to cream. */
+[data-theme='light'] .nm-rework-cream {
   --on-surface: #18202f;
   --on-surface-variant: #5b6273;
   --foreground: #18202f;

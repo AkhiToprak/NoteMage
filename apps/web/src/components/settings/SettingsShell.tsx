@@ -82,9 +82,10 @@ export default function SettingsShell({
         .set-linkrow {
           transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease);
         }
-        .set-linkrow:hover { background: #f8f6f1; }
+        .set-linkrow:hover { background: var(--hover); }
         .set-press { transition: transform 0.15s var(--ease); }
         .set-press:active { transform: translateY(1px); }
+        [data-theme='dark'] .del-confirm-btn { --del-disabled: #7a3742; }
         @media (prefers-reduced-motion: reduce) {
           .set-input, .set-linkrow, .set-press { transition: none; }
         }

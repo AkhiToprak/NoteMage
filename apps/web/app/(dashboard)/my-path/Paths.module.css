@@ -26,7 +26,7 @@
   cursor: pointer;
   transition: background-color 0.18s var(--ease), color 0.18s var(--ease), border-color 0.18s var(--ease);
 }
-.tab:hover { background: #f6f3ec; }
+.tab:hover { background: var(--hover); }
 .tab:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .tab:active { transform: translateY(0.5px); }
 .tabActive { background: var(--primary); border-color: var(--primary); color: #fff; }
@@ -250,7 +250,7 @@
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: #eee7da;
+  background: var(--track);
   overflow: hidden;
 }
 .progressFill {
@@ -342,8 +342,8 @@
 .ctaPrimary:hover { background: var(--primary-press); }
 
 /* Middle weight — tinted/outlined, for checkpoint-ready inactive cards. */
-.ctaTinted { background: var(--lilac); color: var(--accent); border-color: #d9ccff; }
-.ctaTinted:hover { background: #e3ddff; }
+.ctaTinted { background: var(--lilac); color: var(--accent); border-color: var(--tint-border); }
+.ctaTinted:hover { background: var(--lilac-press); }
 
 /* Quiet — text + hairline, for normal & completed cards. */
 .ctaGhost { background: transparent; color: var(--accent); padding: 0 10px; }
@@ -388,7 +388,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
@@ -421,12 +421,12 @@
   cursor: pointer;
   transition: background-color 0.13s var(--ease);
 }
-.moreItem:hover { background: #f6f3ec; }
+.moreItem:hover { background: var(--hover); }
 .moreItem:focus-visible { outline: 2px solid var(--primary); outline-offset: -1px; }
 
-.moreItemDanger { color: #c0392b; }
-.moreItemDanger:hover { background: #fef0ee; }
-.moreItemDanger:focus-visible { outline-color: #c0392b; }
+.moreItemDanger { color: var(--danger-ink); }
+.moreItemDanger:hover { background: var(--danger-soft); }
+.moreItemDanger:focus-visible { outline-color: var(--danger); }
 
 /* ---- cancel/stop button inside GeneratingCard foot ---- */
 .cancelBtn {

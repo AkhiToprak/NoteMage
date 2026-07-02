@@ -38,7 +38,7 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #efeade;
+  background: var(--badge);
   color: var(--ink-soft);
   font-size: 12px;
   font-weight: 600;
@@ -54,7 +54,7 @@
   box-shadow: var(--shadow);
 }
 .cardRaise { box-shadow: var(--shadow-raise); }
-.cardAccent { border-color: #d9ccff; box-shadow: var(--shadow-raise); }
+.cardAccent { border-color: var(--tint-border); box-shadow: var(--shadow-raise); }
 
 /* ---- buttons ---- */
 .btn {
@@ -81,9 +81,9 @@
 .primary { background: var(--primary); color: #fff; box-shadow: 0 8px 20px rgba(124, 92, 255, 0.28); }
 .primary:hover { background: var(--primary-press); }
 .secondary { background: var(--lilac); color: var(--accent); }
-.secondary:hover { background: #e3ddff; }
+.secondary:hover { background: var(--lilac-press); }
 .ghost { background: var(--surface); color: var(--ink); border-color: var(--border); }
-.ghost:hover { background: #f6f3ec; }
+.ghost:hover { background: var(--hover); }
 .small { height: 38px; padding: 0 16px; font-size: 13.5px; border-radius: 12px; }
 .btn .ic { font-size: 19px; }
 
@@ -110,7 +110,7 @@
   width: 100%;
   height: 8px;
   border-radius: 999px;
-  background: #eee7da;
+  background: var(--track);
   overflow: hidden;
 }
 .fill { height: 100%; border-radius: 999px; background: var(--primary); }

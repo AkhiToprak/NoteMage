@@ -36,7 +36,7 @@ function cellClass(item: QuestionNavigatorItem): string {
 
 function LegendSwatch({ className, label }: { className: string; label: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--body)' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--on-surface-variant)' }}>
       <span className={className} style={{ width: 14, height: 14, borderRadius: 4, minHeight: 0, aspectRatio: 'auto' }} />
       {label}
     </span>

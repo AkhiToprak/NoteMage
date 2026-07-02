@@ -10,9 +10,9 @@
  * Local soft-red family for the "weak" band — the cream shell has no red. */
 
 .page {
-  --st-red-ink: #b4341f;
-  --st-red-soft: #fdecea;
-  --st-red-strong: #a32d18;
+  --st-red-ink: var(--danger-ink);
+  --st-red-soft: var(--danger-soft);
+  --st-red-strong: var(--danger-ink);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -42,7 +42,7 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #efeade;
+  background: var(--badge);
   color: var(--ink-soft);
   font-size: 11.5px;
   font-weight: 800;
@@ -140,10 +140,10 @@
   height: 88px;
   border-radius: 22px;
   background: var(--lilac-soft);
-  border: 1px solid #e4ddff;
+  border: 1px solid var(--lilac-press);
   color: var(--accent);
 }
-.emptyTileGood { background: var(--green-soft); border-color: #cdeccd; color: var(--green-ink); }
+.emptyTileGood { background: var(--green-soft); border-color: var(--green-soft); color: var(--green-ink); }
 .emptyTitle { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
 .emptyText { margin: 0; font-size: 14px; color: var(--body); line-height: 1.6; max-width: 42ch; }
 .emptyActions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }

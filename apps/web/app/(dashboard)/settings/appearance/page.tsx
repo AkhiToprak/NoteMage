@@ -5,10 +5,11 @@ import SettingsShell from '@/components/settings/SettingsShell';
 import { SettingsCard, CardHead, Segmented, ToggleRow } from '@/components/settings/SettingsKit';
 import { hapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
 import { isInsideNativeShell } from '@/lib/native-bridge';
+import { useTheme } from '@/contexts/ThemeContext';
 
 /* Appearance settings (cream redesign). Reached from /profile → "Appearance".
-   Theme toggle removed — the app is locked to light until dark mode is designed.
-   Remaining sections:
+   Sections:
+     · theme (System / Light / Dark)     → localStorage via ThemeContext
      · quiz reaction intensity + sounds  → /api/user/settings
      · haptic feedback (native shell only, device-local) */
 
@@ -48,6 +49,8 @@ function ControlRow({
 }
 
 export default function AppearanceSettingsPage() {
+  const { preference, setPreference } = useTheme();
+
   const [reactionsMode, setReactionsMode] = useState<ReactionsMode>('all');
   const [reactionsAudio, setReactionsAudio] = useState(false);
 
@@ -111,7 +114,24 @@ export default function AppearanceSettingsPage() {
   };
 
   return (
-    <SettingsShell label="Appearance" subtitle="In-app reactions.">
+    <SettingsShell label="Appearance" subtitle="Theme and in-app reactions.">
+      <SettingsCard>
+        <CardHead icon="palette" tint="lilac" title="Theme" desc="System follows your device." />
+
+        <ControlRow title="Theme" desc="Match your device, or pick a side.">
+          <Segmented<'system' | 'light' | 'dark'>
+            ariaLabel="Theme"
+            value={preference}
+            onChange={setPreference}
+            options={[
+              { value: 'system', label: 'System', icon: 'routine' },
+              { value: 'light', label: 'Light', icon: 'light_mode' },
+              { value: 'dark', label: 'Dark', icon: 'dark_mode' },
+            ]}
+          />
+        </ControlRow>
+      </SettingsCard>
+
       <SettingsCard>
         <CardHead icon="celebration" tint="amber" title="Reactions" desc="Mascot reactions and sounds during quizzes." />
 

@@ -260,7 +260,7 @@
 .err {
   margin: 0;
   font-size: 13.5px;
-  color: var(--st-red-ink, #b4341f);
+  color: var(--danger-ink);
   font-weight: 600;
 }
 .proNote {

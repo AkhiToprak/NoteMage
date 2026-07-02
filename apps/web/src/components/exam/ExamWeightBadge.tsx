@@ -24,8 +24,8 @@ interface WeightConfig {
 const WEIGHT_CONFIG: Record<ExamWeight, WeightConfig> = {
   high: { label: 'High weight', bars: 3, bg: 'var(--lilac)', ink: 'var(--accent)', bar: 'var(--accent)' },
   medium: { label: 'Medium weight', bars: 2, bg: 'var(--amber-soft)', ink: 'var(--amber-ink)', bar: 'var(--amber)' },
-  // Faint cream chip (matches ui.module.css .count) for the lightest weight.
-  low: { label: 'Low weight', bars: 1, bg: '#efeade', ink: 'var(--body)', bar: 'var(--muted)' },
+  // Faint chip (matches the count-badge fill) for the lightest weight.
+  low: { label: 'Low weight', bars: 1, bg: 'var(--badge)', ink: 'var(--body)', bar: 'var(--muted)' },
 };
 
 export function ExamWeightBadge({ level, pct, size = 'md' }: ExamWeightBadgeProps) {

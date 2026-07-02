@@ -2,8 +2,8 @@
   /* Weakness Training Phase 4.4b (plan §14.4 rung 1) — local soft-red family
      for the escalated nudge state; the cream shell has no red (same pattern
      as WeakSpots.module.css / WeakAreas.module.css's --st-red-*). */
-  --st-red-ink: #b4341f;
-  --st-red-line: #f6cec7;
+  --st-red-ink: var(--danger-ink);
+  --st-red-line: var(--danger-line);
   margin-top: 24px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;

@@ -42,10 +42,13 @@ export function TimerBar({
 
   const tone =
     remaining <= dangerSec ? 'danger' : remaining <= warnSec ? 'warn' : 'ok';
+  // Renders inside QuizPlayerShell (OUTSIDE the cream `.shell`), so use the global
+  // theme-flipping tokens (--error / --warning / --on-surface*) — the `.shell`
+  // amber/ink tokens don't resolve here. --nm-primary flips too.
   const fill =
-    tone === 'danger' ? '#b4341f' : tone === 'warn' ? 'var(--amber)' : 'var(--primary)';
+    tone === 'danger' ? 'var(--error)' : tone === 'warn' ? 'var(--warning)' : 'var(--nm-primary)';
   const ink =
-    tone === 'danger' ? '#b4341f' : tone === 'warn' ? 'var(--amber-ink)' : 'var(--ink)';
+    tone === 'danger' ? 'var(--error)' : tone === 'warn' ? 'var(--warning)' : 'var(--on-surface)';
 
   return (
     <div
@@ -61,7 +64,7 @@ export function TimerBar({
             gap: 6,
             fontSize: 12,
             fontWeight: 600,
-            color: 'var(--body)',
+            color: 'var(--on-surface-variant)',
           }}
         >
           <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 16 }}>
@@ -86,7 +89,7 @@ export function TimerBar({
           width: '100%',
           height: compact ? 6 : 8,
           borderRadius: 999,
-          background: '#eee7da',
+          background: 'var(--quiz-card-border)',
           overflow: 'hidden',
         }}
       >
@@ -95,7 +98,7 @@ export function TimerBar({
             height: '100%',
             width: `${pct}%`,
             borderRadius: 999,
-            background: paused ? 'var(--muted)' : fill,
+            background: paused ? 'var(--on-surface-variant)' : fill,
             transition: 'width 0.9s linear, background-color 0.3s var(--ease)',
           }}
         />

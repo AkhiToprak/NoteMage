@@ -6,7 +6,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useOptionalMage } from '@/components/mage';
 import styles from './AppSidebar.module.css';
 import { NavIcon } from './NavIcon';
 
@@ -19,7 +18,6 @@ const NAV: { href: string; label: string; icon: string; img?: string }[] = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const mage = useOptionalMage();
 
   return (
     <aside className={styles.sidebar}>
@@ -52,22 +50,6 @@ export default function AppSidebar() {
           );
         })}
       </nav>
-
-      <div className={styles.spacer} />
-
-      <div className={styles.ask}>
-        <div className={styles.askHead}>
-          <span className={styles.askIcon}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/mascot/holding-wand-v2.png" alt="" />
-          </span>
-          <span className={styles.askTitle}>Ask Mage</span>
-        </div>
-        <p className={styles.askDesc}>Stuck? Mage explains with your own sources.</p>
-        <button type="button" className={styles.askBtn} onClick={() => mage?.open()}>
-          Ask Mage
-        </button>
-      </div>
     </aside>
   );
 }

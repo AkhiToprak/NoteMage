@@ -54,7 +54,7 @@ export default function ContactPage() {
   };
 
   return (
-    <main className={styles.root}>
+    <main className={styles.root} data-theme="light">
       <MageNav />
 
       {/* ───────────── HERO ───────────── */}
