@@ -77,6 +77,10 @@ function metaLabel(p: SerializedPath): string {
   return sourceLabel(p);
 }
 
+function isPathDone(p: SerializedPath): boolean {
+  return derivePathStats(p as unknown as PathPlan).progressPct >= 100;
+}
+
 // ── Overflow menu ─────────────────────────────────────────────────────────
 
 type MoreMenuItem = {
@@ -173,6 +177,7 @@ function PathCard({
   p,
   isActive,
   isGenerating = false,
+  compact = false,
   onDelete,
   onReset,
   onTranslate,
@@ -181,6 +186,7 @@ function PathCard({
   p: SerializedPath;
   isActive: boolean;
   isGenerating?: boolean;
+  compact?: boolean;
   onDelete: (p: SerializedPath) => void;
   onReset: (p: SerializedPath) => void;
   onTranslate: (p: SerializedPath) => void;
@@ -261,10 +267,12 @@ function PathCard({
       ];
 
   return (
-    <article className={`${styles.pathCard} ${isActive ? styles.pathActive : ''}`}>
+    <article
+      className={`${styles.pathCard} ${isActive ? styles.pathActive : ''} ${compact ? styles.pathCompact : ''}`}
+    >
       <div className={styles.cardTop}>
         <div className={styles.cardHeader}>
-          <SubjectIcon subjects={p.subjects} size={44} />
+          <SubjectIcon subjects={p.subjects} size={compact ? 34 : 44} />
           <div className={styles.headerMeta}>
             <div className={styles.titleRow}>
               <h2 className={styles.pathTitle}>{p.title}</h2>
@@ -356,7 +364,7 @@ function GeneratingCard({
   const buttonLabel = isTranslate ? 'Restore' : stuck ? 'Stop' : 'Cancel';
 
   return (
-    <article className={styles.pathCard}>
+    <article className={`${styles.pathCard} ${styles.pathGenerating}`}>
       <div className={styles.cardTop}>
         <div className={styles.cardHeader}>
           <span className={styles.iconTile}>
@@ -477,9 +485,7 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
     );
 
     // The "active" path for badge + MageTip: most-recently-updated in-progress path.
-    const inProgress = ready.filter(
-      (p) => derivePathStats(p as unknown as PathPlan).progressPct < 100,
-    );
+    const inProgress = ready.filter((p) => !isPathDone(p));
     const activePath = inProgress.length > 0
       ? inProgress.reduce((a, b) => (a.updatedAt > b.updatedAt ? a : b))
       : null;
@@ -569,9 +575,9 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
   const visibleReady = (() => {
     const byTab =
       tab === 'inprogress'
-        ? ready.filter((p) => derivePathStats(p as unknown as PathPlan).progressPct < 100)
+        ? ready.filter((p) => !isPathDone(p))
         : tab === 'completed'
-          ? ready.filter((p) => derivePathStats(p as unknown as PathPlan).progressPct >= 100)
+          ? ready.filter(isPathDone)
           : ready; // 'all'
     return byTab.filter(matchesQuery);
   })();
@@ -581,6 +587,12 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
   const visibleGenerating = generating.filter(matchesQuery);
   const nothingMatches = q !== '' && visibleReady.length === 0 &&
     (!showGenerating || visibleGenerating.length === 0);
+
+  // Completed paths get their own quieter section below the main grid — separated
+  // rather than mixed in at equal visual weight with what's still in progress.
+  const visibleNotDone = visibleReady.filter((p) => !isPathDone(p));
+  const visibleDone = visibleReady.filter(isPathDone);
+  const hasMainGrid = (showGenerating && visibleGenerating.length > 0) || visibleNotDone.length > 0;
 
   // Header subtitle: match count while searching, else whole-library counts.
   const totalReady = ready.length;
@@ -653,31 +665,60 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
       {nothingMatches ? (
         <p className={styles.noMatch}>No paths match “{query.trim()}”.</p>
       ) : (
-        <div className={styles.grid}>
-          {/* Generating cards first (only in all/inprogress tabs) */}
-          {showGenerating && visibleGenerating.map((p) => (
-            <GeneratingCard
-              key={p.id}
-              p={p}
-              stuck={isStuckGenerating(p)}
-              onRequestCancel={setCancelTarget}
-            />
-          ))}
+        <>
+          {hasMainGrid && (
+            <div className={styles.grid}>
+              {/* Generating cards first (only in all/inprogress tabs) */}
+              {showGenerating && visibleGenerating.map((p) => (
+                <GeneratingCard
+                  key={p.id}
+                  p={p}
+                  stuck={isStuckGenerating(p)}
+                  onRequestCancel={setCancelTarget}
+                />
+              ))}
 
-          {/* Ready path cards */}
-          {visibleReady.map((p) => (
-            <PathCard
-              key={p.id}
-              p={p}
-              isActive={activePath?.id === p.id}
-              isGenerating={p.generationStatus === 'generating'}
-              onDelete={setDeleteTarget}
-              onReset={setResetTarget}
-              onTranslate={setTranslateTarget}
-              onCancel={setCancelTarget}
-            />
-          ))}
-        </div>
+              {/* Ready, not-yet-done path cards */}
+              {visibleNotDone.map((p) => (
+                <PathCard
+                  key={p.id}
+                  p={p}
+                  isActive={activePath?.id === p.id}
+                  isGenerating={p.generationStatus === 'generating'}
+                  onDelete={setDeleteTarget}
+                  onReset={setResetTarget}
+                  onTranslate={setTranslateTarget}
+                  onCancel={setCancelTarget}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Completed — separated, smaller, quieter than the active library. */}
+          {visibleDone.length > 0 && (
+            <section className={styles.doneSection}>
+              <h2 className={styles.doneHeading}>
+                Completed
+                <span className={styles.doneCount}>{visibleDone.length}</span>
+              </h2>
+              <div className={styles.doneGrid}>
+                {visibleDone.map((p) => (
+                  <PathCard
+                    key={p.id}
+                    p={p}
+                    isActive={false}
+                    isGenerating={false}
+                    compact
+                    onDelete={setDeleteTarget}
+                    onReset={setResetTarget}
+                    onTranslate={setTranslateTarget}
+                    onCancel={setCancelTarget}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
 
       <div className={styles.tipWrap}>

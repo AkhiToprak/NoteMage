@@ -49,6 +49,8 @@
   max-width: 44vw;
   border: none;
   outline: none;
+  appearance: none;
+  -webkit-appearance: none;
   background: transparent;
   font-family: inherit;
   font-size: 13.5px;
@@ -76,6 +78,43 @@
   .grid { grid-template-columns: 1fr; max-width: 460px; }
 }
 
+/* ---- completed section: separated from the active library, denser ---- */
+.doneSection { margin-top: 32px; max-width: 860px; }
+.doneHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.doneCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--border-soft);
+  color: var(--body);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.doneGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 820px) {
+  .doneGrid { grid-template-columns: 1fr; max-width: 460px; }
+}
+
 /* ---- path card ---- */
 .pathCard {
   background: var(--surface);
@@ -84,9 +123,10 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease), border-color 0.18s var(--ease);
+  transition: opacity 0.18s var(--ease), box-shadow 0.18s var(--ease), transform 0.18s var(--ease),
+    border-color 0.18s var(--ease);
 }
-.pathCard:hover { border-color: var(--border); box-shadow: var(--shadow); transform: translateY(-1px); }
+.pathCard:hover { border-color: var(--border); box-shadow: var(--shadow); transform: translateY(-2px) scale(1.012); }
 /* Active card = clearly primary: subtle lilac tint, stronger border + shadow.
    1px border keeps the grid from shifting. */
 .pathActive {
@@ -95,6 +135,31 @@
   box-shadow: var(--shadow-raise);
 }
 .pathActive:hover { border-color: var(--primary); box-shadow: var(--shadow-raise); }
+
+/* Inactive cards stay quiet at rest and only step forward on hover/focus —
+   the active card is the one thing that's loud by default. Generating cards
+   are exempt: a stuck/failed build is an alert, not library browsing. */
+.pathCard:not(.pathActive):not(.pathGenerating) { opacity: 0.84; }
+.pathCard:not(.pathActive):not(.pathGenerating):hover,
+.pathCard:not(.pathActive):not(.pathGenerating):focus-within { opacity: 1; }
+
+/* Completed cards: smaller, greyer — they're the archive, not the next step.
+   Higher specificity than the rule above so it wins regardless of source order. */
+.pathCard.pathCompact { opacity: 0.7; }
+.pathCard.pathCompact:hover,
+.pathCard.pathCompact:focus-within { opacity: 1; }
+.pathCompact .cardTop { padding: 12px 14px 0; }
+.pathCompact .cardHeader { gap: 10px; }
+.pathCompact .pathTitle { font-size: 14px; -webkit-line-clamp: 2; }
+.pathCompact .sourceLine { margin-top: 5px; font-size: 11.5px; }
+.pathCompact .progressSpine { padding: 9px 14px 11px; }
+.pathCompact .progressBar { height: 4px; }
+.pathCompact .progressFill { background: var(--muted); }
+.pathCompact .progressCount { margin-top: 6px; font-size: 11.5px; }
+.pathCompact .cardDivider { margin: 0 14px; }
+.pathCompact .cardFooter { padding: 9px 14px 11px; }
+.pathCompact .ctaGhost { height: 28px; padding: 0 8px; font-size: 12px; }
+.pathCompact .chipDone { background: var(--border-soft); color: var(--body); }
 
 /* Header */
 .cardTop { padding: 16px 18px 0; }
@@ -283,6 +348,13 @@
 
 /* ---- card overflow menu ---- */
 .cardMenu { flex-shrink: 0; margin-left: auto; }
+/* Quiet on inactive cards until you're actually looking at one. Gated to
+   hover-capable pointers — touch has no hover, so it stays visible there. */
+@media (hover: hover) {
+  .pathCard:not(.pathActive) .cardMenu { opacity: 0; transition: opacity 0.15s var(--ease); }
+  .pathCard:not(.pathActive):hover .cardMenu,
+  .pathCard:not(.pathActive):focus-within .cardMenu { opacity: 1; }
+}
 
 .moreBtn {
   display: inline-flex;
