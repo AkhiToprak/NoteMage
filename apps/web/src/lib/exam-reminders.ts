@@ -98,6 +98,7 @@ async function loadPrefsForUsers(
         emailReminders: r.emailReminders,
         productUpdates: r.productUpdates,
         weeklyReport: r.weeklyReport,
+        weakSpotNudges: r.weakSpotNudges,
       });
     }
   } catch (error) {

@@ -41,6 +41,8 @@ const PUBLIC_ALLOWLIST = new Set<string>([
   'billing/revenuecat/webhook/route.ts', // constant-time auth-header check
   'currency/route.ts', // anonymous: IP→display currency + FX rates, no PII, read-only
   'import/onenote/callback/route.ts', // OAuth callback: HMAC-signed state + timestamp
+  'start/preview/route.ts', // pre-session /start onboarding preview: kill switch + body-size cap + per-IP cost rate-limit (fails closed in prod) + Turnstile (fails closed once configured)
+  'start/video-preview/route.ts', // pre-session /start link bridge: rate-limited oEmbed metadata lookup, fixed YouTube hosts + validated video id, no transcript/quota
   'user/check-username/route.ts', // intentionally anonymous handle-availability check (rate-limited)
   'waitlist/route.ts', // anonymous waitlist signup (rate-limited)
 ]);

@@ -25,6 +25,8 @@ import { classifySubjects } from '@/lib/path-classifier';
 import { normalizePathLanguage } from '@/lib/path-languages';
 import { logTelemetry } from '@/lib/telemetry-server';
 import { enqueueJob } from '@/lib/background-jobs';
+import { enqueueStructuralEdgeDerivation } from '@/lib/concept-edges';
+import { enqueueConceptDedupForPlan } from '@/lib/concept-dedup';
 
 // Phase 10.3 — POST kicks off the two-stage AI path generation. Stage A
 // (one inline AI call → `create_path_structure`) returns the section /
@@ -292,6 +294,16 @@ export async function POST(request: NextRequest) {
         })
       );
       await invalidateDashboardCache(userId);
+
+      // Weakness Training Phase 4.2a (phase4 §12.7) — best-effort, tier-0
+      // structural edge derivation. Gated on Concept rows actually existing;
+      // never blocks or fails path creation.
+      await enqueueStructuralEdgeDerivation(planId);
+
+      // Weakness Training Phase 4.1b (phase4 §11.2 tier 2) — best-effort
+      // tier-2 embedding dedup for concepts tier-1 didn't match at creation.
+      // Flag-gated; never blocks or fails path creation.
+      await enqueueConceptDedupForPlan(planId);
 
       // Stage B durable job. Errors are surfaced to the client through
       // `StudyPlan.generationStatus = "failed"` + the SSE `error` event.

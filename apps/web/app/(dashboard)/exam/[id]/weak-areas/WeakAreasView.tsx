@@ -86,9 +86,20 @@ interface WeakAreasViewProps {
   /** Linked path (slim PathPlan) for per-topic mission deep-links; null if the
    *  exam has no primary path or the path load failed (non-fatal). */
   path: PathPlan | null;
+  /**
+   * Weakness Training Phase 2 (plan §6.1 "Entry points" / §7.1 item 3) —
+   * ADDITIVE concept-level link-out count, computed server-side via the SAME
+   * canonical `deriveConceptWeakAreas` the `/profile/weak-spots` page uses,
+   * scoped to this exam's primary path — so the two surfaces can never
+   * disagree on severity. This does NOT replace or refactor the slot-level
+   * `deriveWeakAreas` rollup below (`w.areas`/`w.counts`), which still covers
+   * every exam scope type including non-path items. Undefined/0 renders
+   * nothing — no regression when the flag is off or there's no signal yet.
+   */
+  conceptWeakSpots?: number;
 }
 
-export default function WeakAreasView({ examId, data, path }: WeakAreasViewProps) {
+export default function WeakAreasView({ examId, data, path, conceptWeakSpots }: WeakAreasViewProps) {
   useRegisterMageContext(
     data?.exam
       ? { type: 'exam', ids: { examId, notebookId: data.exam.notebookId }, title: data.exam.title }
@@ -97,14 +108,24 @@ export default function WeakAreasView({ examId, data, path }: WeakAreasViewProps
 
   return (
     <AppShell>
-      <WeakAreasBody examId={examId} data={data} path={path} />
+      <WeakAreasBody examId={examId} data={data} path={path} conceptWeakSpots={conceptWeakSpots} />
     </AppShell>
   );
 }
 
 // ─── Body ─────────────────────────────────────────────────────────────────────
 
-function WeakAreasBody({ examId, data, path }: { examId: string; data: WeakAreasResponse; path: PathPlan | null }) {
+function WeakAreasBody({
+  examId,
+  data,
+  path,
+  conceptWeakSpots,
+}: {
+  examId: string;
+  data: WeakAreasResponse;
+  path: PathPlan | null;
+  conceptWeakSpots?: number;
+}) {
   const mage = useOptionalMage();
   const router = useRouter();
   const { exam, primaryPathId, weakAreas: w } = data;
@@ -189,6 +210,8 @@ function WeakAreasBody({ examId, data, path }: { examId: string; data: WeakAreas
           </div>
         ) : null}
       </div>
+
+      <ConceptLinkOutBanner count={conceptWeakSpots} />
 
       {w.counts.total === 0 ? (
         <EmptyState
@@ -396,6 +419,33 @@ function WeakSessionButton({
       </button>
       {err && variant !== 'compact' ? <p role="alert" className={styles.cardErr}>{err}</p> : null}
     </>
+  );
+}
+
+// ─── Concept-level link-out (plan §6.1 — additive, not a replacement) ────────
+
+/**
+ * Compact banner pointing at `/profile/weak-spots`, the concept-level
+ * counterpart to this slot-level screen. Its `count` is derived server-side
+ * from the SAME `deriveConceptWeakAreas` function the Weak Spots page calls
+ * (scoped to this exam's primary path), so the two surfaces can never
+ * disagree on severity — see `page.tsx`. Renders nothing when there's no
+ * concept-level signal (flag off, no primary path, or zero weak concepts) so
+ * there is no regression to the existing slot-level screen.
+ */
+function ConceptLinkOutBanner({ count }: { count?: number }) {
+  if (!count || count <= 0) return null;
+  return (
+    <Link href="/profile/weak-spots" className={styles.conceptBanner}>
+      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 18 }}>psychology</span>
+      <span className={styles.conceptBannerText}>
+        {count} concept-level weak {count === 1 ? 'spot' : 'spots'} detected
+      </span>
+      <span className={styles.conceptBannerLink}>
+        See details
+        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 16 }}>arrow_forward</span>
+      </span>
+    </Link>
   );
 }
 

@@ -22,7 +22,31 @@ export type JobKind =
   // Exam Mode (Phase 6) — recurring exam-reminder sweep. Self-reschedules each
   // run (see scheduleReminderSweep) so the queue acts as a cron without an
   // external scheduler.
-  | 'reminders.sweep';
+  | 'reminders.sweep'
+  // Weakness Training Phase 1A (§3.3) — bounded, idempotent slot-scoped
+  // concept classification, enqueued post-commit when a graded QuizQuestion
+  // has zero ConceptTag rows (see concept-tracking.ts). Handler owned
+  // separately; this type only makes the enqueue call typecheck.
+  | 'concept.backfill'
+  // Weakness Training Phase 3 (§2.3) — misconception LLM tier 2. Async,
+  // hysteresis-gated: enqueued only on a weak-band TRANSITION (see
+  // concept-tracking.ts), with a 7-day cooldown per concept enforced by the
+  // handler (owned separately). This type only makes the enqueue call
+  // typecheck.
+  | 'concept.misconception'
+  // Weakness Training Phase 4.1 (phase4 §11.2) — tier-2 embedding dedup for
+  // one freshly-created canonical concept (dedupeKey `concept.dedup:<id>`).
+  | 'concept.dedup'
+  // Phase 4.1 (phase4 §11.7) — lazy per-user dedup backfill over existing
+  // concepts; `WHERE embedding IS NULL` rows are the resume checkpoint.
+  | 'concept.dedup.backfill'
+  // Weakness Training Phase 4.2 (phase4 §12.1 tier 0) — structural
+  // prerequisite-edge derivation for one plan. Idempotent; retroactive.
+  | 'concept.edges.derive'
+  // Weakness Training Phase 4.4 (phase4 §14.6) — daily per-user nudge sweep.
+  // Self-rescheduling like reminders.sweep, plus a durable watermark cursor
+  // (NudgeSweepWatermark) so a redeploy mid-sweep resumes, not restarts.
+  | 'weakness.nudge_sweep';
 
 export interface JobPayloadByKind {
   'import.pdf': { jobId: string };
@@ -32,6 +56,12 @@ export interface JobPayloadByKind {
   'path.regenerate': { planId: string };
   'path.translate': { planId: string; language: string };
   'reminders.sweep': Record<string, never>;
+  'concept.backfill': { slotId: string };
+  'concept.misconception': { conceptId: string; userId: string };
+  'concept.dedup': { conceptId: string };
+  'concept.dedup.backfill': { userId: string };
+  'concept.edges.derive': { planId: string };
+  'weakness.nudge_sweep': Record<string, never>;
 }
 
 export type TypedBackgroundJob<K extends JobKind = JobKind> = K extends JobKind

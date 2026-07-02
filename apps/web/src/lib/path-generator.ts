@@ -112,6 +112,12 @@ import {
 import { normalizePathLanguage, type PathLanguageCode } from './path-languages';
 import { CANCELLING_STATUS, deletePathCascade } from './path-loader';
 import { invalidateDashboardCache } from './dashboard-data';
+import { weaknessConceptsEnabled } from './feature-flags';
+import { attachConceptTags } from './concept-write';
+import { resolveModel } from './model-routing';
+import { LEARNING_SLOT_BATCH_TOOL } from './ai-tools';
+import { buildLearningBatchPrompt } from './path-prompts';
+import { isLearningBatchEnabled, splitLearningBatchPayload } from './path-learning-batch';
 
 // ─────────────────────────────────────────────────────────────────────
 // Public types
@@ -1685,6 +1691,28 @@ async function generateTheoryActivity(
     throw new Error(`Theory generation failed: ${outcome.lastError}`);
   }
 
+  return persistTheoryActivity(plan, slot, nextSortOrder, resolved, rawTheorySource);
+}
+
+/**
+ * Path-gen Phase 8 (flag-gated PATH_LEARNING_BATCH) — the validate-and-persist
+ * tail of theory generation, factored out of {@link generateTheoryActivity} so
+ * BOTH the unbatched path (a single `create_theory_section` call, via
+ * `generateWithRepair` above) and the batched path
+ * ({@link generateLearningSlotBatch}, one `learning_slot_content` call) run
+ * through the EXACT SAME persist code once a validated `TheorySection` is in
+ * hand — this function has no knowledge of which call shape produced
+ * `resolved`. Unchanged body from the pre-Phase-8 `generateTheoryActivity`;
+ * only lifted out and parameterized on `resolved` / `rawTheorySource` instead
+ * of closing over the repair-loop's `outcome/exampleLess` locals.
+ */
+async function persistTheoryActivity(
+  plan: PlanForGeneration,
+  slot: SlotForGeneration,
+  nextSortOrder: number,
+  resolved: TheorySection,
+  rawTheorySource: unknown
+): Promise<string> {
   // Theory visuals — validate the model's figures (drop hallucinated refs) and
   // diagrams (drop per-kind-invalid), then snapshot referenced source images
   // into path-owned blobs and emit pathImage / pathDiagram nodes.
@@ -1810,6 +1838,35 @@ async function generateTheoryActivity(
 }
 
 /**
+ * Path-gen Phase 8 — validate a raw `theory` payload (the shape either the
+ * unbatched `create_theory_section` tool or the batched
+ * `learning_slot_content` tool's `theory` sub-object produces) into a
+ * `TheorySection` plus its raw `source` anchor. Pulled out of
+ * {@link generateTheoryActivity}'s `generateWithRepair` `parse` callback so
+ * {@link generateLearningSlotBatch} can run the identical check ONCE (no
+ * repair loop — the batched call's fallback IS the retry) without duplicating
+ * the normalize/schema/no-examples logic. Telemetry stays in the callers
+ * (`path.theory.retry` belongs to the unbatched repair loop) so the batched
+ * path never emits a misleading "retry" event for a call that never retries.
+ */
+function parseTheoryPayload(
+  raw: unknown
+): { ok: true; data: TheorySection; rawSource: unknown } | { ok: false; error: string } {
+  const normalized = normalizeTheoryInput(raw);
+  const parsed = TheorySectionSchema.safeParse(normalized);
+  if (!parsed.success) {
+    return { ok: false, error: formatZodError(parsed.error) };
+  }
+  if (parsed.data.examples.length === 0) {
+    return {
+      ok: false,
+      error: '`examples` MUST be a non-empty JSON array of { label, explanation } objects.',
+    };
+  }
+  return { ok: true, data: parsed.data, rawSource: normalized.source ?? null };
+}
+
+/**
  * Persist that Stage B intentionally PRUNED an activity kind for a slot
  * (material too thin to support it). Recorded on the slot so path-gating
  * treats the kind as satisfied — not a failure — and re-runs never re-attempt
@@ -1837,6 +1894,87 @@ async function recordPrunedActivity(
   });
 }
 
+/**
+ * Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): look up
+ * the `Concept` rows Stage A already persisted for this slot (via
+ * `persistSlotConcepts` inside `persistPlanStructure`) and rebuild the
+ * `conceptId` map keyed by both slug and verbatim label — the same map shape
+ * `persistSlotConcepts` itself returns, so {@link attachConceptTags} doesn't
+ * need to know whether it came from a fresh upsert or a re-fetch.
+ *
+ * Stage B (this file) runs in a separate job from Stage A
+ * (`persistPlanStructure`), so the in-memory `conceptCandidates` strings are
+ * gone by the time quiz/flashcard generation runs — re-reading the slot's
+ * already-persisted `Concept` rows is how Stage B recovers them without
+ * threading a new field through `SlotForGeneration`/`PlanForGeneration`.
+ * Returns an empty map (silently) when Stage A persisted no concepts for the
+ * slot — e.g. the flag was off at Stage A time, or concept persistence
+ * failed there. Never throws — callers treat a failure here exactly like "no
+ * concepts for this slot."
+ */
+async function loadSlotConceptMap(slotId: string): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  try {
+    const concepts = await db.concept.findMany({
+      where: { slotId },
+      select: { id: true, key: true, label: true },
+    });
+    for (const c of concepts) {
+      map.set(c.key, c.id);
+      map.set(c.label, c.id);
+    }
+  } catch (error) {
+    console.error('[path-generator] loadSlotConceptMap failed (non-fatal)', {
+      slotId,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+  return map;
+}
+
+/**
+ * Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): pull
+ * `conceptKeys` off the RAW (pre-`normalizeFlashcardsInput`) tool output —
+ * mirrors the `figure`/`source` loose-hold idiom in
+ * `packages/shared/src/quiz.ts` (~L214-234): hold the unvalidated value just
+ * long enough to use it, never let a strict schema strip it first. Accepts
+ * any of the question-bearing keys `normalizeFlashcardsInput` itself accepts
+ * (`flashcards`/`cards`/`flashCards`/`flash_cards`) so this stays in lockstep
+ * with that function's drift-tolerance. Keys the result by the card's
+ * question text (string) so it can be looked up again after normalization by
+ * the surviving `question` field. Defensive only — malformed input (missing
+ * array, non-string keys) is silently ignored, never thrown.
+ */
+function captureFlashcardConceptKeys(
+  raw: unknown,
+  out: Map<string, string[]>
+): void {
+  if (!raw || typeof raw !== 'object') return;
+  const obj = raw as Record<string, unknown>;
+  const list = obj.flashcards ?? obj.cards ?? obj.flashCards ?? obj.flash_cards;
+  if (!Array.isArray(list)) return;
+  for (const item of list) {
+    if (!item || typeof item !== 'object') continue;
+    const card = item as Record<string, unknown>;
+    const question =
+      typeof card.question === 'string'
+        ? card.question
+        : typeof card.front === 'string'
+          ? card.front
+          : typeof card.prompt === 'string'
+            ? card.prompt
+            : null;
+    const conceptKeys = card.conceptKeys;
+    if (
+      question &&
+      Array.isArray(conceptKeys) &&
+      conceptKeys.every((k) => typeof k === 'string')
+    ) {
+      out.set(question, conceptKeys as string[]);
+    }
+  }
+}
+
 async function generateFlashcardsActivity(
   plan: PlanForGeneration,
   phase: PhaseForGeneration,
@@ -1846,6 +1984,21 @@ async function generateFlashcardsActivity(
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot, theoryText);
   const { system, tail } = buildFlashcardsPrompt(ctx);
+
+  // Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): the
+  // `conceptKeys` the model emits per card live ONLY on the RAW tool output
+  // (`FlashcardsForSlotToolInput.flashcards[].conceptKeys`, ai-tools.ts) —
+  // `normalizeFlashcardsInput`'s `NormalizedFlashcard` shape never carries
+  // them through (see path-generator-normalize.ts), so they'd otherwise be
+  // silently dropped here exactly like an un-stamped `figure`/`source` would
+  // be by a `.strict()` schema. Captured from `raw` inside `parse` (the last
+  // point the unvalidated object is in scope) into this outer map, keyed by
+  // the card's `question` text — the one field guaranteed to survive
+  // normalization unchanged and line back up with `input.flashcards[i]`
+  // below. Best-effort only: a key collision (two cards with the identical
+  // question text) just means the later one's `conceptKeys` wins, which is
+  // harmless (closed-enum tagging is idempotent and capped at 2 anyway).
+  const conceptKeysByQuestion = new Map<string, string[]>();
 
   // Validate-and-repair: the model intermittently returns an empty / unusable
   // `flashcards` array under the forced tool. Re-call once with the failure
@@ -1874,6 +2027,12 @@ async function generateFlashcardsActivity(
         onUsage: (u) => addNormalizedUsage(plan.usage, u),
       }),
     parse: (raw) => {
+      // Capture raw conceptKeys BEFORE normalization can drop them. Flag-off:
+      // weaknessConceptsEnabled() is false, the model never emitted the
+      // property (schema omits it), and this is a strict no-op.
+      if (weaknessConceptsEnabled()) {
+        captureFlashcardConceptKeys(raw, conceptKeysByQuestion);
+      }
       const normalized = normalizeFlashcardsInput(raw);
       if (normalized.flashcards.length === 0) {
         logTelemetry(plan.userId, 'path.flashcards.retry', {
@@ -1902,8 +2061,35 @@ async function generateFlashcardsActivity(
     }
     throw new Error(`Flashcards generation returned no usable cards (${outcome.lastError})`);
   }
-  const input = outcome.data;
 
+  await persistFlashcardsActivity(plan, phase, slot, nextSortOrder, outcome.data, conceptKeysByQuestion);
+}
+
+/**
+ * Path-gen Phase 8 (flag-gated PATH_LEARNING_BATCH) — the validate-and-persist
+ * tail of flashcards generation, factored out of
+ * {@link generateFlashcardsActivity} so BOTH the unbatched path (a single
+ * `create_flashcards_for_slot` call, via `generateWithRepair` above) and the
+ * batched path ({@link generateLearningSlotBatch}, one `learning_slot_content`
+ * call) run through the EXACT SAME persist code once a validated
+ * `NormalizedFlashcardsInput` is in hand — this function has no knowledge of
+ * which call shape produced `input`. Unchanged body from the pre-Phase-8
+ * `generateFlashcardsActivity`; only lifted out and parameterized on `input` /
+ * `conceptKeysByQuestion` instead of closing over the repair-loop's `outcome`
+ * local. Note this function does NOT contain the prune-vs-fail branch above —
+ * that discriminator only applies when generation produced NO usable cards at
+ * all, which for the batched path is one of the conditions that trips the
+ * whole-slot fallback to the unbatched sequence (see generateLearningSlotBatch),
+ * not a case this function ever sees.
+ */
+async function persistFlashcardsActivity(
+  plan: PlanForGeneration,
+  phase: PhaseForGeneration,
+  slot: SlotForGeneration,
+  nextSortOrder: number,
+  input: NormalizedFlashcardsInput,
+  conceptKeysByQuestion: Map<string, string[]>
+): Promise<void> {
   // Figure-reuse (P3): validate the model's per-card figures against the catalog
   // (drop hallucinated/duplicate refs, cap at 4), then SNAPSHOT each referenced
   // source image into a path-owned `flashcard-images/{cardId}/…` blob. Card ids
@@ -2024,6 +2210,62 @@ async function generateFlashcardsActivity(
       },
     });
   });
+
+  // Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): tag each
+  // persisted Flashcard with its closed-enum concept(s), now that the cards
+  // have DB ids (`cardIds`, pre-generated above and used as the nested-create
+  // ids, so they're already the real ids — no re-fetch needed). Runs AFTER
+  // the transaction commits and in its OWN try/catch: concept tagging must
+  // never roll back or fail flashcard generation, which has already
+  // succeeded by this point. Flag-off / no captured keys / no slot concepts:
+  // every branch below degenerates to zero extra DB calls.
+  if (weaknessConceptsEnabled() && conceptKeysByQuestion.size > 0) {
+    try {
+      const conceptIdByKey = await loadSlotConceptMap(slot.id);
+      if (conceptIdByKey.size > 0) {
+        for (let i = 0; i < input.flashcards.length; i++) {
+          const conceptKeys = conceptKeysByQuestion.get(input.flashcards[i].question);
+          if (conceptKeys && conceptKeys.length > 0) {
+            await attachConceptTags('flashcard', cardIds[i], conceptKeys, conceptIdByKey);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[path-generator] flashcard concept tagging failed (non-fatal)', {
+        planId: plan.id,
+        slotId: slot.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+}
+
+/**
+ * Path-gen Phase 8 — validate a raw `flashcards` payload (the shape either the
+ * unbatched `create_flashcards_for_slot` tool or the batched
+ * `learning_slot_content` tool's `flashcards` sub-object produces) into a
+ * `NormalizedFlashcardsInput`, optionally capturing `conceptKeys` into the
+ * caller's map exactly like the unbatched repair loop's `parse` callback
+ * does. Pulled out of {@link generateFlashcardsActivity} so
+ * {@link generateLearningSlotBatch} can run the identical check ONCE (no
+ * repair loop — the batched call's fallback IS the retry) without duplicating
+ * the concept-key-capture/normalize/empty-check logic.
+ */
+function parseFlashcardsPayload(
+  raw: unknown,
+  conceptKeysOut: Map<string, string[]>
+): { ok: true; data: NormalizedFlashcardsInput } | { ok: false; error: string } {
+  if (weaknessConceptsEnabled()) {
+    captureFlashcardConceptKeys(raw, conceptKeysOut);
+  }
+  const normalized = normalizeFlashcardsInput(raw);
+  if (normalized.flashcards.length === 0) {
+    return {
+      ok: false,
+      error: 'The `flashcards` array was empty or contained no valid { question, answer } objects.',
+    };
+  }
+  return { ok: true, data: normalized };
 }
 
 async function callQuizDispatch(
@@ -2050,11 +2292,54 @@ type ValidatedQuizSet = ReturnType<typeof QuizSetV2Schema.parse>;
 
 type QuizParseResult = { ok: true; data: ValidatedQuizSet } | { ok: false; error: string };
 
+/**
+ * Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): pull
+ * `conceptKeys` off the RAW (pre-`normalizeQuizQuestions`) tool questions —
+ * mirrors the `figure`/`source` loose-hold idiom in
+ * `packages/shared/src/quiz.ts` (~L214-234). `QuizQuestionV2Schema` has no
+ * `conceptKeys` field at all, so `QuizSetV2Schema.safeParse` in
+ * {@link parseQuizInput} silently strips it — this must run on `raw.questions`
+ * BEFORE that parse. Keyed by `prompt` text (checked across `prompt`/
+ * `question`/`text`, the same drift-tolerant aliases `normalizeQuizQuestions`
+ * itself accepts) so the caller can look it up again after normalization by
+ * the surviving `q.prompt` field. Defensive only — never throws.
+ */
+function captureQuizConceptKeys(
+  raw: QuizForSlotToolInput,
+  out: Map<string, string[]>
+): void {
+  if (!Array.isArray(raw.questions)) return;
+  for (const item of raw.questions) {
+    if (!item || typeof item !== 'object') continue;
+    const q = item as unknown as Record<string, unknown>;
+    const prompt =
+      typeof q.prompt === 'string'
+        ? q.prompt
+        : typeof q.question === 'string'
+          ? q.question
+          : typeof q.text === 'string'
+            ? q.text
+            : null;
+    const conceptKeys = q.conceptKeys;
+    if (
+      prompt &&
+      Array.isArray(conceptKeys) &&
+      conceptKeys.every((k) => typeof k === 'string')
+    ) {
+      out.set(prompt, conceptKeys as string[]);
+    }
+  }
+}
+
 function parseQuizInput(
   raw: QuizForSlotToolInput,
   fallbackTitle: string,
   minItems = 3,
+  conceptKeysOut?: Map<string, string[]>,
 ): QuizParseResult {
+  if (conceptKeysOut && weaknessConceptsEnabled()) {
+    captureQuizConceptKeys(raw, conceptKeysOut);
+  }
   const normalizedQuestions = normalizeQuizQuestions(raw.questions);
   // Per-question salvage: drop only the individually-unrecoverable questions
   // (provided ≥ minItems survive) so one bad item can't nuke an otherwise-good
@@ -2086,7 +2371,8 @@ async function tryDegradedQuiz(
   plan: PlanForGeneration,
   slot: SlotForGeneration,
   system: string,
-  baseTail: string
+  baseTail: string,
+  conceptKeysOut?: Map<string, string[]>,
 ): Promise<ValidatedQuizSet | null> {
   // Slightly fewer questions for the final exam here than the normal ask: the
   // degraded path is also the truncation safety net (a long, rich final exam is
@@ -2127,7 +2413,12 @@ async function tryDegradedQuiz(
   ].join('\n');
   try {
     const raw = await callQuizDispatch(plan, slot.title, system, degradedTail);
-    const result = parseQuizInput(raw, slot.title, slot.kind === 'final_exam' ? 8 : 3);
+    const result = parseQuizInput(
+      raw,
+      slot.title,
+      slot.kind === 'final_exam' ? 8 : 3,
+      conceptKeysOut,
+    );
     if (result.ok) {
       // Apply the same subject filter as the normal path.
       const filtered = result.data.questions.filter((q) => allowedSet.has(q.kind));
@@ -2177,6 +2468,15 @@ async function generateQuizActivity(
   const allowedSet = new Set<QuestionKind>(allowedKinds);
   const minCount = slot.kind === 'final_exam' ? 8 : 3;
 
+  // Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): captured
+  // by parseQuizInput (called both from `parse` below AND from
+  // tryDegradedQuiz's fallback) directly off each attempt's RAW tool output,
+  // keyed by `prompt` text — see captureQuizConceptKeys for why this can't
+  // wait until after Zod validation. Flag-off: parseQuizInput's internal
+  // `weaknessConceptsEnabled()` check makes capture a no-op even though the
+  // map is always passed.
+  const conceptKeysByPrompt = new Map<string, string[]>();
+
   const outcome = await generateWithRepair<ValidatedQuizSet>({
     call: (corrective) =>
       callQuizDispatch(
@@ -2194,7 +2494,12 @@ async function generateQuizActivity(
           : tail,
       ),
     parse: (raw) => {
-      const result = parseQuizInput(raw as QuizForSlotToolInput, slot.title, minCount);
+      const result = parseQuizInput(
+        raw as QuizForSlotToolInput,
+        slot.title,
+        minCount,
+        conceptKeysByPrompt,
+      );
       if (!result.ok) {
         logTelemetry(plan.userId, 'path.quiz.retry', {
           planId: plan.id,
@@ -2236,7 +2541,7 @@ async function generateQuizActivity(
   if (!parsed) {
     // Degrade before giving up: a simpler mc/true_false quiz beats a hole.
     // tryDegradedQuiz already applies the subject filter internally.
-    parsed = await tryDegradedQuiz(plan, slot, system, tail);
+    parsed = await tryDegradedQuiz(plan, slot, system, tail, conceptKeysByPrompt);
     if (!parsed) {
       throw new Error(`Quiz generation failed: ${outcome.lastError}`);
     }
@@ -2422,6 +2727,168 @@ async function generateQuizActivity(
       },
     });
   });
+
+  // Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): tag each
+  // persisted QuizQuestion with its closed-enum concept(s), now that the
+  // questions have DB ids (`questionIds`, pre-generated above and used as the
+  // nested-create ids). Runs AFTER the transaction commits, in its OWN
+  // try/catch — concept tagging must never roll back or fail quiz
+  // generation, which has already succeeded by this point. The
+  // deterministic diagram-cloze question (if any) never carries
+  // `conceptKeys` — it's built in code, not by the model — so only
+  // `finalQuestions` is considered. Flag-off / no captured keys / no slot
+  // concepts: every branch below degenerates to zero extra DB calls.
+  if (weaknessConceptsEnabled() && conceptKeysByPrompt.size > 0) {
+    try {
+      const conceptIdByKey = await loadSlotConceptMap(slot.id);
+      if (conceptIdByKey.size > 0) {
+        for (let i = 0; i < finalQuestions.length; i++) {
+          const conceptKeys = conceptKeysByPrompt.get(finalQuestions[i].prompt);
+          if (conceptKeys && conceptKeys.length > 0) {
+            await attachConceptTags('quiz_question', questionIds[i], conceptKeys, conceptIdByKey);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[path-generator] quiz concept tagging failed (non-fatal)', {
+        planId: plan.id,
+        slotId: slot.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Stage B — Phase 8 learning-slot batching (flag-gated PATH_LEARNING_BATCH,
+// default OFF; plans/glm-path-gen-phase8-batching-eval.md)
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Attempt ONE batched `learning_slot_content` call carrying both a `learning`
+ * slot's theory section and its flashcards, persisting both through the exact
+ * same `persistTheoryActivity` / `persistFlashcardsActivity` helpers the
+ * unbatched path uses. Returns the theory plain text (mirroring
+ * `generateTheoryActivity`'s return, for API symmetry with the caller) on
+ * success, or `null` on ANY failure — a thrown call, a truncated/missing tool
+ * part, a validation failure on either half, or persistence throwing partway
+ * through. `null` means "did not happen"; the caller (`processSlot`) must
+ * then run the existing unbatched theory+flashcards sequence UNCHANGED. A
+ * slot must never fail BECAUSE batching failed — this function swallows and
+ * logs every failure itself rather than letting one escape to the caller.
+ *
+ * No repair loop here (unlike the unbatched calls' `generateWithRepair`):
+ * `maxAttempts: 1` on the dispatcher call, because the fallback to the
+ * unbatched two-call sequence (which has its OWN repair loops) IS the retry —
+ * layering a second repair loop on top would just delay the fallback for a
+ * call class that's already cheap to just re-run unbatched.
+ *
+ * Theory is persisted FIRST, matching `processSlot`'s existing
+ * theory-before-flashcards ordering — `persistFlashcardsActivity`'s Diagram
+ * reuse (Phase 3) step reads back the just-created FlashcardSet's covering
+ * theory via `resolveDiagramsForSet`, and the review-slot dependency on
+ * `loadSlotTheoryBody` elsewhere in this file expects theory to exist before
+ * any flashcards read depends on it. If flashcards persistence throws AFTER
+ * theory already committed, the slot is left with theory generated and
+ * flashcards missing — `processSlot`'s idempotency check (existingActivityKinds)
+ * means a later sweep retries ONLY flashcards next time, exactly as if the
+ * unbatched flashcards call itself had thrown; theory is not regenerated or
+ * duplicated.
+ */
+async function generateLearningSlotBatch(
+  plan: PlanForGeneration,
+  phase: PhaseForGeneration,
+  slot: SlotForGeneration,
+  theorySortOrder: number,
+  flashcardsSortOrder: number
+): Promise<string | null> {
+  const ctx = makeSlotContentContext(plan, phase, slot);
+  const { system, tail } = buildLearningBatchPrompt(ctx);
+
+  let raw: unknown;
+  try {
+    raw = await forcedStructuredCall<unknown>({
+      // Attributed to the 'theory' stage for routing + cost — this call does
+      // the work of both the theory AND flashcards stages, but `Stage` has no
+      // combined value and 'theory' already resolves to the same GLM model
+      // 'flashcards' would (resolvePathStage treats every Stage B stage
+      // identically), so no routing behavior differs from picking either.
+      stage: 'theory',
+      corpus: plan.corpus,
+      staticInstructions: system,
+      dynamicInstructions: tail,
+      anthropicTool: LEARNING_SLOT_BATCH_TOOL,
+      anthropicTools: [LEARNING_SLOT_BATCH_TOOL],
+      userMessage: `Write the theory section AND the flashcards for slot "${slot.title}" in one response.`,
+      providerOverride: plan.gemini ? 'gemini' : undefined,
+      sessionId: plan.sessionId,
+      maxAttempts: 1,
+      onUsage: (u) => addNormalizedUsage(plan.usage, u),
+    });
+  } catch (error) {
+    console.warn('[path-generator] learning-slot batch call failed, falling back to unbatched', {
+      planId: plan.id,
+      slotId: slot.id,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+
+  const split = splitLearningBatchPayload(raw);
+  if (!split) {
+    console.warn('[path-generator] learning-slot batch payload missing theory/flashcards, falling back to unbatched', {
+      planId: plan.id,
+      slotId: slot.id,
+      preview: previewToolOutput(raw),
+    });
+    return null;
+  }
+
+  const theoryParsed = parseTheoryPayload(split.theory);
+  if (!theoryParsed.ok) {
+    console.warn('[path-generator] learning-slot batch theory validation failed, falling back to unbatched', {
+      planId: plan.id,
+      slotId: slot.id,
+      error: theoryParsed.error,
+    });
+    return null;
+  }
+
+  const conceptKeysByQuestion = new Map<string, string[]>();
+  const flashcardsParsed = parseFlashcardsPayload(split.flashcards, conceptKeysByQuestion);
+  if (!flashcardsParsed.ok) {
+    console.warn('[path-generator] learning-slot batch flashcards validation failed, falling back to unbatched', {
+      planId: plan.id,
+      slotId: slot.id,
+      error: flashcardsParsed.error,
+    });
+    return null;
+  }
+
+  // Both halves validated — persist through the SAME code the unbatched path
+  // uses. Theory first (see doc comment above for why). From here on, a
+  // thrown error is a genuine persistence failure, not a "batching didn't
+  // work" case — it propagates to processSlot's existing try/catch around
+  // theory (if it throws before theory persists) or is a partial success
+  // (theory persisted, flashcards did not) that the idempotency check above
+  // resolves on the next sweep, exactly like the unbatched path's own
+  // failure modes.
+  const theoryText = await persistTheoryActivity(
+    plan,
+    slot,
+    theorySortOrder,
+    theoryParsed.data,
+    theoryParsed.rawSource,
+  );
+  await persistFlashcardsActivity(
+    plan,
+    phase,
+    slot,
+    flashcardsSortOrder,
+    flashcardsParsed.data,
+    conceptKeysByQuestion,
+  );
+  return theoryText;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -2553,8 +3020,44 @@ async function processSlot(
     });
   };
 
-  let theoryText: string | undefined;
-  if (missingKinds.includes('theory')) {
+  // Phase 8 (flag-gated PATH_LEARNING_BATCH, default OFF): a `learning` slot
+  // that still needs BOTH theory and flashcards this pass, on a plan whose
+  // theory stage resolves to the GLM/OpenRouter provider, gets ONE shot at a
+  // batched call before falling through to the unbatched sequence below.
+  // Read the flag at CALL time (not module scope) so a toggle takes effect
+  // without a redeploy. `resolveModel` is checked with the SAME ctx
+  // `forcedStructuredCall` would build internally for this slot's calls
+  // (`ultra`/`gemini` from the plan) — Anthropic/Gemini (the
+  // MODEL_COMPOSITION_LEGACY rollback) never reach here. On any batching
+  // failure `generateLearningSlotBatch` returns null (already logged a
+  // console.warn internally) and this block simply does nothing further —
+  // `batchedTheoryText` stays undefined and the unbatched theory/flashcards
+  // code below runs exactly as it did before Phase 8 existed.
+  let batchedTheoryText: string | undefined;
+  let batchedBothKinds = false;
+  if (
+    isLearningBatchEnabled(process.env.PATH_LEARNING_BATCH) &&
+    slot.kind === 'learning' &&
+    missingKinds.includes('theory') &&
+    missingKinds.includes('flashcards') &&
+    resolveModel('path-theory', { ultra: plan.ultra, providerOverride: plan.gemini ? 'gemini' : undefined })
+      .provider === 'openrouter'
+  ) {
+    const result = await generateLearningSlotBatch(
+      plan,
+      phase,
+      slot,
+      sortOrderByKind.get('theory')!,
+      sortOrderByKind.get('flashcards')!,
+    );
+    if (result !== null) {
+      batchedTheoryText = result;
+      batchedBothKinds = true;
+    }
+  }
+
+  let theoryText: string | undefined = batchedTheoryText;
+  if (!batchedBothKinds && missingKinds.includes('theory')) {
     try {
       theoryText = await generateTheoryActivity(plan, phase, slot, sortOrderByKind.get('theory')!);
     } catch (err) {
@@ -2565,8 +3068,13 @@ async function processSlot(
   if (await isCancelRequested(planId)) throw new PathGenerationCancelled();
 
   // The remaining activities are independent — fire them in parallel with
-  // allSettled so one failure doesn't take down the others.
-  const parallelKinds = missingKinds.filter((kind) => kind !== 'theory');
+  // allSettled so one failure doesn't take down the others. A successful
+  // batch already persisted flashcards too, so exclude it from this wave —
+  // exactly like `existingActivityKinds` excludes an already-generated kind
+  // from `missingKinds` on a later sweep.
+  const parallelKinds = missingKinds.filter(
+    (kind) => kind !== 'theory' && !(batchedBothKinds && kind === 'flashcards'),
+  );
   const results = await Promise.allSettled(
     parallelKinds.map((kind) => {
       const sortOrder = sortOrderByKind.get(kind)!;

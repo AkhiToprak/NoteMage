@@ -47,6 +47,21 @@ const STAGE_FEATURE: Record<Stage, ModelFeature> = {
   quiz: 'path-quiz',
 };
 
+/**
+ * Parse `PATH_STRUCTURE_REASONING` into a valid OpenRouter reasoning effort,
+ * or `null` when unset/invalid. Pure + exported so it's unit-testable without
+ * touching `process.env` plumbing or any provider call.
+ */
+export function parseStructureReasoningEffort(
+  raw: string | undefined,
+): 'low' | 'medium' | 'high' | null {
+  const normalized = raw?.trim().toLowerCase();
+  if (normalized === 'low' || normalized === 'medium' || normalized === 'high') {
+    return normalized;
+  }
+  return null;
+}
+
 export interface NormalizedUsage {
   provider: Provider;
   model: string;
@@ -200,6 +215,19 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
     // activity/sweep layer retries on GLM again — so a thrown error here means
     // GLM genuinely could not produce valid output, and the right outcome is to
     // surface that (activity_failed → sweep retry on GLM), never to spend Claude.
+    // Phase 7 experiment: reasoning stays OFF everywhere by default (unchanged
+    // request body — see forcedStructuredCallOpenRouter). PATH_STRUCTURE_REASONING
+    // opts a single call class back into reasoning: the ONE Stage A structure
+    // call per path, never Stage B fill (theory/flashcards/quiz run many calls
+    // per path, and reasoning risks eating the output budget before the tool
+    // call lands — see the finish_reason='length' guard) and never a
+    // featureOverride call (e.g. 'path-preview', which needs deterministic
+    // low-latency output, not planning). Read the env var at call time, not
+    // module scope, so scripts (test-glm-ab.ts) can toggle it per run.
+    const reasoningEffort =
+      ctx.stage === 'structure' && !ctx.featureOverride
+        ? parseStructureReasoningEffort(process.env.PATH_STRUCTURE_REASONING) ?? undefined
+        : undefined;
     return await forcedStructuredCallOpenRouter<T>({
       system,
       tool: ctx.anthropicTool,
@@ -214,6 +242,7 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
       maxAttempts: ctx.maxAttempts,
       model,
       sessionId: ctx.sessionId,
+      reasoningEffort,
       onUsage: (usage) =>
         ctx.onUsage({
           provider: 'openrouter',

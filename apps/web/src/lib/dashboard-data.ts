@@ -8,6 +8,10 @@ import {
 } from '@/lib/path-loader';
 import { derivePathStats, findContinueSlot } from '@/lib/path-stats';
 import type { PathPlan } from '@/components/learn/PathView';
+import { weaknessTrainingUiEnabled, flashcardReviewQueueEnabled } from '@/lib/feature-flags';
+import { deriveConceptWeakAreas } from '@/lib/concept-weak-areas';
+import { loadConceptWeakAreaRows } from '@/lib/concept-weak-areas-loader';
+import { countDueFlashcards } from '@/lib/flashcard-review-queue';
 
 const DASHBOARD_CACHE_TTL_SECONDS = 30;
 const PATHS_CACHE_TTL_SECONDS = 30;
@@ -16,6 +20,38 @@ export interface DashboardData {
   hasUsablePath: boolean;
   studiedToday: boolean;
   active: DashboardActivePath | null;
+  /**
+   * Weakness Training Phase 2 (plan §6.1, §7.1) — canonical concept-level
+   * weak-spot count for this user across ALL paths, from the SAME
+   * `deriveConceptWeakAreas({ scope: 'all-paths' })` call the
+   * `/profile/weak-spots` page uses, so the dashboard tile/rail count can
+   * never disagree with that page's count. `null` when the Weakness Training
+   * UI flag is off, or when the user has no `weak`/`rusty` concepts yet
+   * (`coldStart !== 'weak_spots_found'`) — callers should fall back to the
+   * pre-Phase-2 Mage-based behavior in either case.
+   */
+  conceptWeakSpots: { count: number; topLabel: string | null } | null;
+  /**
+   * Weakness Training Phase 4.3c (plan §13.7, §13.8) — cheap count-only due-
+   * flashcard total (`countDueFlashcards`, NOT the full queue payload), same
+   * where-clause as `loadReviewQueue` so this can never disagree with what
+   * `/practice/review` itself would show. `null` when the review-queue flag
+   * is off OR there are zero due cards — callers should hide the tile in
+   * either case (mirrors `conceptWeakSpots`'s null convention).
+   */
+  dueFlashcards: { dueCount: number } | null;
+  /**
+   * Weakness Training Phase 4.4b (plan §14.4 rung 1, §14.8) — the in-app
+   * escalation state for the weak-spots tile, read from the user's latest
+   * unresolved `WeaknessNudgeLog` in-app row (state `nudged` or
+   * `escalated`). `escalated: true` drives the tile's border-token swap to
+   * the error token; `escalated: false` (state `nudged`) drives the amber
+   * variant. `badgeCount` is that row's `conceptIds.length`, capped at 9 so
+   * the badge never needs two digits. `null` when there is no unresolved
+   * in-app row OR the weakness UI flag is off — callers render the tile's
+   * pre-4.4b appearance in either case (purely additive).
+   */
+  nudgeState: { escalated: boolean; badgeCount: number } | null;
 }
 
 export interface DashboardActivePath {
@@ -116,7 +152,14 @@ export function deriveDashboardDataFromPaths(
     ready.find((p) => derivePathStats(p as unknown as PathPlan).progressPct < 100) ?? ready[0];
 
   if (!active) {
-    return { hasUsablePath: false, studiedToday, active: null };
+    return {
+      hasUsablePath: false,
+      studiedToday,
+      active: null,
+      conceptWeakSpots: null,
+      dueFlashcards: null,
+      nudgeState: null,
+    };
   }
 
   const stats = derivePathStats(active as unknown as PathPlan);
@@ -126,6 +169,9 @@ export function deriveDashboardDataFromPaths(
   return {
     hasUsablePath: true,
     studiedToday,
+    conceptWeakSpots: null,
+    dueFlashcards: null,
+    nudgeState: null,
     active: {
       id: active.id,
       title: active.title,
@@ -178,7 +224,56 @@ async function buildDashboardData(userId: string): Promise<DashboardData> {
     }),
   ]);
 
-  return deriveDashboardDataFromPaths(plans.map(serializePath), todayMinutesCount > 0);
+  const data = deriveDashboardDataFromPaths(plans.map(serializePath), todayMinutesCount > 0);
+
+  // Weakness Training Phase 2 (plan §6.1, §7.1) — same ConceptMastery read +
+  // deriveConceptWeakAreas({ scope: 'all-paths' }) call as
+  // `/profile/weak-spots` (see app/(dashboard)/profile/weak-spots/page.tsx),
+  // so the dashboard tile/rail count can never disagree with that page.
+  // Flag-gated and additive: only queried when the UI flag is on, and this
+  // whole computation sits inside `buildDashboardData`, which is already
+  // Redis-cached by `getDashboardData` (30s) — no extra uncached DB cost.
+  let conceptWeakSpots: DashboardData['conceptWeakSpots'] = null;
+  let nudgeState: DashboardData['nudgeState'] = null;
+  if (weaknessTrainingUiEnabled()) {
+    const concepts = await loadConceptWeakAreaRows(userId);
+
+    const res = deriveConceptWeakAreas({ concepts, now: new Date(), scope: { scope: 'all-paths' } });
+    if (res.coldStart === 'weak_spots_found') {
+      conceptWeakSpots = { count: res.areas.length, topLabel: res.areas[0]?.label ?? null };
+    }
+
+    // Weakness Training Phase 4.4b (plan §14.4 rung 1, §14.8) — one cheap
+    // indexed lookup (`@@index([userId, sentAt])`) for the latest unresolved
+    // in-app nudge, alongside the weak-spots read above inside this same
+    // Redis-cached `buildDashboardData` call. `resolveNudgesForUser` (4.4a,
+    // called on weak-spots-page visit) is what clears this — this loader
+    // only reads, never writes.
+    const latestNudge = await db.weaknessNudgeLog.findFirst({
+      where: { userId, channel: 'in_app', state: { in: ['nudged', 'escalated'] } },
+      orderBy: { sentAt: 'desc' },
+      select: { state: true, conceptIds: true },
+    });
+    if (latestNudge) {
+      nudgeState = {
+        escalated: latestNudge.state === 'escalated',
+        badgeCount: Math.min(latestNudge.conceptIds.length, 9),
+      };
+    }
+  }
+
+  // Weakness Training Phase 4.3c (plan §13.7, §13.8) — cheap count query
+  // (not the full queue) alongside the weak-spots block above; both sit
+  // inside this same Redis-cached `buildDashboardData` call.
+  let dueFlashcards: DashboardData['dueFlashcards'] = null;
+  if (flashcardReviewQueueEnabled()) {
+    const dueCount = await countDueFlashcards(userId, new Date());
+    if (dueCount > 0) {
+      dueFlashcards = { dueCount };
+    }
+  }
+
+  return { ...data, conceptWeakSpots, dueFlashcards, nudgeState };
 }
 
 export async function getDashboardData(userId: string): Promise<DashboardData> {

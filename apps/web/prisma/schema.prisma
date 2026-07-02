@@ -493,6 +493,11 @@ model Flashcard {
   repetitions        Int       @default(0) // consecutive correct answers
   nextReviewAt       DateTime? // null = never reviewed
   lastReviewAt       DateTime?
+  // Weakness Training Phase 4.3 (plans/weakness-training-phase4.md §13) —
+  // leech counter: increments only when a card resets from repetitions >= 2
+  // ("Again" after graduating the learning steps); >= 4 flags a leech, which
+  // is surfaced as a re-read suggestion, never removed from rotation.
+  lapses             Int       @default(0)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -500,6 +505,7 @@ model Flashcard {
   images       FlashcardImage[]
 
   @@index([flashcardSetId])
+  @@index([nextReviewAt])
   @@map("flashcards")
 }
 
@@ -844,6 +850,8 @@ model StudyPlan {
   // the path leaves the bundle behind for the notebook to claim.
   flashcardSets FlashcardSet[]  @relation("PathFlashcardSets")
   quizSets      QuizSet[]       @relation("PathQuizSets")
+  concepts      Concept[]
+  conceptEdges  ConceptEdge[]
 
   // Serves both `where userId` (leftmost prefix) and the overview/dashboard
   // `where userId orderBy updatedAt desc` — the planner can walk this backwards
@@ -852,6 +860,158 @@ model StudyPlan {
   @@index([notebookId])
   @@index([contextNotebookIds], type: Gin)
   @@map("study_plans")
+}
+
+// ─────────── Weakness Training — Phase 1 (concept mastery) ───────────
+// See plans/weakness-training.md §3. Concept tagging is closed-enum per slot;
+// ConceptAttemptEvent/ConceptMastery track evidence-weighted, decayed mastery.
+// No physical columns are added to QuizQuestion, QuizSet, or Flashcard —
+// linkage lives in ConceptTag; remediation-only item metadata lives in
+// QuizQuestion.payload (existing Json? column).
+
+model Concept {
+  id          String   @id @default(cuid())
+  planId      String
+  slotId      String // CheckpointSlot this concept was extracted from (closed-enum scope)
+  key         String // stable slug, e.g. "regular-ar-present-tense" — unique within slot
+  label       String // short display name shown in Weak Spots UI
+  description String?  @db.Text // 1 sentence, seeded from the Stage A objective text
+  createdAt   DateTime @default(now())
+
+  // ── Phase 4.1 (plans/weakness-training-phase4.md §11) — canonicalization ──
+  // Null = this row IS canonical. Non-null = merged INTO canonicalId — all NEW
+  // writes resolve through canonicalId first; old ConceptTag/
+  // ConceptAttemptEvent/ConceptMastery rows are left in place, untouched
+  // (mastery is unioned at read time in concept-weak-areas-loader.ts).
+  canonicalId         String?
+  // Canonical row's label frozen at merge time (UI shows it without a join).
+  mergedLabelSnapshot String?   @db.Text
+  mergedAt            DateTime?
+  // 256-dim Gemini embedding for tier-2 dedup; empty until the dedup job has
+  // processed this row — empty-embedding rows ARE the backfill resume point.
+  embedding           Float[]
+  embeddedAt          DateTime?
+
+  plan      StudyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  canonical Concept?  @relation("ConceptCanonical", fields: [canonicalId], references: [id], onDelete: SetNull)
+
+  mergedInto Concept[]     @relation("ConceptCanonical")
+  edgesFrom  ConceptEdge[] @relation("ConceptEdgeFrom")
+  edgesTo    ConceptEdge[] @relation("ConceptEdgeTo")
+
+  tags    ConceptTag[]
+  events  ConceptAttemptEvent[]
+  mastery ConceptMastery[]
+
+  @@unique([slotId, key])
+  @@index([planId])
+  @@index([canonicalId])
+  @@map("concepts")
+}
+
+model ConceptTag {
+  id        String   @id @default(cuid())
+  conceptId String
+  itemType  String // 'quiz_question' | 'flashcard'
+  itemId    String
+  weight    Float    @default(1.0) // 1.0 primary, 0.5 secondary — max 2 tags per item in v1
+  createdAt DateTime @default(now())
+
+  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@unique([conceptId, itemType, itemId])
+  @@index([itemType, itemId])
+  @@map("concept_tags")
+}
+
+model ConceptAttemptEvent {
+  id              String   @id @default(cuid())
+  conceptId       String
+  userId          String
+  itemType        String
+  itemId          String
+  sourceAttemptId String // QuizAttempt.id or AssessmentAttempt.id — dedupe + audit key
+  questionKind    String // QuestionKind value, needed to recompute chanceP if formula changes
+  quality         Int // 0 | 1 | 2
+  isCorrect       Boolean
+  // Phase 4 (§10.3) — which pipeline produced this event. Distinguishes
+  // weakness-session retests (nudge failure-streak trigger) from ordinary quiz
+  // variance, and excludes flashcard self-grades from that trigger.
+  origin          String   @default("general") // 'general' | 'weakness_session' | 'flashcard_review'
+  createdAt       DateTime @default(now())
+
+  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceAttemptId, conceptId, itemId]) // hard dedupe guard — safe to replay/retry
+  @@index([userId, conceptId, createdAt])
+  @@map("concept_attempt_events")
+}
+
+model ConceptMastery {
+  id                 String    @id @default(cuid())
+  userId             String
+  conceptId          String
+  weightedCorrect    Float     @default(0)
+  weightedTotal      Float     @default(0)
+  attemptCount       Int       @default(0)
+  lastAttemptAt      DateTime?
+  lastCorrectAt      DateTime?
+  peakLcb            Float     @default(0) // PERSISTED history: highest lcb ever reached; feeds `rusty` (§2.1.1)
+  status             String    @default("untested") // DENORMALISED CACHE of the band, rewritten on every write; reads MUST re-decay (§2.1.1)
+  misconceptionLabel String?   @db.Text // shipped in Phase 1 to avoid a 2nd migration on this table later
+  misconceptionAt    DateTime? // last async LLM tag — enforces 7-day cooldown
+  updatedAt          DateTime  @updatedAt
+
+  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, conceptId])
+  @@index([userId, status])
+  @@map("concept_masteries")
+}
+
+// ─────────── Weakness Training — Phase 4.2 (prerequisite DAG) ───────────
+// See plans/weakness-training-phase4.md §12. Edges are within one plan only
+// (application-enforced), never rewritten on concept merge — readers resolve
+// endpoints through Concept.canonicalId at read time.
+
+model ConceptEdge {
+  id            String   @id @default(cuid())
+  planId        String // denormalised from fromConcept.planId — scopes queries + enforces same-plan invariant cheaply
+  fromConceptId String // the PREREQUISITE (upstream)
+  toConceptId   String // the DEPENDENT concept — "fromConcept is a prerequisite of toConcept"
+  kind          String   @default("prerequisite") // v1 only ever writes 'prerequisite'
+  confidence    Float    @default(0.5) // structural_phase_order 0.35 | structural_covers_slot 0.55 | llm_stage_a 0.7
+  source        String // 'structural_phase_order' | 'structural_covers_slot' | 'llm_stage_a'
+  createdAt     DateTime @default(now())
+
+  plan        StudyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  fromConcept Concept   @relation("ConceptEdgeFrom", fields: [fromConceptId], references: [id], onDelete: Cascade)
+  toConcept   Concept   @relation("ConceptEdgeTo", fields: [toConceptId], references: [id], onDelete: Cascade)
+
+  @@unique([fromConceptId, toConceptId])
+  @@index([toConceptId]) // "what are my prerequisites" — the hot read path
+  @@index([planId])
+  @@map("concept_edges")
+}
+
+// Weakness Training Phase 2 (plan §3, §3.2 Migration B). One generated
+// remediation session. `conceptIds` is a Postgres-native ordered array (2-3
+// Concept.id in delivery order); `sourcePathId`/`quizSetId` are plain ids (no
+// FK — a deleted path/set simply leaves a dangling reference the read paths
+// tolerate). Powers reuse-before-generate (§5.4), the per-concept cooldown
+// (§5.5), and the graduated-concept achievement count (§7.3).
+model WeaknessTrainingSession {
+  id           String    @id @default(cuid())
+  userId       String
+  sourcePathId String? // StudyPlan.id the primary concept came from
+  conceptIds   String[] // 2-3 Concept.id, in delivery order
+  quizSetId    String? // the single generated QuizSet delivering all steps
+  status       String    @default("assembling") // assembling|ready|completed|abandoned
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  @@index([userId, createdAt])
+  @@map("weakness_training_sessions")
 }
 
 model StudyPhase {
@@ -1097,6 +1257,10 @@ model UserNotificationPreferences {
   // the preference survives once those features ship).
   productUpdates  Boolean @default(true)
   weeklyReport    Boolean @default(false)
+  // Weakness Training Phase 4.4 — master opt-out for the weak-spot nudge
+  // system (in-app tile escalation AND the email digest with one flag; a user
+  // who doesn't want to be nudged about weak spots wants neither channel).
+  weakSpotNudges  Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1104,6 +1268,40 @@ model UserNotificationPreferences {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_notification_preferences")
+}
+
+// ─────────── Weakness Training — Phase 4.4 (nudges + escalation) ───────────
+// See plans/weakness-training-phase4.md §14. One WeaknessNudgeLog row per
+// DIGEST SEND (never per concept); the [userId, windowKey, channel] unique
+// constraint is the dedup guard — a retried sweep collides, never double-sends.
+
+model WeaknessNudgeLog {
+  id           String    @id @default(cuid())
+  userId       String
+  channel      String // 'in_app' | 'email' | 'push' (push unused until 4.4c)
+  triggerKinds String[] // union of trigger kinds that fired this digest
+  conceptIds   String[] // Concept.id rows included — audit/debug
+  windowKey    String // "<userId>:<isoWeek>" (email) / "<userId>:<isoDate>" (in-app)
+  // DENORMALISED CACHE (same pattern as ConceptMastery.status): coarse
+  // pre-filter only; authoritative resolution is re-derived from activity
+  // signals on read.
+  state        String    @default("nudged") // nudged | escalated | resolved | expired
+  sentAt       DateTime  @default(now())
+  resolvedAt   DateTime?
+
+  @@unique([userId, windowKey, channel])
+  @@index([userId, sentAt])
+  @@index([state])
+  @@map("weakness_nudge_logs")
+}
+
+model NudgeSweepWatermark {
+  id         String    @id @default("singleton") // one row, singleton pattern
+  lastRunAt  DateTime?
+  lastCursor String? // last-processed userId — resumable pagination mid-sweep
+  updatedAt  DateTime  @updatedAt
+
+  @@map("nudge_sweep_watermark")
 }
 
 // --- 1.5 Community Posts ---

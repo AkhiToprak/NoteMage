@@ -1,15 +1,22 @@
 /**
- * Phase 7 — GLM vs Claude A/B through the REAL production dispatcher
- * (`forcedStructuredCall` → resolveModel → applyGlm → provider wrapper). For two
- * representative path stages it runs the SAME call twice — once with
- * GLM_COMPOSITION=1 (→ GLM) and once without (→ Claude) — and compares model,
- * cost, latency, and output. No DB writes; this exercises routing + dispatch +
- * cost + the real tool schemas only.
+ * Two-sample probe of the path-gen stages through the REAL production
+ * dispatcher (`forcedStructuredCall` → resolveModel → provider wrapper). For
+ * two representative stages it runs the SAME call twice and prints model,
+ * cost, latency, and output-token counts per sample. No DB writes; this
+ * exercises routing + dispatch + cost + the real tool schemas only.
+ *
+ * Historical name: this began as a GLM-vs-Claude A/B toggled via
+ * GLM_COMPOSITION, but since the 2026-06-28 migration resolveModel routes all
+ * path stages to GLM-5.2 regardless of that flag, so both legs measured GLM.
+ * It now measures GLM only — the second sample is for run-to-run variance
+ * (and shows the implicit prefix-cache hit via cacheRead on sample #2).
+ *
+ * Env toggles worth measuring per run: PATH_STRUCTURE_REASONING=high (the
+ * Phase 7 structure-reasoning experiment; read at call time in the dispatcher).
  *
  *   npx tsx --env-file=.env.local scripts/test-glm-ab.ts
  *
- * Needs OPENROUTER_API_KEY (GLM side) and ANTHROPIC_API_KEY (Claude side). If a
- * side's key is missing that run is skipped, not failed.
+ * Needs OPENROUTER_API_KEY.
  */
 
 import { forcedStructuredCall, type NormalizedUsage } from '../src/lib/path-generator-routing';
@@ -32,6 +39,8 @@ interface Outcome {
   ms: number;
   costUsd: number;
   realCostUsd: number | null;
+  outputTokens: number | null;
+  cacheReadTokens: number | null;
   ok: boolean;
   detail: string;
 }
@@ -83,6 +92,8 @@ async function runStage(
       ms,
       costUsd,
       realCostUsd: usage?.costUsd ?? null,
+      outputTokens: usage?.outputTokens ?? null,
+      cacheReadTokens: usage?.cacheReadTokens ?? null,
       ok,
       detail: `${count} ${checkTopKey}`,
     };
@@ -104,7 +115,7 @@ const STRUCTURE_RULES = [
   'Titles concise; descriptions one sentence.',
 ].join('\n');
 
-async function ab(
+async function twoSamples(
   label: string,
   stage: 'structure' | 'quiz',
   ultra: boolean,
@@ -114,22 +125,20 @@ async function ab(
   topKey: string,
 ): Promise<Outcome[]> {
   const out: Outcome[] = [];
-  // GLM side
-  process.env.GLM_COMPOSITION = '1';
-  const glm = await runStage(`${label} [GLM]`, stage, ultra, tool, rules, dyn, topKey);
-  if (glm) out.push(glm);
-  // Claude side
-  delete process.env.GLM_COMPOSITION;
-  const claude = await runStage(`${label} [Claude]`, stage, ultra, tool, rules, dyn, topKey);
-  if (claude) out.push(claude);
+  // Sample twice: #2 typically lands on the same upstream and shows the
+  // implicit prefix-cache hit (cacheRead > 0), so cold and warm cost both show.
+  const first = await runStage(`${label} #1`, stage, ultra, tool, rules, dyn, topKey);
+  if (first) out.push(first);
+  const second = await runStage(`${label} #2`, stage, ultra, tool, rules, dyn, topKey);
+  if (second) out.push(second);
   return out;
 }
 
 async function main(): Promise<void> {
   const results: Outcome[] = [];
   results.push(
-    ...(await ab(
-      'QUIZ (Haiku→GLM-4.7)',
+    ...(await twoSamples(
+      'QUIZ',
       'quiz',
       false,
       QUIZ_FOR_SLOT_TOOL,
@@ -139,8 +148,8 @@ async function main(): Promise<void> {
     )),
   );
   results.push(
-    ...(await ab(
-      'STRUCTURE (Sonnet→GLM-5.2)',
+    ...(await twoSamples(
+      'STRUCTURE',
       'structure',
       true,
       PATH_STRUCTURE_TOOL,
@@ -150,16 +159,21 @@ async function main(): Promise<void> {
     )),
   );
 
-  console.log('\n════════════════════ A/B SUMMARY ════════════════════');
+  console.log('\n════════════════════ SUMMARY ════════════════════');
   for (const r of results) {
     const real = r.realCostUsd !== null ? ` (real $${r.realCostUsd.toFixed(6)})` : '';
+    const outTok = r.outputTokens !== null ? `${r.outputTokens}` : '?';
+    const cacheTok = r.cacheReadTokens !== null ? `${r.cacheReadTokens}` : '?';
     console.log(
       `${r.ok ? '✓' : '✗'} ${r.label.padEnd(26)} ${r.model.padEnd(26)} ` +
-        `${String(r.ms).padStart(6)}ms  est $${r.costUsd.toFixed(6)}${real}  ${r.detail}`,
+        `${String(r.ms).padStart(6)}ms  est $${r.costUsd.toFixed(6)}${real}  ` +
+        `outTok=${outTok} cacheRead=${cacheTok}  ${r.detail}`,
     );
   }
   console.log(
-    '\n(est cost = token-derived via costForCall for comparability; real = OpenRouter inline cost.)',
+    '\n(est cost = token-derived via costForCall for comparability; real = OpenRouter inline cost;' +
+      ' outTok/cacheRead = usage.outputTokens/cacheReadTokens from the same call, for measuring the' +
+      ' PATH_STRUCTURE_REASONING experiment\'s effect on structure-call output size.)',
   );
 }
 

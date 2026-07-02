@@ -1,4 +1,10 @@
 .body {
+  /* Weakness Training Phase 4.4b (plan §14.4 rung 1) — local soft-red family
+     for the escalated nudge state; the cream shell has no red (same pattern
+     as WeakSpots.module.css / WeakAreas.module.css's --st-red-*). */
+  --st-red-ink: #b4341f;
+  --st-red-soft: #fdecea;
+  --st-red-line: #f6cec7;
   margin-top: 24px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -116,6 +122,7 @@
 .tools { margin-top: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 @media (max-width: 640px) { .tools { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .tool {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -131,6 +138,33 @@
 }
 .tool:hover { box-shadow: var(--shadow-raise); transform: translateY(-2px); }
 .tool:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.tool:active { transform: translateY(0); }
+
+/* Weakness Training Phase 4.4b — nudge escalation (§14.4 rung 1, §14.8).
+   Additive border-token swap only, no new component. Steady-state CSS (no
+   animation) — MAX_INAPP_NUDGES_PER_SESSION=1 means this must not re-animate
+   on every re-render, and "no animation" is the simplest way to guarantee
+   that. */
+.toolNudged { border-color: var(--amber-line); }
+.toolEscalated { border-color: var(--st-red-line); }
+.toolBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.toolBadgeEscalated { background: var(--st-red-ink); }
 .toolIcon {
   width: 40px;
   height: 40px;

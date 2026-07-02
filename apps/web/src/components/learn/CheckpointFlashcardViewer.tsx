@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import DiagramReferencePanel from '@/components/learn/DiagramReferencePanel';
 import QuizPlayerShell, { type ShellSecondaryAction } from '@/components/quiz/player/QuizPlayerShell';
 import FlashcardActivityCard from '@/components/quiz/player/FlashcardActivityCard';
+import GradeButtonRow, { type ReviewQuality } from '@/components/quiz/player/GradeButtonRow';
 import { useOptionalMage } from '@/components/mage/MageProvider';
 import type { MageQuickAction, QuizSource } from '@/components/quiz/player/types';
 import { useCoarsePointer } from '@/hooks/useCoarsePointer';
@@ -12,6 +13,36 @@ import type { PathActivity, PathSlot } from '@/components/learn/PathView';
 import { readUnlocked, type PathUnlock } from '@/components/learn/path-rewards';
 import { CheckpointSkeletonBody } from '@/components/learn/CheckpointSkeleton';
 import { trackEvent } from '@/lib/telemetry';
+
+// Weakness Training Phase 4.3b (plans/weakness-training-phase4.md §13.1/13.7)
+// — self-grading is opt-in per surface. `slot.kind === 'review'` is the only
+// gate for the 4-button row; LEARNING-kind checkpoints and standalone Study
+// Pack decks (no slot at all) stay ungraded flip-through. `GradeButtonRow`
+// (Phase 4.3c) lives in components/quiz/player so both this viewer and the
+// standalone `/practice/review` queue render byte-identical buttons.
+
+interface ReviewGrade {
+  cardId: string;
+  quality: ReviewQuality;
+}
+
+async function postReviewSessionGrades(setId: string, grades: ReviewGrade[]): Promise<void> {
+  if (grades.length === 0) return;
+  await fetch('/api/flashcards/review-sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ setId, grades }),
+  });
+}
+
+async function postSeedOnly(cardIds: string[]): Promise<void> {
+  if (cardIds.length === 0) return;
+  await fetch('/api/flashcards/review-sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ seedOnly: true, cardIds }),
+  });
+}
 
 // Map a source label (usually a file name) to the Sources icon family.
 function inferSourceKind(label?: string | null): QuizSource['kind'] {
@@ -112,6 +143,13 @@ export default function CheckpointFlashcardViewer({
   const coarsePointer = useCoarsePointer();
   const mage = useOptionalMage();
 
+  // Weakness Training Phase 4.3b — grading is opt-in per surface (plan
+  // §13.7): only a path checkpoint whose slot is a REVIEW slot shows the
+  // 4-button row. Standalone (Study Pack) decks and LEARNING/ASSESSMENT
+  // checkpoints stay the original flip-through.
+  const isReviewSlot = slot?.kind === 'review';
+  const [grades, setGrades] = useState<Map<string, ReviewQuality>>(new Map());
+
   useEffect(() => {
     if (!slot || !activity) return;
     trackEvent('path.activity.opened', {
@@ -197,6 +235,28 @@ export default function CheckpointFlashcardViewer({
     });
   }, []);
 
+  // Review-slot grading: record the button choice for the current card, then
+  // advance/finish exactly like the plain flip-through's next()/handleDone().
+  // Grades accumulate client-side (plan §13.7 — "batch at session end") and
+  // are POSTed once the deck completes, fired alongside (not blocking on)
+  // the completion PATCH below.
+  const gradeCurrentCard = useCallback(
+    (quality: ReviewQuality) => {
+      if (!card) return;
+      setGrades((prevGrades) => {
+        const nextGrades = new Map(prevGrades);
+        nextGrades.set(card.id, quality);
+        return nextGrades;
+      });
+      if (isLast) {
+        void handleDoneRef.current?.();
+      } else {
+        next();
+      }
+    },
+    [card, isLast, next],
+  );
+
   const handleDone = useCallback(async () => {
     if (submitting) return;
     // Standalone (Study Pack): no path activity to complete — just close.
@@ -205,6 +265,20 @@ export default function CheckpointFlashcardViewer({
       return;
     }
     setSubmitting(true);
+
+    // Fire grading/seeding best-effort, alongside the completion PATCH —
+    // never let a grading failure block marking the checkpoint complete.
+    const setId = activity.flashcardSetId;
+    if (isReviewSlot && setId && grades.size > 0) {
+      const payload = Array.from(grades.entries()).map(([cardId, quality]) => ({ cardId, quality }));
+      postReviewSessionGrades(setId, payload).catch(() => {});
+    } else if (!isReviewSlot && slot?.kind === 'learning' && cards && cards.length > 0) {
+      // Passive seeding (plan §13.7): a LEARNING-kind deck seeds its
+      // never-reviewed cards to tomorrow so they enter the review queue
+      // without a premature self-grade. Fire-and-forget, best-effort.
+      postSeedOnly(cards.map((c) => c.id)).catch(() => {});
+    }
+
     try {
       const res = await fetch(
         `/api/learn/activities/${encodeURIComponent(activity.id)}`,
@@ -223,7 +297,15 @@ export default function CheckpointFlashcardViewer({
     } catch {
       setSubmitting(false);
     }
-  }, [activity, submitting, onCompleted, standalone, onClose]);
+  }, [activity, submitting, onCompleted, standalone, onClose, isReviewSlot, grades, slot?.kind, cards]);
+
+  // handleDone is defined after gradeCurrentCard needs to call it (last-card
+  // grade = finish); a ref sidesteps the circular dependency without
+  // reordering the hooks above.
+  const handleDoneRef = useRef(handleDone);
+  useEffect(() => {
+    handleDoneRef.current = handleDone;
+  }, [handleDone]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -296,10 +378,17 @@ export default function CheckpointFlashcardViewer({
     [total, prev, currentIndex],
   );
 
+  // Review-slot grading (plan §13.1): once flipped, the 4-button grade row
+  // (rendered below the card) REPLACES the shell's single CTA — grading a
+  // card both records the choice and advances/finishes, so there's nothing
+  // left for the footer CTA to do.
+  const showGradeRow = isReviewSlot && total > 0 && isFlipped;
+
   // CTA mirrors the quiz Check → Continue → Finish flow: reveal the answer,
-  // advance, then complete on the last card.
+  // advance, then complete on the last card. Non-review decks are unchanged;
+  // review decks keep "Show answer" pre-flip, then hand off to the grade row.
   const cta =
-    total > 0
+    total > 0 && !showGradeRow
       ? !isFlipped
         ? { label: 'Show answer', onClick: flip, disabled: submitting }
         : isLast
@@ -382,6 +471,9 @@ export default function CheckpointFlashcardViewer({
             isPhone={isPhone}
             coarsePointer={coarsePointer}
           />
+          {showGradeRow ? (
+            <GradeButtonRow onGrade={gradeCurrentCard} disabled={submitting} isPhone={isPhone} />
+          ) : null}
         </div>
       ) : null}
     </QuizPlayerShell>

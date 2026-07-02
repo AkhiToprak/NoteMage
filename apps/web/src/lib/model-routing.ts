@@ -55,7 +55,19 @@ export type ModelFeature =
   | 'exam-study-plan'
   | 'exam-mock-questions'
   | 'exam-weak-analysis'
-  | 'exam-report-summary';
+  | 'exam-report-summary'
+  // Weakness Training Phase 1A (§3.3, §5.1) — one slot's items per call,
+  // closed-enum concept classification for the backfill job. Cheap tier,
+  // same routing as `exam-weak-analysis`.
+  | 'concept-backfill-classify'
+  // Weakness Training Phase 1B (§5.1) — ONE forced-tool remediation session
+  // per call. Same tier as `exam-mock-questions` (path-quiz routing).
+  | 'weakness-session-generate'
+  // Weakness Training Phase 3 (§2.3 tier 2 / §5.1) — one de-personalised
+  // misconception line per call, fired async/batched/hysteresis-gated (a
+  // weak-band transition, re-checked at job time, once per concept per
+  // 7-day cooldown). Cheap tier, same routing as `concept-backfill-classify`.
+  | 'weakness-misconception-tag';
 
 export interface ResolveModelCtx {
   /** Billing tier — used by tier-sensitive features (chat-plain, essay). */
@@ -388,6 +400,27 @@ export function resolveModel(
       // Predicted-vs-actual + recommended-next prose for the post-exam report.
       // Short, cheap. Meter: reuse `ai_study_plan` at the report endpoint.
       return resolveStatic('EXAM_REPORT_MODEL', 'haiku', 'flash-lite');
+
+    case 'concept-backfill-classify':
+      // One slot's items (typically 5-15) per call — closed-enum concept
+      // candidates + per-item conceptKeys, mirroring exam-weak-analysis's
+      // cheap grouping/labelling tier. CONCEPT_BACKFILL_MODEL pins it.
+      return resolveStatic('CONCEPT_BACKFILL_MODEL', 'haiku', 'flash-lite');
+
+    case 'weakness-misconception-tag':
+      // One de-personalised misconception line per call — short, cheap,
+      // batched/async/hysteresis-gated (§2.3 tier 2). Same cheap tier as
+      // concept-backfill-classify/exam-weak-analysis. WEAKNESS_MISCONCEPTION_MODEL pins it.
+      return resolveStatic('WEAKNESS_MISCONCEPTION_MODEL', 'haiku', 'flash-lite');
+
+    case 'weakness-session-generate': {
+      // Weakness Training Phase 1B (§5.1) — ONE forced-tool remediation session
+      // per call. Same tier as exam-mock-questions (path-quiz routing → glm-sonnet).
+      // WEAKNESS_SESSION_MODEL pins it. Meter: reuse `ai_quizzes` at the route.
+      const override = parseToken(process.env.WEAKNESS_SESSION_MODEL);
+      if (override) return fromToken(override);
+      return resolvePathStage('quiz', ctx);
+    }
 
     case 'path-structure':
     case 'path-theory':

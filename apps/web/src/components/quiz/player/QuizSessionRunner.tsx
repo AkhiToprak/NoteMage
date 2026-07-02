@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import QuizViewer from '@/components/notebook/QuizViewer';
 import QuizPlayerShell from '@/components/quiz/player/QuizPlayerShell';
 import GradedResultPanel, { type GradedResultAction } from '@/components/quiz/player/GradedResultPanel';
+import RemediationBody from '@/components/quiz/player/RemediationBody';
 import { useOptionalMage } from '@/components/mage/MageProvider';
 import { useRegisterMageContext } from '@/components/mage';
 import { gradeForPercentage } from '@/lib/path-gating';
@@ -55,7 +56,7 @@ interface ExamResult {
   stars: number;
 }
 
-export type RunnerContext = 'practice' | 'exam';
+export type RunnerContext = 'practice' | 'exam' | 'remediation';
 
 interface QuizSessionRunnerProps {
   notebookId: string;
@@ -107,14 +108,18 @@ export default function QuizSessionRunner({
   const mage = useOptionalMage();
 
   const isExam = context === 'exam';
-  const title = titleOverride || set?.title || (isExam ? 'Mock exam' : 'Practice');
+  const isRemediation = context === 'remediation';
+  const title =
+    titleOverride || set?.title || (isExam ? 'Mock exam' : isRemediation ? 'Weak-spot training' : 'Practice');
   const mageType: MageContextType = isExam ? 'exam' : 'quiz-question';
 
-  // Close target: back to the exam overview for a mock exam, else the paths home.
+  // Close target: back to the exam overview for a mock exam, back to Weak
+  // Spots for remediation, else the paths home.
   const close = useCallback(() => {
-    if (examId) router.push(`/exam/${encodeURIComponent(examId)}`);
+    if (isRemediation) router.push('/profile/weak-spots');
+    else if (examId) router.push(`/exam/${encodeURIComponent(examId)}`);
     else router.push('/my-path');
-  }, [examId, router]);
+  }, [isRemediation, examId, router]);
 
   useEffect(() => {
     trackEvent('quiz.session.opened', { context, notebookId, setId, examId: examId ?? null });
@@ -203,11 +208,12 @@ export default function QuizSessionRunner({
   // until results, then the terminal "Complete" step lights up.
   const mission = useMemo<MissionStep[]>(() => {
     const done = session?.mode === 'results' || examResult !== null;
+    const label = isExam ? 'Mock exam' : isRemediation ? 'Weak-spot training' : 'Practice';
     return [
-      { id: 'quiz', label: isExam ? 'Mock exam' : 'Practice', status: done ? 'done' : 'current' },
+      { id: 'quiz', label, status: done ? 'done' : 'current' },
       { id: 'complete', label: 'Complete', status: 'finish' },
     ];
-  }, [session?.mode, examResult, isExam]);
+  }, [session?.mode, examResult, isExam, isRemediation]);
 
   const openMage = useCallback(() => {
     mage?.open({
@@ -227,8 +233,14 @@ export default function QuizSessionRunner({
     [isExam, openMage],
   );
 
-  const crumbs = breadcrumb ?? [isExam ? 'Mock exam' : 'Practice'];
-  const pill = stepLabel ?? (isExam ? 'Mock exam' : 'Practice');
+  const crumbs =
+    breadcrumb ?? (isRemediation ? ['Practice', 'Weak spots'] : [isExam ? 'Mock exam' : 'Practice']);
+  const pill = stepLabel ?? (isExam ? 'Mock exam' : isRemediation ? 'Weak-spot training' : 'Practice');
+  const mageSubtitle = isExam
+    ? 'Hints only — answers stay sealed'
+    : isRemediation
+      ? 'Re-teach first, then a quick check'
+      : 'Hints first — not the answer';
 
   return (
     <QuizPlayerShell
@@ -236,12 +248,15 @@ export default function QuizSessionRunner({
       title={title}
       stepLabel={pill}
       session={session}
-      graded={isExam}
+      // Remediation is graded=true (like exam) so the shell never offers the
+      // formative "Try again" on a wrong re-test — the graded re-test is
+      // answered once and feeds concept mastery (plan §6.4: no retries).
+      graded={isExam || isRemediation}
       sealed={isExam}
       sources={sources}
       questionSource={questionSource}
       mission={mission}
-      mageSubtitle={isExam ? 'Hints only — answers stay sealed' : 'Hints first — not the answer'}
+      mageSubtitle={mageSubtitle}
       mageActions={mageActions}
       onAskMage={openMage}
       onShowSource={openMage}
@@ -260,6 +275,14 @@ export default function QuizSessionRunner({
           onRetake={handleRetake}
           onDone={close}
           backLabel={examId ? 'Back to exam' : 'Done'}
+        />
+      ) : isRemediation ? (
+        <RemediationBody
+          notebookId={notebookId}
+          setId={setId}
+          questions={set.questions}
+          onSession={setSession}
+          onExit={close}
         />
       ) : (
         <QuizViewer

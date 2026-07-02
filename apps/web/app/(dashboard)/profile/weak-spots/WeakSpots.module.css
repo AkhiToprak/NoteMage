@@ -1,0 +1,158 @@
+/* Hallmark · component: weak-spots · genre: editorial · theme: system-managed (cream AppShell)
+ * states: default · hover · focus-visible · active · disabled · loading · empty
+ * contrast: pass — cream `.shell` tokens only, no light text on light surfaces
+ *
+ * Weakness Training Phase 1B — user-facing "Weak spots" page (plan §6.1, §6.5).
+ * Mirrors the layout language of exam/[id]/weak-areas/WeakAreas.module.css
+ * (band groups, card grid, CTA states) at a smaller scope: one CTA per card
+ * ("Train this"), no mastery bar (the plan's copy rules forbid implying a
+ * scored/quantified mastery map — only the honest whyFlagged line is shown).
+ * Local soft-red family for the "weak" band — the cream shell has no red. */
+
+.page {
+  --st-red-ink: #b4341f;
+  --st-red-soft: #fdecea;
+  --st-red-strong: #a32d18;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 24px;
+}
+
+/* ---- section ---- */
+.section { display: flex; flex-direction: column; gap: 16px; }
+.groups { display: flex; flex-direction: column; gap: 20px; }
+
+/* ---- group ---- */
+.group { display: flex; flex-direction: column; gap: 12px; }
+.groupHead { display: flex; align-items: center; gap: 9px; }
+.groupTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.groupCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #efeade;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+/* Quiet coverage-stat line (plan §6.3) — honesty qualifier shown across all
+ * three cold-start states so "all clear" / "no data yet" / the found-list
+ * count are all scoped to what was actually measured. Never a progress bar. */
+.coverageNote { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+
+.cardGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+
+/* ---- card ---- */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+  padding: 18px 18px 16px;
+}
+.cardTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.cardTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.bandBadge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.chipWeak { background: var(--st-red-soft); color: var(--st-red-strong); }
+.chipRusty { background: var(--amber-soft); color: var(--amber-ink); }
+
+.why { margin: 0; font-size: 13px; color: var(--body); line-height: 1.5; }
+
+/* Weakness Training Phase 4.2b (plan §12.6, §11.6) — informational-only
+ * lines under `why`, no new CTA. Upstream hint carries a small `link` icon;
+ * both stay muted/terse, matching `coverageNote`'s honesty-qualifier tone. */
+.upstreamHint {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.upstreamHint strong { color: var(--ink-soft); font-weight: 700; }
+.mergedNote { margin: 0; font-size: 12px; color: var(--muted); }
+
+/* ---- CTA ---- */
+.ctaRow { display: flex; align-items: center; gap: 9px; margin-top: 2px; }
+.trainBtn { width: 100%; }
+.trainBtn:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
+
+/* Free-tier split CTA (plan §7.2): primary "Upgrade to train this" + ghost
+ * "Review theory", side by side instead of the Pro path's single full-width
+ * button. Both share the row equally rather than one stretching to 100%. */
+.ctaRowSplit > * { flex: 1 1 0; justify-content: center; }
+
+.cardErr { margin: 0; font-size: 12px; color: var(--st-red-ink); }
+
+/* ---- empty / cold-start states ---- */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+  padding: clamp(36px, 7vw, 64px) 24px;
+}
+.emptyTile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 22px;
+  background: var(--lilac-soft);
+  border: 1px solid #e4ddff;
+  color: var(--accent);
+}
+.emptyTileGood { background: var(--green-soft); border-color: #cdeccd; color: var(--green-ink); }
+.emptyTitle { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.emptyText { margin: 0; font-size: 14px; color: var(--body); line-height: 1.6; max-width: 42ch; }
+.emptyActions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+
+/* ---- responsive ---- */
+@media (max-width: 880px) {
+  .cardGrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .page { padding-bottom: 84px; }
+  .card { padding: 16px; }
+}

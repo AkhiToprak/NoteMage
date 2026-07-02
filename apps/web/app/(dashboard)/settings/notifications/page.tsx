@@ -20,9 +20,15 @@ type Prefs = {
   examReminders: boolean;
   readinessAlerts: boolean;
   emailReminders: boolean;
+  weakSpotNudges: boolean;
 };
 
-const DEFAULTS: Prefs = { examReminders: true, readinessAlerts: true, emailReminders: true };
+const DEFAULTS: Prefs = {
+  examReminders: true,
+  readinessAlerts: true,
+  emailReminders: true,
+  weakSpotNudges: true,
+};
 
 const REMINDER_ROWS: { key: keyof Prefs; title: string; desc: string }[] = [
   {
@@ -34,6 +40,11 @@ const REMINDER_ROWS: { key: keyof Prefs; title: string; desc: string }[] = [
     key: 'readinessAlerts',
     title: 'Readiness nudges',
     desc: "When an exam is close and you're behind on weak topics, I'll flag what to review.",
+  },
+  {
+    key: 'weakSpotNudges',
+    title: 'Weak spot nudges',
+    desc: "A nudge when a weak spot's been sitting untouched, or a concept is ready to graduate.",
   },
 ];
 
@@ -57,6 +68,7 @@ export default function NotificationsSettingsPage() {
             examReminders: data.examReminders !== false,
             readinessAlerts: data.readinessAlerts !== false,
             emailReminders: data.emailReminders !== false,
+            weakSpotNudges: data.weakSpotNudges !== false,
           });
         }
       })

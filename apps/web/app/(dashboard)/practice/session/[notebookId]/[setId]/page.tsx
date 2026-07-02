@@ -35,6 +35,8 @@ function readRunConfig(): RunConfig {
       return { context: 'practice', stepLabel: 'Weak-spot practice', breadcrumb: ['Practice', 'Weak spots'] };
     case 'mistake_review':
       return { context: 'practice', stepLabel: 'Mistake practice', breadcrumb: ['Practice', 'Mistakes'] };
+    case 'remediation':
+      return { context: 'remediation', stepLabel: 'Weak-spot training', breadcrumb: ['Practice', 'Weak spots'] };
     default:
       return fallback;
   }

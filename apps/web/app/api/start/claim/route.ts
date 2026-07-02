@@ -15,6 +15,8 @@ import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import type { PathStructureToolInput } from '@/lib/ai-tools';
 import type { PreviewLesson } from '@/lib/path-preview';
 import { enqueueJob } from '@/lib/background-jobs';
+import { enqueueStructuralEdgeDerivation } from '@/lib/concept-edges';
+import { enqueueConceptDedupForPlan } from '@/lib/concept-dedup';
 
 /**
  * Onboarding-real-generation P4 — claim the anonymous preview on sign-up.
@@ -184,6 +186,16 @@ export async function POST(request: NextRequest) {
       },
       { timeout: CLAIM_TX_TIMEOUT_MS }
     );
+
+    // Weakness Training Phase 4.2a (phase4 §12.7) — best-effort, tier-0
+    // structural edge derivation. Gated on Concept rows actually existing;
+    // never blocks or fails the claim.
+    await enqueueStructuralEdgeDerivation(planId);
+
+    // Weakness Training Phase 4.1b (phase4 §11.2 tier 2) — best-effort
+    // tier-2 embedding dedup for concepts tier-1 didn't match at creation.
+    // Flag-gated; never blocks or fails the claim.
+    await enqueueConceptDedupForPlan(planId);
 
     // Full Stage B over the whole material, like the live create route.
     // allowRefund:false (nothing was metered to refund).

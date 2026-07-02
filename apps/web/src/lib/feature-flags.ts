@@ -20,3 +20,61 @@
 export function mageGenerationActionsEnabled(): boolean {
   return process.env.MAGE_GENERATION_ACTIONS !== '0';
 }
+
+/**
+ * Weakness Training Phase 1A — gate for closed-enum concept tagging in the
+ * Stage A/B path-generation tool schemas (`ai-tools.ts`). Off by default
+ * (opt-in, unlike the kill-switches above): with the flag unset, the tool
+ * schemas are byte-identical to pre-Phase-1A, so default path generation
+ * (and the Anthropic prompt cache keyed on `PATH_TOOLS_STABLE`) is
+ * unaffected. Set `WEAKNESS_TRAINING_CONCEPTS=1` to have Stage A emit
+ * `conceptCandidates` per slot and Stage B emit `conceptKeys` per item.
+ */
+export function weaknessConceptsEnabled(): boolean {
+  return process.env.WEAKNESS_TRAINING_CONCEPTS === '1';
+}
+
+/**
+ * Weakness Training Phase 1B — gate for the user-facing remediation surfaces:
+ * the `/profile/weak-spots` page and `POST /api/weakness/sessions`. Off by
+ * default (opt-in), independent of `WEAKNESS_TRAINING_CONCEPTS` — the concept
+ * layer can be on (writing ConceptMastery) while these surfaces stay hidden
+ * until the remediation-session flow is ready. Set `WEAKNESS_TRAINING_UI=1`
+ * to expose them.
+ */
+export function weaknessTrainingUiEnabled(): boolean {
+  return process.env.WEAKNESS_TRAINING_UI === '1';
+}
+
+/**
+ * Weakness Training Phase 4.1b — gate for tier-2 embedding dedup (the
+ * `concept.dedup` / `concept.dedup.backfill` jobs and their Gemini embedding
+ * calls). Off by default (opt-in); independent of the other weakness flags so
+ * all embedding spend can be disabled instantly without touching diagnosis or
+ * training. Tier-1 lexical dedup and the merge-aware loader are NOT gated —
+ * they are free and behave as no-ops until merges exist.
+ */
+export function weaknessConceptDedupEnabled(): boolean {
+  return process.env.WEAKNESS_CONCEPT_DEDUP === '1';
+}
+
+/**
+ * Phase 4.3c — gate for the flashcard review-queue surface (`/practice/review`,
+ * `GET /api/flashcards/review-queue`, the dashboard due-cards tile). Off by
+ * default (opt-in). The deterministic core (sm2Lite, sourceWeight plumbing,
+ * grade persistence) ships unflagged — it is zero-behavior-change until the
+ * grading UI renders.
+ */
+export function flashcardReviewQueueEnabled(): boolean {
+  return process.env.FLASHCARD_REVIEW_QUEUE === '1';
+}
+
+/**
+ * Weakness Training Phase 4.4a — gate for the nudge sweep job and digest
+ * emails. Off by default (opt-in): with the flag unset the sweep is a no-op
+ * and no nudge emails are ever sent, independent of the notification
+ * preference (the pref is the per-user opt-out; this is the global switch).
+ */
+export function weaknessNudgeSweepEnabled(): boolean {
+  return process.env.WEAKNESS_NUDGE_SWEEP === '1';
+}

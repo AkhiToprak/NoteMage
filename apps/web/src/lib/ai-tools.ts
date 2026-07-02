@@ -1,5 +1,6 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { QuestionKind } from '@notemage/shared';
+import { weaknessConceptsEnabled } from './feature-flags';
 
 // ── Typed interfaces for tool inputs ──
 
@@ -30,6 +31,14 @@ interface QuizToolV2Common {
   // in, surfaced by the quiz player's "Show source" reader drawer. Question-level
   // (outside `payload`); only offered when source materials accompany the prompt.
   source?: { label?: string; page?: number; quote: string };
+  // Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): up to 2
+  // concept keys this question primarily tests, chosen ONLY from the slot's
+  // `conceptCandidates` (PathStructureSlot). Only ever advertised on
+  // QUIZ_FOR_SLOT_TOOL's derived schema (path generation, slot-scoped) — the
+  // generic chat QUIZ_TOOL_V2 has no slot/conceptCandidates scope to draw
+  // from, so its schema never injects this field. Persistence (writing
+  // ConceptTag rows) is a downstream concern, not this layer's.
+  conceptKeys?: string[];
 }
 
 export interface QuizToolV2McQuestion extends QuizToolV2Common {
@@ -224,6 +233,25 @@ export interface PathStructureSlot {
   // consolidates/tests. Computed by `enforceSpacedReviews`; NOT emitted by the
   // model. The persist step resolves these to `CheckpointSlot.coversSlotIds`.
   covers?: number[];
+  // Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): 2-4
+  // short candidate sub-concept labels for this slot, emitted in the same
+  // Stage A call as topicHint/objective. Stage B tools (quiz/flashcards) pick
+  // `conceptKeys` from this closed list. Persistence of these tags is a
+  // downstream concern — this field is only read by that later consumer when
+  // the flag is on; the field is absent from the schema (and never emitted)
+  // when the flag is off.
+  conceptCandidates?: string[];
+  // Weakness Training Phase 4.2b (behind WEAKNESS_TRAINING_CONCEPTS=1, plan
+  // phase4 §12.1 tier 1): up to 2 labels copied VERBATIM from
+  // `conceptCandidates` already emitted in EARLIER slots of the SAME phase —
+  // the prerequisite concept(s) this slot's concepts most directly build on.
+  // Naturally closed-enum (the model can only copy strings it already wrote
+  // earlier in the same structured response). Resolved server-side in
+  // `persist-plan-structure.ts` into `ConceptEdge` rows (source
+  // 'llm_stage_a'); non-matching refs are dropped silently, fail-closed, same
+  // as `conceptKeys`. Absent from the schema (and never emitted) when the
+  // flag is off.
+  prerequisiteConceptRefs?: string[];
 }
 
 export interface PathStructurePhase {
@@ -275,7 +303,14 @@ export interface TheorySectionToolInput {
 // the cards tightly scoped to the slot's topic.
 export interface FlashcardsForSlotToolInput {
   title: string;
-  flashcards: { question: string; answer: string }[];
+  flashcards: {
+    question: string;
+    answer: string;
+    // Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): up to
+    // 2 concept keys this card primarily covers, chosen ONLY from the slot's
+    // `conceptCandidates` (PathStructureSlot). See QuizToolV2Common.conceptKeys.
+    conceptKeys?: string[];
+  }[];
 }
 
 // Stage B: quiz for a slot. Reuses the kind-aware v2 shape — the
@@ -768,7 +803,50 @@ export const ANNOTATE_ANSWER_TOOL: Anthropic.Messages.Tool = {
 // They're driven by `path-generator.ts` with `tool_choice: { type: 'tool',
 // name }` so the AI is forced into a single structured output.
 
-export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
+// Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): the
+// optional per-slot `conceptCandidates` property injected into
+// PATH_STRUCTURE_TOOL when the flag is on. Emitted in the SAME Stage A call
+// that already produces topicHint/objective — zero extra LLM round-trips.
+// `slots` is nested two levels deep (phases[].items.properties.slots), so
+// this can't reuse the top-level `withItemProperty` helper below; it's
+// injected directly into the slot-item properties at module load.
+const CONCEPT_CANDIDATES_PROPERTY = {
+  type: 'array' as const,
+  items: { type: 'string' as const },
+  description:
+    '2-4 short candidate sub-concept labels this slot could be decomposed into for weakness diagnosis (e.g. ["regular -ar present tense", "irregular yo-form", "stem-changing e→ie"]). Each is a closed-enum label that Stage B quiz/flashcard tools for THIS slot must pick `conceptKeys` from — never invent a key outside this list downstream. Keep labels short (2-5 words), specific, and non-overlapping.',
+  minItems: 2,
+  maxItems: 4,
+};
+
+// Weakness Training Phase 4.2b (behind WEAKNESS_TRAINING_CONCEPTS=1, plan
+// phase4 §12.1 tier 1): the optional per-slot `prerequisiteConceptRefs`
+// property, injected alongside `conceptCandidates` into the same nested
+// slot-item schema (see `withConceptCandidates` below). Rides the same flag
+// and injection site — no separate gate.
+const PREREQUISITE_CONCEPT_REFS_PROPERTY = {
+  type: 'array' as const,
+  items: { type: 'string' as const },
+  description:
+    'OPTIONAL. Up to 2 labels naming the prerequisite concept(s) this slot\'s concepts most directly build on. Each MUST be copied VERBATIM from `conceptCandidates` you already emitted in an EARLIER slot of THIS SAME phase — never a candidate from this slot itself, a later slot, or another phase, and never invent a new label. Omit entirely if no earlier concept clearly applies.',
+  maxItems: 2,
+};
+
+// Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): the
+// optional per-item `conceptKeys` property injected into QUIZ_FOR_SLOT_TOOL
+// and FLASHCARDS_FOR_SLOT_TOOL when the flag is on (via `withItemProperty`,
+// same composition pattern as the `figure`/`source` properties below). The
+// closed-enum rule is enforced only by this description — the model
+// self-constrains; persistence-side drift handling is a downstream concern.
+const CONCEPT_KEYS_PROPERTY = {
+  type: 'array' as const,
+  items: { type: 'string' as const },
+  description:
+    "OPTIONAL. Up to 2 concept keys this item primarily tests/covers. MUST be chosen ONLY from this slot's `conceptCandidates` list (the create_path_structure call for this slot) — copy a label verbatim, never invent a new one. Omit entirely if no candidate clearly applies. List the primary concept first.",
+  maxItems: 2,
+};
+
+const PATH_STRUCTURE_TOOL_BASE: Anthropic.Messages.Tool = {
   name: 'create_path_structure',
   description: [
     'Design the section / slot skeleton for a guided learning path.',
@@ -781,6 +859,12 @@ export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
     '- Add a "review" slot after roughly every 2 "learning" slots. NEVER output a section that is only learning slots followed by one assessment.',
     '- The LAST slot of every phase MUST be "assessment" (the checkpoint quiz that gates the next section).',
     'Do not generate any actual lesson text, flashcards, or quiz questions here — the orchestrator fills those in per-slot via separate tools.',
+    ...(weaknessConceptsEnabled()
+      ? [
+          'Also emit "conceptCandidates" on each slot: 2-4 short candidate sub-concept labels for weakness diagnosis, alongside topicHint/objective.',
+          'Optionally also emit "prerequisiteConceptRefs" on a slot: up to 2 labels copied verbatim from `conceptCandidates` you emitted in an EARLIER slot of the SAME phase, naming the prerequisite(s) this slot most directly builds on. Omit when none clearly apply.',
+        ]
+      : []),
   ].join('\n'),
   input_schema: {
     type: 'object' as const,
@@ -857,6 +941,74 @@ export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
     required: ['title', 'description', 'phases'],
   },
 };
+
+/**
+ * Inject `conceptCandidates` (Phase 1A) and `prerequisiteConceptRefs` (Phase
+ * 4.2b) into PATH_STRUCTURE_TOOL_BASE's nested `phases[].slots[]` item schema
+ * (two levels deep, hence a dedicated helper rather than the top-level
+ * `withItemProperty` used for the slot tools below, which only handles a
+ * single-level array key). Both properties ride the same
+ * `weaknessConceptsEnabled()` gate and the same injection site — 4.2b never
+ * needed its own flag or its own schema-composition path.
+ */
+function withConceptCandidates(inputSchema: Anthropic.Messages.Tool['input_schema']): Anthropic.Messages.Tool['input_schema'] {
+  const base = inputSchema as unknown as {
+    properties: {
+      phases: {
+        items: {
+          properties: {
+            slots: {
+              items: { properties: Record<string, unknown>; [k: string]: unknown };
+              [k: string]: unknown;
+            };
+            [k: string]: unknown;
+          };
+          [k: string]: unknown;
+        };
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
+    [k: string]: unknown;
+  };
+  const slots = base.properties.phases.items.properties.slots;
+  return {
+    ...base,
+    properties: {
+      ...base.properties,
+      phases: {
+        ...base.properties.phases,
+        items: {
+          ...base.properties.phases.items,
+          properties: {
+            ...base.properties.phases.items.properties,
+            slots: {
+              ...slots,
+              items: {
+                ...slots.items,
+                properties: {
+                  ...slots.items.properties,
+                  conceptCandidates: CONCEPT_CANDIDATES_PROPERTY,
+                  prerequisiteConceptRefs: PREREQUISITE_CONCEPT_REFS_PROPERTY,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  } as unknown as Anthropic.Messages.Tool['input_schema'];
+}
+
+/**
+ * PATH_STRUCTURE_TOOL — byte-identical to PATH_STRUCTURE_TOOL_BASE when
+ * `weaknessConceptsEnabled()` is false (default), so default path generation
+ * and the Anthropic prompt-cache-stable `PATH_TOOLS_STABLE` array
+ * (path-generator-routing.ts) are provably unaffected.
+ */
+export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = weaknessConceptsEnabled()
+  ? { ...PATH_STRUCTURE_TOOL_BASE, input_schema: withConceptCandidates(PATH_STRUCTURE_TOOL_BASE.input_schema) }
+  : PATH_STRUCTURE_TOOL_BASE;
 
 // Source-highlighting feature — the optional `source` anchor shared by the
 // theory (one per section), flashcard (one per card), and quiz (one per question)
@@ -1045,13 +1197,18 @@ export const THEORY_SECTION_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
-export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
+const FLASHCARDS_FOR_SLOT_TOOL_BASE: Anthropic.Messages.Tool = {
   name: 'create_flashcards_for_slot',
   description: [
     'Create only as many flashcards as the slot\'s material genuinely supports — usually 3–6, sometimes as few as 2. NEVER pad to reach a number and NEVER repeat the same idea across cards.',
     'Each card is a tight question/answer pair. Vary the angles: definitions, recall prompts, comparisons, and one or two "explain why" cards.',
     'Do NOT write fill-in-the-blank style cards (no "___" on the front) and do NOT phrase cards as fake quiz questions — flashcards are flat Q→A only. Interactive question types belong to `create_quiz_for_slot`, not here.',
     'Stay strictly within the slot\'s topicHint — do NOT drift into adjacent topics.',
+    ...(weaknessConceptsEnabled()
+      ? [
+          'Also set "conceptKeys" on each card: up to 2 keys chosen ONLY from this slot\'s conceptCandidates (the closed list from create_path_structure).',
+        ]
+      : []),
   ].join('\n'),
   input_schema: {
     type: 'object' as const,
@@ -1104,6 +1261,56 @@ export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
       },
     },
     required: ['title', 'flashcards'],
+  },
+};
+
+/**
+ * FLASHCARDS_FOR_SLOT_TOOL — byte-identical to FLASHCARDS_FOR_SLOT_TOOL_BASE
+ * when `weaknessConceptsEnabled()` is false (default). When on, injects the
+ * optional `conceptKeys` property onto each flashcard item via the same
+ * `withItemProperty` composition used for `figure`/`source` below.
+ */
+export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = weaknessConceptsEnabled()
+  ? {
+      ...FLASHCARDS_FOR_SLOT_TOOL_BASE,
+      input_schema: withItemProperty(
+        FLASHCARDS_FOR_SLOT_TOOL_BASE.input_schema,
+        'flashcards',
+        'conceptKeys',
+        CONCEPT_KEYS_PROPERTY,
+      ),
+    }
+  : FLASHCARDS_FOR_SLOT_TOOL_BASE;
+
+/**
+ * Path-gen Phase 8 (flag-gated PATH_LEARNING_BATCH, default OFF) — ONE tool
+ * that carries both a `learning` slot's theory section AND its flashcards, so
+ * a GLM-routed learning slot can be filled with a single call instead of two.
+ * `theory` / `flashcards` reuse THEORY_SECTION_TOOL / FLASHCARDS_FOR_SLOT_TOOL's
+ * `input_schema` BY REFERENCE (not copy-pasted) so the two tools' shapes can
+ * never drift apart — a future edit to either base tool's schema (including the
+ * weaknessConceptsEnabled() `conceptKeys` injection above) propagates here
+ * automatically. Deliberately excluded from `PATH_TOOLS_STABLE`
+ * (path-generator-routing.ts): that array is the Anthropic prompt-cache tools
+ * block and must stay byte-identical; this tool is only ever sent standalone
+ * (`anthropicTools: [LEARNING_SLOT_BATCH_TOOL]`) on the GLM/OpenRouter branch,
+ * which never sends the stable array anyway. See path-learning-batch.ts for the
+ * split/validate helpers and plans/glm-path-gen-phase8-batching-eval.md for the
+ * cost analysis behind this experiment.
+ */
+export const LEARNING_SLOT_BATCH_TOOL: Anthropic.Messages.Tool = {
+  name: 'learning_slot_content',
+  description: [
+    'Generate BOTH the theory section AND the flashcards for ONE learning slot in a single call.',
+    'Write `theory` first, then base `flashcards` on exactly what `theory` teaches — same rules as the standalone theory/flashcards tools.',
+  ].join('\n'),
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      theory: THEORY_SECTION_TOOL.input_schema,
+      flashcards: FLASHCARDS_FOR_SLOT_TOOL.input_schema,
+    },
+    required: ['theory', 'flashcards'],
   },
 };
 
@@ -1205,17 +1412,37 @@ export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
     'Use AT LEAST 3 different question kinds across the set — an all-MC quiz is never acceptable.',
     'Use the kinds listed in the system prompt menu for this slot; the server rejects kinds outside that list.',
     'Use the exact payload shapes given in the system prompt; the server rejects drift.',
+    ...(weaknessConceptsEnabled()
+      ? [
+          'Also set "conceptKeys" on each question: up to 2 keys chosen ONLY from this slot\'s conceptCandidates (the closed list from create_path_structure).',
+        ]
+      : []),
   ].join('\n'),
   // Mirrors QUIZ_TOOL_V2 (single-sourced) plus an optional per-question `figure`
   // exhibit AND `source` provenance (Phase D); inputs are validated post-hoc
   // with `QuizSetV2Schema` exactly like the chat-driven quiz tool. The Gemini
   // schema auto-derives from this via toGeminiSchema, so both providers see it.
-  input_schema: withItemProperty(
-    withFigureProperty(QUIZ_TOOL_V2.input_schema, 'questions', QUIZ_FIGURE_PROPERTY),
-    'questions',
-    'source',
-    SOURCE_ANCHOR_PROPERTY,
-  ),
+  // Weakness Training Phase 1A (behind WEAKNESS_TRAINING_CONCEPTS=1): when on,
+  // chains in an optional `conceptKeys` property the same way `figure`/`source`
+  // are composed — byte-identical to before when the flag is off.
+  input_schema: weaknessConceptsEnabled()
+    ? withItemProperty(
+        withItemProperty(
+          withFigureProperty(QUIZ_TOOL_V2.input_schema, 'questions', QUIZ_FIGURE_PROPERTY),
+          'questions',
+          'source',
+          SOURCE_ANCHOR_PROPERTY,
+        ),
+        'questions',
+        'conceptKeys',
+        CONCEPT_KEYS_PROPERTY,
+      )
+    : withItemProperty(
+        withFigureProperty(QUIZ_TOOL_V2.input_schema, 'questions', QUIZ_FIGURE_PROPERTY),
+        'questions',
+        'source',
+        SOURCE_ANCHOR_PROPERTY,
+      ),
 };
 
 // Figure-reuse (P5): chat-conditional figure-enabled variants of the chat

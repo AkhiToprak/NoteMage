@@ -216,3 +216,69 @@ describe('resolveModel — formerly-Haiku non-path slots run on GLM-4.7', () => 
     });
   });
 });
+
+// Weakness Training Phase 1A — the slot-backfill classifier must stay on the
+// cheap tier (it runs one forced-tool call per existing slot during backfill).
+// It is wired to mirror `exam-weak-analysis` exactly; this pins that so a future
+// routing edit can't silently promote it to a sonnet-tier model.
+describe("resolveModel('concept-backfill-classify') — cheap tier", () => {
+  afterEach(() => {
+    delete process.env.GLM_COMPOSITION;
+    delete process.env.MODEL_COMPOSITION_LEGACY;
+    delete process.env.CONCEPT_BACKFILL_MODEL;
+    delete process.env.EXAM_WEAK_ANALYSIS_MODEL;
+  });
+
+  it('resolves identically to exam-weak-analysis across compositions', () => {
+    expect(resolveModel('concept-backfill-classify')).toEqual(resolveModel('exam-weak-analysis'));
+    process.env.GLM_COMPOSITION = '1';
+    expect(resolveModel('concept-backfill-classify')).toEqual(resolveModel('exam-weak-analysis'));
+    delete process.env.GLM_COMPOSITION;
+    process.env.MODEL_COMPOSITION_LEGACY = '1';
+    expect(resolveModel('concept-backfill-classify')).toEqual(resolveModel('exam-weak-analysis'));
+  });
+
+  it('never resolves to a sonnet-tier model', () => {
+    for (const flags of [{}, { GLM_COMPOSITION: '1' }, { MODEL_COMPOSITION_LEGACY: '1' }]) {
+      delete process.env.GLM_COMPOSITION;
+      delete process.env.MODEL_COMPOSITION_LEGACY;
+      Object.assign(process.env, flags);
+      expect(resolveModel('concept-backfill-classify').token).not.toMatch(/sonnet/);
+    }
+  });
+
+  it('CONCEPT_BACKFILL_MODEL pins the model', () => {
+    process.env.CONCEPT_BACKFILL_MODEL = 'haiku';
+    expect(resolveModel('concept-backfill-classify')).toMatchObject({
+      token: 'haiku',
+      provider: 'anthropic',
+    });
+  });
+});
+
+// Weakness Training Phase 1B (§5.1) — the remediation session generator must
+// track exam-mock-questions exactly (same path-quiz routing tier), since both
+// are single forced-tool calls that should clear the same quality bar.
+describe("resolveModel('weakness-session-generate') — mirrors exam-mock-questions", () => {
+  afterEach(() => {
+    delete process.env.GLM_COMPOSITION;
+    delete process.env.MODEL_COMPOSITION_LEGACY;
+    delete process.env.WEAKNESS_SESSION_MODEL;
+    delete process.env.EXAM_MOCK_QUESTIONS_MODEL;
+  });
+
+  it('resolves identically to exam-mock-questions under default env (glm-sonnet)', () => {
+    const weakness = resolveModel('weakness-session-generate');
+    const examMock = resolveModel('exam-mock-questions');
+    expect(weakness).toEqual(examMock);
+    expect(weakness.token).toBe('glm-sonnet');
+  });
+
+  it('WEAKNESS_SESSION_MODEL pins the model (e.g. =sonnet)', () => {
+    process.env.WEAKNESS_SESSION_MODEL = 'sonnet';
+    expect(resolveModel('weakness-session-generate')).toMatchObject({
+      token: 'sonnet',
+      provider: 'anthropic',
+    });
+  });
+});

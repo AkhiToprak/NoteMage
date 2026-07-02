@@ -79,6 +79,13 @@ export interface CallOpenRouterOptions {
    */
   disableReasoning?: boolean;
   /**
+   * Turn reasoning ON at the given effort level. Maps to OpenRouter's
+   * `reasoning: { effort }` object — NOT the top-level `reasoning_effort`
+   * field some other OpenAI-compatible routers use. Takes precedence over
+   * `disableReasoning` when both are set.
+   */
+  reasoningEffort?: 'low' | 'medium' | 'high';
+  /**
    * OpenRouter sticky-routing token, forwarded as the `X-Session-Id` header.
    * OpenRouter pins all requests sharing a session id to the SAME upstream, so a
    * burst of calls reusing a long shared prefix (e.g. one path generation's
@@ -151,7 +158,8 @@ function buildOpenRouterBody(opts: CallOpenRouterOptions, stream: boolean): Reco
   if (opts.responseFormat) body.response_format = opts.responseFormat;
   if (opts.tools) body.tools = opts.tools;
   if (opts.toolChoice) body.tool_choice = opts.toolChoice;
-  if (opts.disableReasoning) body.reasoning = { enabled: false };
+  if (opts.reasoningEffort) body.reasoning = { effort: opts.reasoningEffort };
+  else if (opts.disableReasoning) body.reasoning = { enabled: false };
   // Optional upstream preference. OpenRouter load-balances `z-ai/*` across
   // several upstreams and only some support prompt caching, so cache hits are
   // inconsistent run-to-run. Setting OPENROUTER_PROVIDER_ORDER (e.g. `z-ai`)

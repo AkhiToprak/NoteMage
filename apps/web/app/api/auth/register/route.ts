@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { createdResponse, badRequestResponse, internalErrorResponse } from '@/lib/api-response';
@@ -93,11 +94,26 @@ export async function POST(request: NextRequest) {
 
     // Issue + email the 6-digit confirmation code. The account row exists but
     // is unverified, so CredentialsProvider.authorize() blocks login until the
-    // user confirms (see src/lib/verification.ts). A failed send is non-fatal:
-    // the account is created and the user can request a fresh code on the
-    // verify screen.
-    const code = await issueEmailVerificationCode(user.id);
-    await sendVerificationCode(user.email, code);
+    // user confirms (see src/lib/verification.ts). Failures past this point
+    // are non-fatal — the verify screen's resend button mints a fresh code —
+    // so they must never fall through to the outer catch and surface as a 500
+    // that makes the signup look failed while the account row exists.
+    try {
+      const code = await issueEmailVerificationCode(user.id);
+      const sent = await sendVerificationCode(user.email, code);
+      if (!sent) {
+        // sendVerificationCode never throws; a false return usually means a
+        // broken Resend config (missing key, unverified domain) that silently
+        // locks ALL signups — page on it instead of relying on stdout.
+        Sentry.captureMessage('Registration verification email failed to send', {
+          level: 'error',
+          tags: { route: 'api/auth/register' },
+        });
+      }
+    } catch (error) {
+      Sentry.captureException(error, { tags: { route: 'api/auth/register' } });
+      console.error('Post-registration verification-code issue failed:', error);
+    }
 
     return createdResponse(
       { id: user.id, email: user.email, requiresVerification: true },

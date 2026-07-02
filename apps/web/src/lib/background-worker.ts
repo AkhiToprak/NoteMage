@@ -10,6 +10,7 @@ import {
 } from '@/lib/background-jobs';
 import { runJob } from '@/lib/background-job-runner';
 import { recoverStalePaths } from '@/lib/path-sweeper';
+import { bootstrapNudgeSweep } from '@/lib/weakness-nudges';
 
 // Shared worker loop. Two entrypoints use it:
 //   • src/worker.ts          — the standalone `pnpm worker` process.
@@ -74,6 +75,14 @@ export async function runWorkerLoop(): Promise<void> {
   // (bucketed dedupeKey), and tolerant of the job table not existing yet.
   await bootstrapReminderSweep().catch((error) => {
     console.warn('[worker] reminder-sweep bootstrap deferred', error);
+  });
+
+  // Weakness Training Phase 4.4a — seed the recurring nudge sweep. Same
+  // idempotent bootstrap discipline; flag-gated internally (no-op when
+  // WEAKNESS_NUDGE_SWEEP is off) and tolerant of the job/watermark tables
+  // not existing yet.
+  await bootstrapNudgeSweep().catch((error) => {
+    console.warn('[worker] nudge-sweep bootstrap deferred', error);
   });
 
   // Revive paths a prior process left wedged in `generating` (redeploy mid-run).

@@ -25,6 +25,10 @@ export interface NotificationPreferences {
   /** Marketing / digest channels (no automated sender yet). */
   productUpdates: boolean;
   weeklyReport: boolean;
+  /** Weakness Training Phase 4.4 — master opt-out for the weak-spot nudge
+   *  system (in-app AND the weekly email digest; one flag for both
+   *  channels, see plan §14.5 / §16 Q11). */
+  weakSpotNudges: boolean;
 }
 
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
@@ -33,6 +37,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
   emailReminders: true,
   productUpdates: true,
   weeklyReport: false,
+  weakSpotNudges: true,
 };
 
 export const NOTIFICATION_PREF_KEYS = Object.keys(
@@ -53,6 +58,7 @@ function pickPrefs(row: {
   emailReminders: boolean;
   productUpdates: boolean;
   weeklyReport: boolean;
+  weakSpotNudges: boolean;
 }): NotificationPreferences {
   return {
     examReminders: row.examReminders,
@@ -60,6 +66,7 @@ function pickPrefs(row: {
     emailReminders: row.emailReminders,
     productUpdates: row.productUpdates,
     weeklyReport: row.weeklyReport,
+    weakSpotNudges: row.weakSpotNudges,
   };
 }
 

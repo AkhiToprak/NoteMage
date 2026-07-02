@@ -59,7 +59,7 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
     );
   }
 
-  const { active } = data;
+  const { active, conceptWeakSpots, dueFlashcards, nudgeState } = data;
   const { stats, nextSlot, checkpoint, pathCount, units, lessons, askTopic } = active;
   const ctaHref = nextSlot?.href ?? `/learn/paths/${encodeURIComponent(active.id)}`;
   const ctaLabel = nextSlot?.ctaLabel ?? 'Review path';
@@ -164,17 +164,45 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
 
           <h2 className={styles.sectionTitle}>Study tools</h2>
           <div className={styles.tools}>
-            <button type="button" className={styles.tool} onClick={() => mage?.open()}>
-              <span className={styles.toolIcon}>
-                <MsIcon name="target" size={22} />
-              </span>
-              <div className={styles.toolTitle}>Review weak points</div>
-              <div className={styles.toolSub}>
-                {stats.weakTopicCount > 0
-                  ? `${stats.weakTopicCount} ${stats.weakTopicCount === 1 ? 'topic' : 'topics'} waiting`
-                  : 'Practice anytime'}
-              </div>
-            </button>
+            {conceptWeakSpots ? (
+              <Link
+                href="/profile/weak-spots"
+                className={[
+                  styles.tool,
+                  nudgeState ? (nudgeState.escalated ? styles.toolEscalated : styles.toolNudged) : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                <span className={styles.toolIcon}>
+                  <MsIcon name="target" size={22} />
+                </span>
+                {nudgeState && (
+                  <span
+                    className={`${styles.toolBadge} ${nudgeState.escalated ? styles.toolBadgeEscalated : ''}`}
+                    aria-hidden
+                  >
+                    {nudgeState.badgeCount}
+                  </span>
+                )}
+                <div className={styles.toolTitle}>Review weak spots</div>
+                <div className={styles.toolSub}>
+                  {conceptWeakSpots.count} {conceptWeakSpots.count === 1 ? 'area' : 'areas'} to review
+                </div>
+              </Link>
+            ) : (
+              <button type="button" className={styles.tool} onClick={() => mage?.open()}>
+                <span className={styles.toolIcon}>
+                  <MsIcon name="target" size={22} />
+                </span>
+                <div className={styles.toolTitle}>Review weak points</div>
+                <div className={styles.toolSub}>
+                  {stats.weakTopicCount > 0
+                    ? `${stats.weakTopicCount} ${stats.weakTopicCount === 1 ? 'topic' : 'topics'} waiting`
+                    : 'Practice anytime'}
+                </div>
+              </button>
+            )}
             <button type="button" className={styles.tool} onClick={() => mage?.open()}>
               <span className={styles.toolIcon}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -203,26 +231,53 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
               <div>
                 <div className={styles.railTitle}>Review queue</div>
                 <div className={styles.railSub}>
-                  {stats.weakTopicCount > 0
-                    ? `${stats.weakTopicCount} ${stats.weakTopicCount === 1 ? 'topic' : 'topics'} waiting`
-                    : 'All caught up'}
+                  {conceptWeakSpots
+                    ? `${conceptWeakSpots.count} ${conceptWeakSpots.count === 1 ? 'area' : 'areas'} waiting`
+                    : stats.weakTopicCount > 0
+                      ? `${stats.weakTopicCount} ${stats.weakTopicCount === 1 ? 'topic' : 'topics'} waiting`
+                      : 'All caught up'}
                 </div>
               </div>
             </div>
             <div className={styles.queueDivider} />
-            <div className={styles.railRowTitle}>{stats.weakTopicName ?? 'Nothing due right now'}</div>
-            {stats.weakTopicName && mage && (
-              <button
-                type="button"
-                className={styles.amberLink}
-                onClick={() => mage.open()}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', font: 'inherit' }}
-              >
+            <div className={styles.railRowTitle}>
+              {conceptWeakSpots ? (conceptWeakSpots.topLabel ?? 'Review weak spots') : (stats.weakTopicName ?? 'Nothing due right now')}
+            </div>
+            {conceptWeakSpots ? (
+              <Link href="/profile/weak-spots" className={styles.amberLink}>
                 Review now
                 <MsIcon name="arrow_forward" size={15} />
-              </button>
+              </Link>
+            ) : (
+              stats.weakTopicName && mage && (
+                <button
+                  type="button"
+                  className={styles.amberLink}
+                  onClick={() => mage.open()}
+                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', font: 'inherit' }}
+                >
+                  Review now
+                  <MsIcon name="arrow_forward" size={15} />
+                </button>
+              )
             )}
           </div>
+
+          {/* Weakness Training Phase 4.3c — due-flashcard tile, same family as
+              the review-queue card above (not merged with it), only shown
+              when there's at least one card due. */}
+          {dueFlashcards ? (
+            <div className={styles.railCard}>
+              <div className={styles.railTitle}>Cards due</div>
+              <div className={styles.railRowTitle} style={{ marginTop: 10 }}>
+                {dueFlashcards.dueCount} {dueFlashcards.dueCount === 1 ? 'card' : 'cards'} to review
+              </div>
+              <Link href="/practice/review" className={styles.amberLink}>
+                Review now
+                <MsIcon name="arrow_forward" size={15} />
+              </Link>
+            </div>
+          ) : null}
 
           {/* today's goal — one study session per day, from real activity */}
           <div className={styles.railCard}>

@@ -81,6 +81,35 @@
 .sortBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .sortBtnActive { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 
+/* ---- concept-level link-out banner (plan §6.1, additive) ---- */
+.conceptBanner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  align-self: flex-start;
+  max-width: 100%;
+  background: var(--lilac-soft);
+  border: 1px solid #e4ddff;
+  border-radius: var(--rm);
+  padding: 9px 14px;
+  color: var(--accent);
+  text-decoration: none;
+  transition: opacity 0.16s var(--ease), transform 0.16s var(--ease);
+}
+.conceptBanner:hover { opacity: 0.85; }
+.conceptBanner:active { transform: translateY(1px); }
+.conceptBanner:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.conceptBannerText { font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+.conceptBannerLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ---- summary strip ---- */
 .summary {
   display: flex;

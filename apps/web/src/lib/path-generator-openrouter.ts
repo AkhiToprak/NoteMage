@@ -9,6 +9,10 @@
 // them to the OpenAI/OpenRouter tool shape. Reasoning is disabled: GLM-4.7/5.2
 // are reasoning models, and with reasoning ON the thinking tokens consume the
 // output budget so the tool call / content comes back empty.
+//
+// Phase 7: `reasoningEffort`, when passed by the caller, flag-gates a
+// Stage-A-only experiment (PATH_STRUCTURE_REASONING) that turns reasoning
+// back ON for the structure call — see path-generator-routing.ts.
 
 import type Anthropic from '@anthropic-ai/sdk';
 import { callOpenRouter, type OpenRouterUsage } from './openrouter';
@@ -62,6 +66,12 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
   /** OpenRouter sticky-routing token (X-Session-Id) — keeps a run's calls on one
    *  upstream for reliable prefix-cache hits. */
   sessionId?: string;
+  /**
+   * When set, turns reasoning ON at this effort level INSTEAD OF the default
+   * `disableReasoning: true`. Experiment-only (see PATH_STRUCTURE_REASONING in
+   * path-generator-routing.ts) — omit to keep today's behavior byte-identical.
+   */
+  reasoningEffort?: 'low' | 'medium' | 'high';
   onUsage?: (usage: OpenRouterUsage) => void;
 }): Promise<T> {
   const {
@@ -73,6 +83,7 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
     model,
     maxTokens = GLM_MAX_OUTPUT_TOKENS,
     sessionId,
+    reasoningEffort,
     onUsage,
   } = opts;
   const toolArray = (tools ?? [tool]).map(anthropicToolToOpenAI);
@@ -86,7 +97,7 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
         tools: toolArray,
         toolChoice: { type: 'function', function: { name: tool.name } },
         maxTokens,
-        disableReasoning: true,
+        ...(reasoningEffort ? { reasoningEffort } : { disableReasoning: true }),
         sessionId,
       });
       onUsage?.(result.usage);

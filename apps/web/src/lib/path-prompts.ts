@@ -552,6 +552,41 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): SplitPrompt {
   return { system: systemLines.join('\n'), tail: tailLines.join('\n') };
 }
 
+/**
+ * Path-gen Phase 8 (flag-gated PATH_LEARNING_BATCH, default OFF) — the
+ * batched theory+flashcards prompt for a `learning` slot on the GLM/OpenRouter
+ * branch. Composed by literally CALLING `buildTheoryPrompt` and
+ * `buildFlashcardsPrompt` and concatenating their outputs — not by copying
+ * either builder's rule text — so the two activities' rules can never drift
+ * apart from the unbatched prompts: any future edit to either builder flows
+ * into this one automatically. The only NEW text is the trailing static line
+ * telling the model to emit ONE `learning_slot_content` tool call carrying
+ * both `theory` and `flashcards`, instead of the two separate forced-tool
+ * calls the unbatched path makes.
+ *
+ * `system` concatenates both builders' cached prefixes (still per-path-
+ * constant, so it caches exactly like the unbatched prefixes do); `tail`
+ * concatenates both builders' dynamic per-slot text. Callers pass the SAME
+ * `ctx` used for the two individual builders — `ctx.theoryText` is
+ * necessarily absent for a `learning` slot's flashcards half here (the
+ * point of batching is generating theory and flashcards in the SAME call, so
+ * there is no already-generated theory text to feed in — `buildFlashcardsPrompt`
+ * already handles an absent `theoryText` by falling back to the topic hint).
+ */
+export function buildLearningBatchPrompt(ctx: SlotContentContext): SplitPrompt {
+  const theory = buildTheoryPrompt(ctx);
+  const flashcards = buildFlashcardsPrompt(ctx);
+  const systemLines = [
+    theory.system,
+    '',
+    flashcards.system,
+    '',
+    'SINGLE-CALL MODE — you are writing BOTH the theory section AND the flashcards for this slot in this ONE response. Call `learning_slot_content` exactly once with a `theory` object (matching the theory JSON shape above) and a `flashcards` object (matching the flashcards JSON shape above). Write `theory` first, then base every flashcard on exactly what `theory` teaches, the same way the flashcards rules above describe using "the theory the learner just read."',
+  ];
+  const tailLines = [theory.tail, '', flashcards.tail];
+  return { system: systemLines.join('\n'), tail: tailLines.join('\n') };
+}
+
 // Per-kind one-line menu shown in the quiz prompt. Keyed so buildQuizPrompt can
 // list ONLY the kinds a subject allows — offering forbidden kinds is what makes
 // weaker models emit them and trip the kind-filter regeneration (Phase 7,

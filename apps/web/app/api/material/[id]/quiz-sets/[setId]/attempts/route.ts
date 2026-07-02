@@ -8,6 +8,9 @@ import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { executeCode, isPistonConfigured } from '@/lib/piston-client';
 import { CodeWritePayloadSchema } from '@notemage/shared';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
+import { weaknessConceptsEnabled } from '@/lib/feature-flags';
+import { trackConceptAttempts } from '@/lib/concept-tracking';
+import { invalidateDashboardCache } from '@/lib/dashboard-data';
 import {
   successResponse,
   createdResponse,
@@ -157,7 +160,12 @@ export async function POST(
     }
 
     const score = answerRecords.filter((r) => r.isCorrect).length;
-    const total = quizSet.questions.length;
+    // Weakness Training Phase 1B (Phase 0 finding B1): exclude ungraded teaching
+    // rows (payload.stepType 'reteach'|'discriminate') from the score denominator —
+    // they are never submitted/graded, so counting them would deflate the score.
+    const total = quizSet.questions.filter(
+      (q) => !(q.payload as { stepType?: unknown } | null)?.stepType,
+    ).length;
     const percentage = total > 0 ? Math.round((score / total) * 100 * 100) / 100 : 0;
 
     // Phase 7 — replay the answer order to compute the two session-bound
@@ -210,6 +218,55 @@ export async function POST(
     }
 
     checkAndUnlockAchievements(userId).catch(console.error);
+
+    // Weakness Training Phase 1A (plan §4 / Phase 0 finding C) — post-commit,
+    // best-effort concept tracking. The grading transaction above has already
+    // committed and `attempt` is fully determined; this block must NEVER
+    // change the response. Any throw here is caught and logged, never
+    // surfaced to the caller. Single hook on this route only — the
+    // assessment route (`/api/learn/slots/[slotId]/assessment`) reuses this
+    // same QuizAttempt/QuizAnswer write path and writes no answer rows of its
+    // own (Phase 0 finding C), so it needs no separate hook.
+    if (weaknessConceptsEnabled()) {
+      const t0 = performance.now();
+      try {
+        await trackConceptAttempts({
+          userId,
+          sourceAttemptId: attempt.id,
+          quizSetId: setId,
+          now: new Date(),
+          answers: answerRecords.map((r) => {
+            const question = questionMap.get(r.questionId);
+            return {
+              questionId: r.questionId,
+              questionKind: question?.kind ?? 'mc',
+              isCorrect: r.isCorrect,
+              usedHint: false,
+              attemptNumber: 1,
+              numOptions: question?.kind === 'mc' ? question.options.length : undefined,
+            };
+          }),
+        });
+      } catch (error) {
+        console.error('[concept-tracking] post-commit tracking failed', {
+          sourceAttemptId: attempt.id,
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      } finally {
+        // Concept-mastery writes above can change this user's weak-spot set,
+        // which the dashboard tile reads (30s-cached) via deriveConceptWeakAreas.
+        // Invalidate so the tile count can't disagree with the always-live
+        // /profile/weak-spots page (Phase 2 acceptance gate). Best-effort — a
+        // failed invalidation must never affect the grading response. Runs in
+        // `finally` so a partial-write-then-throw still clears the stale count.
+        await invalidateDashboardCache(userId).catch(() => {});
+        console.info('[concept-tracking] attempts-route latency', {
+          sourceAttemptId: attempt.id,
+          elapsedMs: Math.round(performance.now() - t0),
+        });
+      }
+    }
 
     return createdResponse(attempt);
   } catch (error) {

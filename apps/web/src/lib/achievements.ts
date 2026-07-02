@@ -36,6 +36,23 @@ export interface UserStats {
   hasAnySectionComplete: boolean;
   /** Number of StudyPlans with every phase fully completed. */
   pathCompleteCount: number;
+  /** Number of weakness-trained concepts now mastered/solid (§7.3, Weakness Training Phase 2). */
+  graduatedConceptCount: number;
+  // ── Weakness Training Phase 4.3c (plan §13.7) — review-queue achievements ──
+  /**
+   * True once the user has graded at least one flashcard today AND has zero
+   * cards due right now (`nextReviewAt` null or `<= now` — the same
+   * where-clause `loadReviewQueue`/`countDueFlashcards` use). "Emptied the
+   * day's due queue" read literally: graded something today, and nothing is
+   * left due this instant.
+   */
+  clearedReviewQueueToday: boolean;
+  /**
+   * Longest run of consecutive calendar days (ending today or yesterday —
+   * a still-open streak) with >= 1 graded flashcard review
+   * (`Flashcard.lastReviewAt`), capped at 7 for this check's purposes.
+   */
+  reviewStreakDays: number;
 }
 
 export interface AchievementDef {
@@ -290,6 +307,50 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     unlocks: ['title.trailblazer'],
   },
 
+  // ── Weakness Training Phase 2 (§7.3) ──────────────────────────────────
+  {
+    badge: 'weak_spot_cleared',
+    name: 'patched up',
+    description: 'Clear your first weak spot',
+    icon: 'target',
+    category: 'study',
+    checkCondition: (s) => s.graduatedConceptCount >= 1,
+    getProgress: (s) => ({ current: Math.min(s.graduatedConceptCount, 1), target: 1 }),
+    unlocks: [],
+  },
+  {
+    badge: 'weak_spot_streak_3',
+    name: 'no weak spots',
+    description: 'Clear three weak spots',
+    icon: 'workspace_premium',
+    category: 'study',
+    checkCondition: (s) => s.graduatedConceptCount >= 3,
+    getProgress: (s) => ({ current: Math.min(s.graduatedConceptCount, 3), target: 3 }),
+    unlocks: [],
+  },
+
+  // ── Weakness Training Phase 4.3c (§13.7) — review queue ──────────────
+  {
+    badge: 'review_queue_cleared',
+    name: 'caught up',
+    description: 'Clear your due-card queue for the day',
+    icon: 'playlist_add_check',
+    category: 'study',
+    checkCondition: (s) => s.clearedReviewQueueToday,
+    getProgress: (s) => ({ current: s.clearedReviewQueueToday ? 1 : 0, target: 1 }),
+    unlocks: [],
+  },
+  {
+    badge: 'review_streak_7',
+    name: 'spaced out',
+    description: 'Grade a review 7 days in a row',
+    icon: 'event_repeat',
+    category: 'study',
+    checkCondition: (s) => s.reviewStreakDays >= 7,
+    getProgress: (s) => ({ current: Math.min(s.reviewStreakDays, 7), target: 7 }),
+    unlocks: [],
+  },
+
   // ── Special ─────────────────────────────────────────────────────────
   {
     badge: 'all_achievements',
@@ -299,8 +360,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'special',
     // Bump when adding a non-meta achievement. (Unlock logic uses the dynamic
     // NON_META_BADGES.length in achievement-checker; this drives the progress UI.)
-    checkCondition: (s) => s.totalAchievementsUnlocked >= 23,
-    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 23), target: 23 }),
+    checkCondition: (s) => s.totalAchievementsUnlocked >= 27,
+    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 27), target: 27 }),
     unlocks: [
       'title.archmage',
       'font.unifraktur',

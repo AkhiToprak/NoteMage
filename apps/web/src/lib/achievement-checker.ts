@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { ACHIEVEMENTS, UserStats } from './achievements';
 import { unlockCosmeticsForAchievement } from './cosmetics/unlock';
+import { weaknessTrainingUiEnabled, flashcardReviewQueueEnabled } from '@/lib/feature-flags';
 
 /**
  * Threshold (in minutes) for the "locked in" achievement — same value the
@@ -225,6 +226,81 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
 
   const tutorialState = (userRecord?.tutorialState ?? null) as { completedAt?: string } | null;
 
+  // ── Weakness Training Phase 2 (§7.3) ────────────────────────────────
+  // "Graduated" = a concept the user actually trained via a weakness-training
+  // session that is now mastered/solid. Gated behind the UI flag: with it off
+  // no WeaknessTrainingSession rows exist anyway, so 0 is correct and this
+  // skips the extra queries for everyone else.
+  let graduatedConceptCount = 0;
+  if (weaknessTrainingUiEnabled()) {
+    const sessions = await db.weaknessTrainingSession.findMany({
+      where: { userId },
+      select: { conceptIds: true },
+    });
+    const trainedIds = [...new Set(sessions.flatMap((s) => s.conceptIds))];
+    if (trainedIds.length > 0) {
+      const solid = await db.conceptMastery.findMany({
+        where: { userId, conceptId: { in: trainedIds }, status: 'solid' },
+        select: { conceptId: true },
+      });
+      graduatedConceptCount = solid.length;
+    }
+  }
+
+  // ── Weakness Training Phase 4.3c (§13.7) — review-queue gather ─────────
+  // Gated behind the review-queue flag the same way graduatedConceptCount
+  // is gated behind the training-UI flag: with it off, no flashcard grading
+  // happens through this surface (the 4.3b batch route still writes
+  // lastReviewAt for review-slot decks regardless, but the queue-emptying
+  // and streak achievements are specific to this surface being live).
+  let clearedReviewQueueToday = false;
+  let reviewStreakDays = 0;
+  if (flashcardReviewQueueEnabled()) {
+    const now = new Date();
+    const [gradedToday, dueNowCount] = await Promise.all([
+      db.flashcard.count({
+        where: {
+          flashcardSet: { userId },
+          lastReviewAt: { gte: new Date(new Date().setUTCHours(0, 0, 0, 0)) },
+        },
+      }),
+      db.flashcard.count({
+        where: {
+          flashcardSet: { userId },
+          OR: [{ nextReviewAt: null }, { nextReviewAt: { lte: now } }],
+        },
+      }),
+    ]);
+    clearedReviewQueueToday = gradedToday > 0 && dueNowCount === 0;
+
+    // Longest run of consecutive calendar days (ending today or yesterday —
+    // an open streak) with >= 1 graded review, capped at 7 (all this check
+    // needs). `lastReviewAt::date` distinct days, gaps-and-islands via the
+    // date minus a row-number trick, only over the last 7 days.
+    const streakRows = await db.$queryRaw<{ streak: number }[]>(Prisma.sql`
+      WITH days AS (
+        SELECT DISTINCT ("lastReviewAt" AT TIME ZONE 'UTC')::date AS d
+        FROM flashcards f
+        JOIN flashcard_sets s ON s.id = f."flashcardSetId"
+        WHERE s."userId" = ${userId}
+          AND "lastReviewAt" >= (CURRENT_DATE - INTERVAL '6 days')
+      ),
+      islands AS (
+        SELECT d, d - (ROW_NUMBER() OVER (ORDER BY d))::int AS grp
+        FROM days
+      ),
+      runs AS (
+        SELECT MIN(d) AS start_d, MAX(d) AS end_d, COUNT(*) AS len
+        FROM islands
+        GROUP BY grp
+      )
+      SELECT COALESCE(MAX(len), 0)::int AS streak
+      FROM runs
+      WHERE end_d >= CURRENT_DATE - INTERVAL '1 day'
+    `);
+    reviewStreakDays = streakRows[0]?.streak ?? 0;
+  }
+
   return {
     currentStreak: streak?.currentStreak ?? 0,
     friendCount,
@@ -248,6 +324,9 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     hasCheckpointAce,
     hasAnySectionComplete,
     pathCompleteCount,
+    graduatedConceptCount,
+    clearedReviewQueueToday,
+    reviewStreakDays,
   };
 }
 
