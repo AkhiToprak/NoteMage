@@ -3,7 +3,6 @@
      for the escalated nudge state; the cream shell has no red (same pattern
      as WeakSpots.module.css / WeakAreas.module.css's --st-red-*). */
   --st-red-ink: #b4341f;
-  --st-red-soft: #fdecea;
   --st-red-line: #f6cec7;
   margin-top: 24px;
   display: grid;
@@ -18,27 +17,17 @@
 .main { min-width: 0; }
 .sectionTitle { margin-top: 28px; font-size: 22px; font-weight: 700; color: var(--ink); }
 
-/* ---- hero ---- */
+/* ---- hero — the one dominant element (top of the base→elevated→floating
+   layering system): most padding, largest CTA, strongest tinted shadow ---- */
 .hero {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
-  padding: 24px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-raise);
+  padding: 30px 32px;
 }
 .heroHead { display: flex; align-items: center; gap: 16px; }
-.heroTile {
-  width: 56px;
-  height: 56px;
-  border-radius: 15px;
-  background: var(--lilac);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.heroTitle { font-size: 23px; font-weight: 700; color: var(--ink); }
+.heroTitle { font-size: 25px; font-weight: 700; color: var(--ink); }
 .heroSource { margin-top: 4px; font-size: 14px; color: var(--body); }
 .heroStats { margin-top: 18px; font-size: 13.5px; color: var(--body); }
 .heroProgRow { margin-top: 18px; display: flex; align-items: center; justify-content: space-between; }
@@ -65,7 +54,7 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.heroContinue { height: 52px; padding: 0 34px; font-size: 15px; }
+.heroContinue { height: 56px; padding: 0 40px; font-size: 16px; font-weight: 700; }
 
 /* ---- study plan rows ---- */
 .planList { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -84,7 +73,34 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease);
 }
+.planRow:hover { box-shadow: var(--shadow-raise); transform: translateY(-1px); }
+.planRow:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.planRow:active { transform: translateY(0); }
+
+/* Weakness Training Phase 4.4b (§14.4 rung 1, §14.8) — nudge escalation,
+   moved from the former Study-tools tile onto the plan row. Additive
+   border-token swap only; steady-state (no animation), since
+   MAX_INAPP_NUDGES_PER_SESSION=1 forbids re-animating on every re-render. */
+.planRowNudged { border-color: var(--amber-line); }
+.planRowEscalated { border-color: var(--st-red-line); }
+.planBadge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.planBadgeEscalated { background: var(--st-red-ink); }
 .planIcon {
   width: 40px;
   height: 40px;
@@ -118,15 +134,14 @@
 .planGo:hover { background: var(--lilac); }
 .planGo:active { transform: translateY(1px); }
 
-/* ---- study tools ---- */
-.tools { margin-top: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+/* ---- study tools — secondary utilities, deliberately the quietest tier:
+   flat (no shadow), subdued border, no arrows. Sits below the plan rows. ---- */
+.tools { margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 @media (max-width: 640px) { .tools { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .tool {
-  position: relative;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--lilac);
   border-radius: 16px;
-  box-shadow: var(--shadow);
   padding: 16px;
   text-align: left;
   font-family: inherit;
@@ -134,37 +149,11 @@
   display: block;
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease);
+  transition: border-color 0.18s var(--ease), transform 0.18s var(--ease);
 }
-.tool:hover { box-shadow: var(--shadow-raise); transform: translateY(-2px); }
+.tool:hover { border-color: var(--accent); transform: translateY(-1px); }
 .tool:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .tool:active { transform: translateY(0); }
-
-/* Weakness Training Phase 4.4b — nudge escalation (§14.4 rung 1, §14.8).
-   Additive border-token swap only, no new component. Steady-state CSS (no
-   animation) — MAX_INAPP_NUDGES_PER_SESSION=1 means this must not re-animate
-   on every re-render, and "no animation" is the simplest way to guarantee
-   that. */
-.toolNudged { border-color: var(--amber-line); }
-.toolEscalated { border-color: var(--st-red-line); }
-.toolBadge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--amber);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-.toolBadgeEscalated { background: var(--st-red-ink); }
 .toolIcon {
   width: 40px;
   height: 40px;
@@ -190,36 +179,8 @@
   padding: 16px;
 }
 .railTitle { font-size: 15px; font-weight: 700; color: var(--ink); }
-.railSub { margin-top: 3px; font-size: 13px; color: var(--body); }
 .railNote { margin-top: 12px; font-size: 13px; color: var(--body); line-height: 1.45; }
-
-.queue { background: var(--amber-soft); border-color: var(--amber-line); }
-.queueHead { display: flex; align-items: center; gap: 12px; }
-.queueIcon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: #fff;
-  color: var(--amber-ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.queueDivider { height: 1px; background: var(--amber-line); margin: 14px 0; }
 .railRowTitle { font-size: 14px; font-weight: 600; color: var(--ink); }
-.amberLink {
-  margin-top: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--amber-ink);
-  text-decoration: none;
-  transition: opacity 0.18s var(--ease);
-}
-.amberLink:hover { opacity: 0.78; }
 
 .goalRow { margin-top: 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--ink); }
 .goalCheck {
@@ -235,4 +196,3 @@
 }
 
 .checkpointPill { margin-top: 14px; }
-.checkpointBar { margin-top: 14px; }

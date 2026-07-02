@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import AppShell from '@/components/app/AppShell';
-import MageTip from '@/components/app/MageTip';
 import { useOptionalMage } from '@/components/mage';
 import { SubjectIcon } from '@/components/learn/SubjectIcon';
 import type { DashboardData } from '@/lib/dashboard-data';
@@ -60,9 +59,9 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
   }
 
   const { active, conceptWeakSpots, dueFlashcards, nudgeState } = data;
-  const { stats, nextSlot, checkpoint, pathCount, units, lessons, askTopic } = active;
+  const { stats, nextSlot, checkpoint, units, lessons, askTopic } = active;
   const ctaHref = nextSlot?.href ?? `/learn/paths/${encodeURIComponent(active.id)}`;
-  const ctaLabel = nextSlot?.ctaLabel ?? 'Review path';
+  const ctaLabel = nextSlot ? 'Continue studying' : 'Review path';
   const sessionsDone = data.studiedToday ? 1 : 0;
 
   return (
@@ -72,12 +71,6 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
           <div className={ui.eyebrow}>Your first path is ready</div>
           <h1 className={ui.h1}>Let&apos;s keep going</h1>
         </div>
-        <Link href="/paths/new" className={`${ui.btn} ${ui.ghost} ${ui.small}`}>
-          <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--primary)' }} aria-hidden>
-            add
-          </span>
-          New path
-        </Link>
       </header>
 
       <div className={styles.body}>
@@ -117,36 +110,62 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
 
           <h2 className={styles.sectionTitle}>Today&apos;s study plan</h2>
           <div className={styles.planList}>
-            {nextSlot && (
-              <Link href={ctaHref} className={styles.planRow}>
+            {/* Row 1 — weak-point review. Merges the two former weak-spot entry
+                points (Study-tools tile + rail queue). Concept weak spots →
+                /profile/weak-spots with the Weakness-Training nudge badge +
+                escalation styling carried over; else Mage-driven fallback. */}
+            {conceptWeakSpots ? (
+              <Link
+                href="/profile/weak-spots"
+                className={[
+                  styles.planRow,
+                  nudgeState ? (nudgeState.escalated ? styles.planRowEscalated : styles.planRowNudged) : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
                 <span className={styles.planIcon}>
-                  <MsIcon name="play_arrow" size={20} />
+                  <MsIcon name="target" size={20} />
                 </span>
                 <div className={styles.planText}>
-                  <div className={styles.planTitle}>Continue · {nextSlot.title}</div>
-                  <div className={styles.planSub}>{active.title}</div>
+                  <div className={styles.planTitle}>Review · {conceptWeakSpots.topLabel ?? 'weak spots'}</div>
+                  <div className={styles.planSub}>
+                    {conceptWeakSpots.count} {conceptWeakSpots.count === 1 ? 'area' : 'areas'} to review
+                  </div>
                 </div>
+                {nudgeState && (
+                  <span
+                    className={`${styles.planBadge} ${nudgeState.escalated ? styles.planBadgeEscalated : ''}`}
+                    aria-hidden
+                  >
+                    {nudgeState.badgeCount}
+                  </span>
+                )}
                 <span className={styles.planGo} aria-hidden>
                   <MsIcon name="arrow_forward" size={18} />
                 </span>
               </Link>
+            ) : (
+              stats.weakTopicName &&
+              mage && (
+                <button type="button" className={styles.planRow} onClick={() => mage.open()}>
+                  <span className={styles.planIcon}>
+                    <MsIcon name="target" size={20} />
+                  </span>
+                  <div className={styles.planText}>
+                    <div className={styles.planTitle}>Review · {stats.weakTopicName}</div>
+                    <div className={styles.planSub}>Strengthen a weak topic with Mage</div>
+                  </div>
+                  <span className={styles.planGo} aria-hidden>
+                    <MsIcon name="arrow_forward" size={18} />
+                  </span>
+                </button>
+              )
             )}
-            {stats.weakTopicName && mage && (
-              <button type="button" className={styles.planRow} onClick={() => mage.open()} style={{ textAlign: 'left' }}>
-                <span className={styles.planIcon}>
-                  <MsIcon name="replay" size={20} />
-                </span>
-                <div className={styles.planText}>
-                  <div className={styles.planTitle}>Review · {stats.weakTopicName}</div>
-                  <div className={styles.planSub}>Strengthen a weak topic with Mage</div>
-                </div>
-                <span className={styles.planGo} aria-hidden>
-                  <MsIcon name="arrow_forward" size={18} />
-                </span>
-              </button>
-            )}
+            {/* Row 2 — the one contextual Ask Mage (the persistent one lives in
+                the sidebar). */}
             {mage && (
-              <button type="button" className={styles.planRow} onClick={() => mage.open()} style={{ textAlign: 'left' }}>
+              <button type="button" className={styles.planRow} onClick={() => mage.open()}>
                 <span className={styles.planIcon}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/mascot/holding-wand-v2.png" alt="" />
@@ -164,121 +183,35 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
 
           <h2 className={styles.sectionTitle}>Study tools</h2>
           <div className={styles.tools}>
-            {conceptWeakSpots ? (
-              <Link
-                href="/profile/weak-spots"
-                className={[
-                  styles.tool,
-                  nudgeState ? (nudgeState.escalated ? styles.toolEscalated : styles.toolNudged) : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                <span className={styles.toolIcon}>
-                  <MsIcon name="target" size={22} />
-                </span>
-                {nudgeState && (
-                  <span
-                    className={`${styles.toolBadge} ${nudgeState.escalated ? styles.toolBadgeEscalated : ''}`}
-                    aria-hidden
-                  >
-                    {nudgeState.badgeCount}
-                  </span>
-                )}
-                <div className={styles.toolTitle}>Review weak spots</div>
-                <div className={styles.toolSub}>
-                  {conceptWeakSpots.count} {conceptWeakSpots.count === 1 ? 'area' : 'areas'} to review
-                </div>
-              </Link>
-            ) : (
-              <button type="button" className={styles.tool} onClick={() => mage?.open()}>
-                <span className={styles.toolIcon}>
-                  <MsIcon name="target" size={22} />
-                </span>
-                <div className={styles.toolTitle}>Review weak points</div>
-                <div className={styles.toolSub}>
-                  {stats.weakTopicCount > 0
-                    ? `${stats.weakTopicCount} ${stats.weakTopicCount === 1 ? 'topic' : 'topics'} waiting`
-                    : 'Practice anytime'}
-                </div>
-              </button>
-            )}
-            <button type="button" className={styles.tool} onClick={() => mage?.open()}>
+            <Link href="/practice/review" className={styles.tool}>
               <span className={styles.toolIcon}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/mascot/holding-wand-v2.png" alt="" />
+                <MsIcon name="style" size={22} />
               </span>
-              <div className={styles.toolTitle}>Ask Mage</div>
-              <div className={styles.toolSub}>About {active.title}</div>
-            </button>
+              <div className={styles.toolTitle}>Flashcards</div>
+              <div className={styles.toolSub}>
+                {dueFlashcards
+                  ? `${dueFlashcards.dueCount} ${dueFlashcards.dueCount === 1 ? 'card' : 'cards'} due`
+                  : 'Practice anytime'}
+              </div>
+            </Link>
+            <Link href="/my-path" className={styles.tool}>
+              <span className={styles.toolIcon}>
+                <MsIcon name="menu_book" size={22} />
+              </span>
+              <div className={styles.toolTitle}>View full path</div>
+              <div className={styles.toolSub}>All units and lessons</div>
+            </Link>
             <Link href="/paths/new" className={styles.tool}>
               <span className={styles.toolIcon}>
-                <MsIcon name="add" size={22} />
+                <MsIcon name="upload" size={22} />
               </span>
-              <div className={styles.toolTitle}>Create new path</div>
-              <div className={styles.toolSub}>Upload more material</div>
+              <div className={styles.toolTitle}>Upload material</div>
+              <div className={styles.toolSub}>Build a new path</div>
             </Link>
           </div>
         </div>
 
         <aside className={styles.rail}>
-          {/* review queue */}
-          <div className={`${styles.railCard} ${styles.queue}`}>
-            <div className={styles.queueHead}>
-              <span className={styles.queueIcon}>
-                <MsIcon name="replay" size={22} />
-              </span>
-              <div>
-                <div className={styles.railTitle}>Review queue</div>
-                <div className={styles.railSub}>
-                  {conceptWeakSpots
-                    ? `${conceptWeakSpots.count} ${conceptWeakSpots.count === 1 ? 'area' : 'areas'} waiting`
-                    : stats.weakTopicCount > 0
-                      ? `${stats.weakTopicCount} ${stats.weakTopicCount === 1 ? 'topic' : 'topics'} waiting`
-                      : 'All caught up'}
-                </div>
-              </div>
-            </div>
-            <div className={styles.queueDivider} />
-            <div className={styles.railRowTitle}>
-              {conceptWeakSpots ? (conceptWeakSpots.topLabel ?? 'Review weak spots') : (stats.weakTopicName ?? 'Nothing due right now')}
-            </div>
-            {conceptWeakSpots ? (
-              <Link href="/profile/weak-spots" className={styles.amberLink}>
-                Review now
-                <MsIcon name="arrow_forward" size={15} />
-              </Link>
-            ) : (
-              stats.weakTopicName && mage && (
-                <button
-                  type="button"
-                  className={styles.amberLink}
-                  onClick={() => mage.open()}
-                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', font: 'inherit' }}
-                >
-                  Review now
-                  <MsIcon name="arrow_forward" size={15} />
-                </button>
-              )
-            )}
-          </div>
-
-          {/* Weakness Training Phase 4.3c — due-flashcard tile, same family as
-              the review-queue card above (not merged with it), only shown
-              when there's at least one card due. */}
-          {dueFlashcards ? (
-            <div className={styles.railCard}>
-              <div className={styles.railTitle}>Cards due</div>
-              <div className={styles.railRowTitle} style={{ marginTop: 10 }}>
-                {dueFlashcards.dueCount} {dueFlashcards.dueCount === 1 ? 'card' : 'cards'} to review
-              </div>
-              <Link href="/practice/review" className={styles.amberLink}>
-                Review now
-                <MsIcon name="arrow_forward" size={15} />
-              </Link>
-            </div>
-          ) : null}
-
           {/* today's goal — one study session per day, from real activity */}
           <div className={styles.railCard}>
             <div className={styles.railTitle}>Today&apos;s goal</div>
@@ -313,20 +246,6 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
               <div className={styles.railNote}>Finish the next lessons to unlock it.</div>
             </div>
           )}
-
-          <MageTip
-            variant="soft"
-            text={
-              checkpoint
-                ? checkpoint.lessonsUntil === 0
-                  ? 'Your next checkpoint is ready.'
-                  : `You're ${checkpoint.lessonsUntil} ${checkpoint.lessonsUntil === 1 ? 'lesson' : 'lessons'} from your next checkpoint.`
-                : pathCount > 1
-                  ? 'Keep your other paths moving too.'
-                  : "You're all caught up — nice work."
-            }
-            mascot="/mascot/pointing-left-v2.png"
-          />
         </aside>
       </div>
     </AppShell>

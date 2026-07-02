@@ -1,58 +1,107 @@
-.tabs {
+/* Learning paths — a calm library. One clearly-primary active card, quieter
+   secondary cards, scannable in seconds. Palette inherited from AppShell
+   `.shell` (custom properties cascade across module boundaries). */
+
+/* ---- controls row: tabs + search ---- */
+.controls {
   margin-top: 22px;
   display: flex;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
 }
+.tabs { display: flex; gap: 8px; }
 .tab {
-  height: 36px;
-  padding: 0 18px;
+  height: 34px;
+  padding: 0 16px;
   border-radius: 999px;
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   font-family: inherit;
+  line-height: 1;
   cursor: pointer;
   transition: background-color 0.18s var(--ease), color 0.18s var(--ease), border-color 0.18s var(--ease);
 }
 .tab:hover { background: #f6f3ec; }
 .tab:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.tab:active { transform: translateY(0.5px); }
 .tabActive { background: var(--primary); border-color: var(--primary); color: #fff; }
 .tabActive:hover { background: var(--primary-press); }
+
+.search {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+.search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.14); }
+.searchInput {
+  width: 168px;
+  max-width: 44vw;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.searchInput::placeholder { color: var(--muted); }
+/* Hide the native search clear/decoration so the pill stays clean. */
+.searchInput::-webkit-search-decoration,
+.searchInput::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+.noMatch {
+  margin-top: 26px;
+  font-size: 14px;
+  color: var(--body);
+}
 
 .grid {
   margin-top: 22px;
   max-width: 860px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  gap: 20px;
 }
 @media (max-width: 820px) {
   .grid { grid-template-columns: 1fr; max-width: 460px; }
 }
 
-/* ---- path card (Progress Spine) ---- */
+/* ---- path card ---- */
 .pathCard {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-soft);
   border-radius: var(--rc);
-  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease), border-color 0.18s var(--ease);
 }
-.pathCard:hover { box-shadow: var(--shadow-raise); transform: translateY(-1px); }
-/* Active: keep a 1px primary border (no width change → no layout shift on the grid). */
-.pathActive { border-color: var(--primary); box-shadow: var(--shadow-raise); }
+.pathCard:hover { border-color: var(--border); box-shadow: var(--shadow); transform: translateY(-1px); }
+/* Active card = clearly primary: subtle lilac tint, stronger border + shadow.
+   1px border keeps the grid from shifting. */
+.pathActive {
+  background: var(--lilac-soft);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-raise);
+}
+.pathActive:hover { border-color: var(--primary); box-shadow: var(--shadow-raise); }
 
 /* Header */
-.cardTop { padding: 18px 20px 0; }
-.cardHeader { display: flex; align-items: flex-start; gap: 14px; }
+.cardTop { padding: 16px 18px 0; }
+.cardHeader { display: flex; align-items: flex-start; gap: 12px; }
 .iconTile {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: 13px;
   flex-shrink: 0;
   display: flex;
@@ -61,8 +110,6 @@
   background: var(--lilac);
   color: var(--accent);
 }
-/* Ultra paths get the gold tile (dark glyph keeps contrast on gold). */
-.iconTileGold { background: var(--brand-gold); color: #1a1a36; }
 
 .headerMeta { flex: 1; min-width: 0; }
 .titleRow { display: flex; align-items: flex-start; gap: 8px; }
@@ -81,7 +128,8 @@
   overflow: hidden;
 }
 
-.badge {
+/* Title-row chips */
+.chip {
   flex-shrink: 0;
   margin-top: 1px;
   display: inline-flex;
@@ -91,13 +139,14 @@
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.03em;
   white-space: nowrap;
 }
-.badgeActive { background: var(--lilac); color: var(--accent); }
-.badgeDone { background: var(--green-soft); color: var(--green-ink); }
+/* --primary-press, not --primary: 11px/700 white text needs 4.5:1 (AA). */
+.chipCurrent { background: var(--primary-press); color: #fff; }
+.chipDone { background: var(--green-soft); color: var(--green-ink); }
 
+/* Metadata line (quieter than the title) */
 .sourceLine {
   display: flex;
   align-items: center;
@@ -109,48 +158,68 @@
 }
 .sourceText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .metaDot { color: var(--muted); flex-shrink: 0; }
-
-/* Progress spine — segmented per-phase track, the visual backbone of the card. */
-.progressSpine { padding: 16px 20px 18px; }
-.progressTop { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 9px; }
-.progressLabel {
-  font-size: 11px;
+/* Middle-weight "Checkpoint ready" flag inside the metadata line. */
+.chipCheckpoint {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 19px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Progress — one thin continuous bar + a compact count. */
+.progressSpine { padding: 14px 18px 16px; }
+.progressBar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #eee7da;
+  overflow: hidden;
+}
+.progressFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+}
+/* Generating: a quiet indeterminate sweep (transform-only, respects reduced motion). */
+.progressIndeterminate {
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: var(--primary);
+  opacity: 0.55;
+  animation: pathIndeterminate 1.5s var(--ease) infinite;
+}
+@keyframes pathIndeterminate {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(320%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progressIndeterminate { animation: none; transform: none; width: 100%; opacity: 0.35; }
 }
 .progressCount {
-  font-size: 13px;
-  font-weight: 700;
+  display: block;
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 .progressCountZero { color: var(--muted); }
 
-.stepTrack { display: flex; gap: 3px; height: 7px; }
-.stepSeg {
-  position: relative;
-  flex: 1;
-  height: 7px;
-  border-radius: 3px;
-  background: var(--track);
-  overflow: hidden;
-}
-.stepSegFilled { background: var(--primary); }
-.stepSegPartial::after {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: var(--fill, 0%);
-  background: var(--primary);
-  border-radius: 3px;
-}
-
-/* Footer — next step + Continue action */
-.cardDivider { height: 1px; background: var(--border); margin: 0 20px; }
-.cardFooter { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px 16px; }
+/* Footer — next step + action */
+.cardDivider { height: 1px; background: var(--border-soft); margin: 0 18px; }
+.cardFooter { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 18px 15px; }
 .nextStep { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
 .nextLabel {
   flex-shrink: 0;
@@ -169,52 +238,68 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ctaBtn {
+
+/* CTA weight tiers. Shared geometry, three fills. */
+.ctaPrimary,
+.ctaTinted,
+.ctaGhost {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
-  padding: 0 16px;
+  height: 34px;
+  padding: 0 14px;
   border-radius: 11px;
-  background: var(--primary);
-  color: #fff;
   font-family: inherit;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: -0.01em;
   text-decoration: none;
-  border: none;
   cursor: pointer;
-  transition: background-color 0.15s var(--ease), transform 0.12s var(--ease);
+  border: 1px solid transparent;
+  transition: background-color 0.15s var(--ease), color 0.15s var(--ease),
+    border-color 0.15s var(--ease), transform 0.12s var(--ease);
 }
-.ctaBtn:hover { background: var(--primary-press); }
-.ctaBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.ctaBtn:active { transform: scale(0.97); }
+.ctaPrimary:active,
+.ctaTinted:active,
+.ctaGhost:active { transform: scale(0.97); }
+.ctaPrimary:focus-visible,
+.ctaTinted:focus-visible,
+.ctaGhost:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* Filled purple — the ONLY one in the grid, on the active card. */
+.ctaPrimary { background: var(--primary); color: #fff; }
+.ctaPrimary:hover { background: var(--primary-press); }
+
+/* Middle weight — tinted/outlined, for checkpoint-ready inactive cards. */
+.ctaTinted { background: var(--lilac); color: var(--accent); border-color: #d9ccff; }
+.ctaTinted:hover { background: #e3ddff; }
+
+/* Quiet — text + hairline, for normal & completed cards. */
+.ctaGhost { background: transparent; color: var(--accent); padding: 0 10px; }
+.ctaGhost:hover { background: var(--lilac-soft); }
 
 .tipWrap { margin-top: 26px; max-width: 620px; }
 
 /* ---- card overflow menu ---- */
-/* Slot in the pathHead that holds the MoreMenu trigger, pushed to the right
-   so it doesn't fight with the headText flex child. */
 .cardMenu { flex-shrink: 0; margin-left: auto; }
 
 .moreBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--body);
+  color: var(--muted);
   cursor: pointer;
   font-family: inherit;
   transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease), color 0.15s var(--ease);
 }
-.moreBtn:hover { background: var(--border); border-color: var(--border); color: var(--ink); }
-.moreBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.moreBtn:hover { background: var(--border-soft); color: var(--ink); }
+.moreBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; color: var(--ink); }
 
 .morePopover {
   position: absolute;
@@ -235,6 +320,9 @@
 @keyframes morePopoverIn {
   from { opacity: 0; transform: translateY(-4px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .morePopover { animation-duration: 0.01ms; }
 }
 
 .moreItem {
@@ -282,3 +370,4 @@
 }
 .cancelBtn:hover { border-color: var(--ink-soft); color: var(--ink); }
 .cancelBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.cancelBtn:active { transform: translateY(0.5px); }

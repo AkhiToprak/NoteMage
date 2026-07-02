@@ -83325,8 +83325,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/app/AppSidebar.tsx": {
-    "mtime": 1782855122.6249866,
-    "ast_hash": "2023596c15c57ff0c44d6e6832f141ed",
+    "mtime": 1782985266.8846078,
+    "ast_hash": "7516a4454601cf58a656d681e1f38032",
     "semantic_hash": ""
   },
   "apps/web/src/components/app/MageTip.tsx": {
@@ -84410,8 +84410,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/dashboard/DashboardView.tsx": {
-    "mtime": 1782944147.2813804,
-    "ast_hash": "190544824611ba2e271c5ba53a47d6d7",
+    "mtime": 1782985680.4488087,
+    "ast_hash": "e232d3ef09ac42a6cd099eeab46c3d19",
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/dashboard/loading.tsx": {
@@ -84430,8 +84430,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/my-path/PathsView.tsx": {
-    "mtime": 1782836858.6020567,
-    "ast_hash": "ac8a1c1043962fcd42db612cc2c34189",
+    "mtime": 1782986995.8986316,
+    "ast_hash": "828398e535d39130c6e3b38ba07a55df",
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/my-path/loading.tsx": {
@@ -84987,6 +84987,11 @@
   "apps/web/src/__tests__/api/register-verification-failure.test.ts": {
     "mtime": 1782950068.8371787,
     "ast_hash": "ad7221f3f4c00ad36bd31720fef0c0bb",
+    "semantic_hash": ""
+  },
+  "apps/web/public/landing/notemage-logo.png": {
+    "mtime": 1782984730.9935524,
+    "ast_hash": "60ba850c13be4236bdc1218761cabebb",
     "semantic_hash": ""
   }
 }

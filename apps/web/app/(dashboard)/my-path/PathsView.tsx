@@ -1,6 +1,6 @@
 'use client';
 
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/app/AppShell';
 import MageTip from '@/components/app/MageTip';
@@ -49,6 +49,32 @@ function sourceLabel(p: SerializedPath): string {
     default:
       return 'AI-generated path';
   }
+}
+
+/** "units · lessons" line, singular-aware. Lessons = total activities across
+ *  the path (same accounting as the dashboard's lessonCount in dashboard-data.ts). */
+function unitsLessonsLabel(p: SerializedPath): string {
+  const units = p.phases.length;
+  const lessons = p.phases.reduce(
+    (n, ph) => n + ph.slots.reduce((m, s) => m + (s.activities?.length ?? 0), 0),
+    0,
+  );
+  return `${units} ${units === 1 ? 'unit' : 'units'} · ${lessons} ${lessons === 1 ? 'lesson' : 'lessons'}`;
+}
+
+/** Card metadata line. Drop a notebook title that just echoes the card title
+ *  (case-insensitive equal, or one contains the other) — show units · lessons
+ *  instead. Keep a genuinely different notebook title; keep the sample/import/AI
+ *  fallbacks for paths without a notebook. */
+function metaLabel(p: SerializedPath): string {
+  const nb = p.notebookTitle?.trim();
+  if (nb) {
+    const a = nb.toLowerCase();
+    const b = p.title.trim().toLowerCase();
+    const redundant = a === b || a.includes(b) || b.includes(a);
+    return redundant ? unitsLessonsLabel(p) : `From ${nb}`;
+  }
+  return sourceLabel(p);
 }
 
 // ── Overflow menu ─────────────────────────────────────────────────────────
@@ -182,15 +208,23 @@ function PathCard({
         ? 'Open'
         : 'Review';
 
-  // Badge: "Completed" if done, "Active" only for the most-recently-updated in-progress path.
-  const badge: 'Active' | 'Completed' | null =
-    isDone ? 'Completed' : isActive ? 'Active' : null;
+  // Title-row chip: "Current path" for the active path, "Completed" when done.
+  // Checkpoint-ready inactive cards get a separate "Checkpoint ready" chip below.
+  const chip: 'current' | 'done' | null =
+    isDone ? 'done' : isActive ? 'current' : null;
+  const showCheckpointChip = !isActive && !isDone && isAssessment;
 
-  // Total checkpoints drive the "X of N" progress count (the per-step total now
-  // lives in the spine, not the meta line).
+  // Total checkpoints drive the "X / N steps" progress count.
   const steps = stats.totalCheckpoints;
-  // One segment per phase, filled by that phase's completion — the path's backbone.
-  const segments = stats.topics.map((t) => t.pct);
+
+  // CTA weight: the active card is the only filled purple button in the grid;
+  // checkpoint-ready inactive cards get a middle-weight (tinted/outlined) button;
+  // everything else gets a quiet ghost button.
+  const ctaClass = isActive
+    ? styles.ctaPrimary
+    : showCheckpointChip
+      ? styles.ctaTinted
+      : styles.ctaGhost;
 
   // While still generating, Reset/Translate don't apply to a half-built path —
   // offer only "Stop generating" (the cancel flow handles a live/stuck build).
@@ -230,24 +264,27 @@ function PathCard({
     <article className={`${styles.pathCard} ${isActive ? styles.pathActive : ''}`}>
       <div className={styles.cardTop}>
         <div className={styles.cardHeader}>
-          <SubjectIcon subjects={p.subjects} size={46} />
+          <SubjectIcon subjects={p.subjects} size={44} />
           <div className={styles.headerMeta}>
             <div className={styles.titleRow}>
               <h2 className={styles.pathTitle}>{p.title}</h2>
-              {badge === 'Active' && (
-                <span className={`${styles.badge} ${styles.badgeActive}`}>Active</span>
+              {chip === 'current' && (
+                <span className={`${styles.chip} ${styles.chipCurrent}`}>Current path</span>
               )}
-              {badge === 'Completed' && (
-                <span className={`${styles.badge} ${styles.badgeDone}`}>Completed</span>
+              {chip === 'done' && (
+                <span className={`${styles.chip} ${styles.chipDone}`}>Completed</span>
               )}
             </div>
             <div className={styles.sourceLine}>
               {isUltra && <UltraBadge fontSize={10.5} iconSize={12} />}
               {isUltra && <span className={styles.metaDot} aria-hidden>·</span>}
               <span className={styles.sourceText}>
-                {sourceLabel(p)}
+                {metaLabel(p)}
                 {isGenerating ? ' · Still building…' : ''}
               </span>
+              {showCheckpointChip && (
+                <span className={styles.chipCheckpoint}>Checkpoint ready</span>
+              )}
             </div>
           </div>
           <div className={styles.cardMenu}>
@@ -257,32 +294,24 @@ function PathCard({
       </div>
 
       <div className={styles.progressSpine}>
-        <div className={styles.progressTop}>
-          <span className={styles.progressLabel}>Progress</span>
-          <span
-            className={`${styles.progressCount} ${stats.doneCheckpoints === 0 ? styles.progressCountZero : ''}`}
-          >
-            {stats.doneCheckpoints} of {steps}
-          </span>
-        </div>
         <div
-          className={styles.stepTrack}
+          className={styles.progressBar}
           role="progressbar"
           aria-valuenow={stats.progressPct}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-label={`${stats.progressPct}% complete`}
         >
-          {segments.map((pct, i) => (
-            <span
-              key={i}
-              className={`${styles.stepSeg} ${
-                pct >= 100 ? styles.stepSegFilled : pct > 0 ? styles.stepSegPartial : ''
-              }`}
-              style={pct > 0 && pct < 100 ? ({ '--fill': `${pct}%` } as CSSProperties) : undefined}
-            />
-          ))}
+          <span
+            className={styles.progressFill}
+            style={{ width: `${stats.progressPct}%` }}
+          />
         </div>
+        <span
+          className={`${styles.progressCount} ${stats.doneCheckpoints === 0 ? styles.progressCountZero : ''}`}
+        >
+          {stats.doneCheckpoints} / {steps} steps · {stats.progressPct}%
+        </span>
       </div>
 
       <div className={styles.cardDivider} />
@@ -300,7 +329,7 @@ function PathCard({
             <span className={styles.nextText}>Completed · Review anytime</span>
           )}
         </span>
-        <Link href={ctaHref} className={styles.ctaBtn}>
+        <Link href={ctaHref} className={ctaClass}>
           {ctaLabel}
           <MsIcon name="arrow_forward" size={16} />
         </Link>
@@ -359,15 +388,12 @@ function GeneratingCard({
       </div>
 
       <div className={styles.progressSpine}>
-        <div className={styles.progressTop}>
-          <span className={styles.progressLabel}>Progress</span>
-          <span className={`${styles.progressCount} ${styles.progressCountZero}`}>—</span>
+        <div className={styles.progressBar} aria-hidden>
+          <span className={styles.progressIndeterminate} />
         </div>
-        <div className={styles.stepTrack} aria-hidden>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <span key={i} className={styles.stepSeg} />
-          ))}
-        </div>
+        <span className={`${styles.progressCount} ${styles.progressCountZero}`}>
+          {stuck ? '— steps' : 'Building…'}
+        </span>
       </div>
 
       <div className={styles.cardDivider} />
@@ -412,6 +438,7 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
   // leaving a stale list with no feedback).
   const [fetchError, setFetchError] = useState(errored);
   const [tab, setTab] = useState<TabKey>('all');
+  const [query, setQuery] = useState('');
 
   // Per-path action dialog state.
   const [deleteTarget, setDeleteTarget] = useState<DialogTarget>(null);
@@ -533,30 +560,37 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
 
   // ── Ready ────────────────────────────────────────────────────────────────
 
-  // Filter ready paths by active tab.
+  // Client-side title search, layered on top of the tab filter.
+  const q = query.trim().toLowerCase();
+  const matchesQuery = (p: SerializedPath) =>
+    q === '' || p.title.toLowerCase().includes(q);
+
+  // Filter ready paths by active tab, then by search query.
   const visibleReady = (() => {
-    if (tab === 'inprogress') {
-      return ready.filter(
-        (p) => derivePathStats(p as unknown as PathPlan).progressPct < 100,
-      );
-    }
-    if (tab === 'completed') {
-      return ready.filter(
-        (p) => derivePathStats(p as unknown as PathPlan).progressPct >= 100,
-      );
-    }
-    return ready; // 'all'
+    const byTab =
+      tab === 'inprogress'
+        ? ready.filter((p) => derivePathStats(p as unknown as PathPlan).progressPct < 100)
+        : tab === 'completed'
+          ? ready.filter((p) => derivePathStats(p as unknown as PathPlan).progressPct >= 100)
+          : ready; // 'all'
+    return byTab.filter(matchesQuery);
   })();
 
-  // Generating cards are always shown in 'all' and 'inprogress' tabs.
+  // Generating cards are always shown in 'all' and 'inprogress' tabs (also search-filtered).
   const showGenerating = tab === 'all' || tab === 'inprogress';
+  const visibleGenerating = generating.filter(matchesQuery);
+  const nothingMatches = q !== '' && visibleReady.length === 0 &&
+    (!showGenerating || visibleGenerating.length === 0);
 
-  // Header subtitle: count ready (not generating) paths.
+  // Header subtitle: match count while searching, else whole-library counts.
   const totalReady = ready.length;
+  const matchCount = visibleReady.length + (showGenerating ? visibleGenerating.length : 0);
   const subtitle =
-    generating.length > 0
-      ? `${totalReady} ready · ${generating.length} generating`
-      : `${totalReady} path${totalReady === 1 ? '' : 's'}`;
+    q !== ''
+      ? `${matchCount} match${matchCount === 1 ? '' : 'es'}`
+      : generating.length > 0
+        ? `${totalReady} ready · ${generating.length} generating`
+        : `${totalReady} path${totalReady === 1 ? '' : 's'}`;
 
   return (
     <AppShell>
@@ -573,56 +607,78 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
         </Link>
       </header>
 
-      <div className={styles.tabs}>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'all' ? styles.tabActive : ''}`}
-          onClick={() => setTab('all')}
-        >
-          All
-        </button>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'inprogress' ? styles.tabActive : ''}`}
-          onClick={() => setTab('inprogress')}
-        >
-          In progress
-        </button>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'completed' ? styles.tabActive : ''}`}
-          onClick={() => setTab('completed')}
-        >
-          Completed
-        </button>
+      <div className={styles.controls}>
+        {/* Filter toggles, not ARIA tabs — no tabpanel/arrow-key semantics here. */}
+        <div className={styles.tabs} role="group" aria-label="Filter paths">
+          <button
+            type="button"
+            aria-pressed={tab === 'all'}
+            className={`${styles.tab} ${tab === 'all' ? styles.tabActive : ''}`}
+            onClick={() => setTab('all')}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            aria-pressed={tab === 'inprogress'}
+            className={`${styles.tab} ${tab === 'inprogress' ? styles.tabActive : ''}`}
+            onClick={() => setTab('inprogress')}
+          >
+            In progress
+          </button>
+          <button
+            type="button"
+            aria-pressed={tab === 'completed'}
+            className={`${styles.tab} ${tab === 'completed' ? styles.tabActive : ''}`}
+            onClick={() => setTab('completed')}
+          >
+            Completed
+          </button>
+        </div>
+        <div className={styles.search}>
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 18, color: 'var(--muted)' }}>
+            search
+          </span>
+          <input
+            type="search"
+            className={styles.searchInput}
+            placeholder="Search paths"
+            aria-label="Search paths by title"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
       </div>
 
-      <div className={styles.grid}>
-        {/* Generating cards first (only in all/inprogress tabs) */}
-        {showGenerating && generating.map((p) => (
-          <GeneratingCard
-            key={p.id}
-            p={p}
-            stuck={isStuckGenerating(p)}
-            onRequestCancel={setCancelTarget}
-          />
-        ))}
+      {nothingMatches ? (
+        <p className={styles.noMatch}>No paths match “{query.trim()}”.</p>
+      ) : (
+        <div className={styles.grid}>
+          {/* Generating cards first (only in all/inprogress tabs) */}
+          {showGenerating && visibleGenerating.map((p) => (
+            <GeneratingCard
+              key={p.id}
+              p={p}
+              stuck={isStuckGenerating(p)}
+              onRequestCancel={setCancelTarget}
+            />
+          ))}
 
-        {/* Ready path cards */}
-        {visibleReady.map((p) => (
-          <PathCard
-            key={p.id}
-            p={p}
-            isActive={activePath?.id === p.id}
-            isGenerating={p.generationStatus === 'generating'}
-            onDelete={setDeleteTarget}
-            onReset={setResetTarget}
-            onTranslate={setTranslateTarget}
-            onCancel={setCancelTarget}
-          />
-        ))}
-
-      </div>
+          {/* Ready path cards */}
+          {visibleReady.map((p) => (
+            <PathCard
+              key={p.id}
+              p={p}
+              isActive={activePath?.id === p.id}
+              isGenerating={p.generationStatus === 'generating'}
+              onDelete={setDeleteTarget}
+              onReset={setResetTarget}
+              onTranslate={setTranslateTarget}
+              onCancel={setCancelTarget}
+            />
+          ))}
+        </div>
+      )}
 
       <div className={styles.tipWrap}>
         <MageTip
