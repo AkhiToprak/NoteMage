@@ -46,7 +46,7 @@ export default function AppSidebar() {
               className={active ? `${styles.item} ${styles.active}` : styles.item}
               aria-current={active ? 'page' : undefined}
             >
-              <NavIcon icon={n.icon} img={n.img} active={active} size={21} />
+              <NavIcon icon={n.icon} img={n.img} active={active} size={24} />
               {n.label}
             </Link>
           );
