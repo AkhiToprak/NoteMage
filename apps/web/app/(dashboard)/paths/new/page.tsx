@@ -12,6 +12,7 @@ import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { usePathGenerationStream } from '@/hooks/usePathGenerationStream';
 import VideoMaterialPicker, { type AddedVideo } from '@/components/learn/VideoMaterialPicker';
 import { readYouTubeDuration } from '@/lib/youtube-duration';
+import { PATH_LANGUAGES, DEFAULT_PATH_LANGUAGE, type PathLanguageCode } from '@/lib/path-languages';
 
 // ── The redesigned create-path wizard (Figma CP01–06 / WCP01–06). Six screens:
 // 1 Add material · 2 Set your goal · 3 Tune the pace · 4 Analyzing · 5 Review ·
@@ -48,6 +49,7 @@ interface WizardState {
   pathName: string;
   nameTouched: boolean;
   subject: string;
+  language: PathLanguageCode;
   goal: Goal;
   level: Level;
   examDate: string;
@@ -647,6 +649,18 @@ function Step2Goal({
               {SUBJECTS.map((sub) => <option key={sub} value={sub}>{sub}</option>)}
             </select>
           </div>
+          <div className={s.field} style={{ gridColumn: '1 / -1' }}>
+            <label className={s.fieldLabel} htmlFor="wz-language">Path language</label>
+            <select
+              id="wz-language" className={s.select} value={state.language}
+              onChange={(e) => onChange({ language: e.target.value as PathLanguageCode })}
+            >
+              {PATH_LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>{l.endonym}</option>
+              ))}
+            </select>
+            <span className={s.fieldHint}>Mage writes every lesson, flashcard and quiz in this language.</span>
+          </div>
         </div>
 
         {/* Goal */}
@@ -1193,7 +1207,7 @@ function Step6Build({
           primaryNotebookId: notebookId,
           materialIds: state.materialIds,
           ultra: state.ultra,
-          language: 'en',
+          language: state.language,
         }),
       });
       const pathJson = await pathRes.json();
@@ -1206,7 +1220,7 @@ function Step6Build({
       onChange({ genError: 'Network error. Please try again.' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.topics, state.starred, state.focus, state.goal, state.level, state.intensity, state.sessionLen, state.subject, state.pathName, state.suggestedTitle, state.materialIds, state.ultra]);
+  }, [state.topics, state.starred, state.focus, state.goal, state.level, state.intensity, state.sessionLen, state.subject, state.language, state.pathName, state.suggestedTitle, state.materialIds, state.ultra]);
 
   const startGeneration = React.useCallback(async () => {
     if (state.planId) return;
@@ -1320,6 +1334,9 @@ function Step6Build({
                 <span className={`${ui.pill} ${ui.pillLilac}`}><MS name="flag" className={s.ic} /> Goal: {goalLabel}</span>
                 <span className={`${ui.pill} ${ui.pillPurple}`}>{levelLabel}</span>
                 <span className={`${ui.pill} ${ui.pillLilac}`}><MS name="schedule" className={s.ic} /> ~{state.sessionLen} min sessions</span>
+                {state.language !== 'en' && (
+                  <span className={`${ui.pill} ${ui.pillLilac}`}><MS name="language" className={s.ic} /> {PATH_LANGUAGES.find((l) => l.code === state.language)?.endonym}</span>
+                )}
               </div>
             </div>
 
@@ -1436,6 +1453,7 @@ const DEFAULT_STATE: WizardState = {
   pathName: '',
   nameTouched: false,
   subject: '',
+  language: DEFAULT_PATH_LANGUAGE,
   goal: 'understand',
   level: 'intermediate',
   examDate: '',

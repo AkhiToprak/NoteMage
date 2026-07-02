@@ -83325,8 +83325,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/app/AppSidebar.tsx": {
-    "mtime": 1782997692.858197,
-    "ast_hash": "608653f0382a616c4a4fd938aa9fcd11",
+    "mtime": 1783013024.3495505,
+    "ast_hash": "cc936b5424bb95f95efee2a929f9a059",
     "semantic_hash": ""
   },
   "apps/web/src/components/app/MageTip.tsx": {
@@ -83810,8 +83810,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/paths/new/page.tsx": {
-    "mtime": 1782765707.8019485,
-    "ast_hash": "f0c78347bbcd9d696e10affb7f0ac641",
+    "mtime": 1783015133.344933,
+    "ast_hash": "bdf6ec7153459941063d47e7f211e478",
     "semantic_hash": ""
   },
   "apps/web/app/api/material/[id]/inventory/route.ts": {
@@ -84997,6 +84997,11 @@
   "apps/web/app/start/layout.tsx": {
     "mtime": 1782997712.5464742,
     "ast_hash": "a3e9e34ba05d7eaa9bcdf8110c97df89",
+    "semantic_hash": ""
+  },
+  "apps/web/public/landing/notemage-logo-dark.svg": {
+    "mtime": 1783012991.5885386,
+    "ast_hash": "e179a1cb46a8ee0c739c68e6052788af",
     "semantic_hash": ""
   }
 }
