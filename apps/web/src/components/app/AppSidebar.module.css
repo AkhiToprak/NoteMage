@@ -3,46 +3,53 @@
 
 .sidebar {
   flex-shrink: 0;
-  width: 248px;
+  width: 300px;
   height: 100%;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 22px;
+  padding: 24px;
   overflow-y: auto;
 }
 
 .logo {
   display: inline-flex;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 30px;
   border-radius: 12px;
   transition: opacity 0.18s var(--ease);
 }
 .logo img {
-  height: 38px;
+  height: 46px;
   width: auto;
   display: block;
 }
 .logo:hover { opacity: 0.82; }
 .logo:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 
+/* Wordmark theme swap: light PNG by default, dark-ink SVG only in dark mode.
+   Keeps light mode pixel-identical. Selectors match `.logo img` specificity
+   (0,1,1) so they win over the shared `.logo img` sizing rule above. */
+.logo img.logoDark { display: none; }
+:global([data-theme='dark']) .logo img.logoLight { display: none; }
+:global([data-theme='dark']) .logo img.logoDark { display: block; }
+
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 13px 14px;
+  gap: 16px;
+  padding: 17px 18px;
   border-radius: 14px;
   width: 100%;
   color: var(--ink-soft);
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 500;
   line-height: 1;
   text-decoration: none;

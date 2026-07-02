@@ -22,8 +22,13 @@ export default function AppSidebar() {
   return (
     <aside className={styles.sidebar}>
       <Link href="/dashboard" className={styles.logo} aria-label="NoteMage — dashboard">
+        {/* Two-tone wordmark; the dark-mode variant lightens only the "Note"
+            ink (near-black → #EFE8FF) so it stays legible on navy. CSS below
+            toggles which one shows by theme. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/landing/notemage-logo.png" alt="NoteMage" />
+        <img className={styles.logoLight} src="/landing/notemage-logo.png" alt="NoteMage" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className={styles.logoDark} src="/landing/notemage-logo-dark.svg" alt="" aria-hidden="true" />
       </Link>
 
       <nav className={styles.nav} aria-label="Primary">
@@ -44,7 +49,7 @@ export default function AppSidebar() {
               className={active ? `${styles.item} ${styles.active}` : styles.item}
               aria-current={active ? 'page' : undefined}
             >
-              <NavIcon icon={n.icon} img={n.img} active={active} size={24} />
+              <NavIcon icon={n.icon} img={n.img} active={active} size={27} />
               {n.label}
             </Link>
           );
