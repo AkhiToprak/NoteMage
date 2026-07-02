@@ -23,9 +23,9 @@ export default function AppSidebar() {
 
   return (
     <aside className={styles.sidebar}>
-      <Link href="/dashboard" className={styles.logo} aria-label="Notemage — dashboard">
+      <Link href="/dashboard" className={styles.logo} aria-label="NoteMage — dashboard">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/landing/notemage-wordmark.png" alt="Notemage" />
+        <img src="/landing/notemage-logo.png" alt="NoteMage" />
       </Link>
 
       <nav className={styles.nav} aria-label="Primary">
