@@ -58,7 +58,7 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
     );
   }
 
-  const { active, conceptWeakSpots, dueFlashcards, nudgeState } = data;
+  const { active, conceptWeakSpots, nudgeState } = data;
   const { stats, nextSlot, checkpoint, units, lessons, askTopic } = active;
   const ctaHref = nextSlot?.href ?? `/learn/paths/${encodeURIComponent(active.id)}`;
   const ctaLabel = nextSlot ? 'Continue studying' : 'Review path';
@@ -179,35 +179,6 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
                 </span>
               </button>
             )}
-          </div>
-
-          <h2 className={styles.sectionTitle}>Study tools</h2>
-          <div className={styles.tools}>
-            <Link href="/practice/review" className={styles.tool}>
-              <span className={styles.toolIcon}>
-                <MsIcon name="style" size={22} />
-              </span>
-              <div className={styles.toolTitle}>Flashcards</div>
-              <div className={styles.toolSub}>
-                {dueFlashcards
-                  ? `${dueFlashcards.dueCount} ${dueFlashcards.dueCount === 1 ? 'card' : 'cards'} due`
-                  : 'Practice anytime'}
-              </div>
-            </Link>
-            <Link href="/my-path" className={styles.tool}>
-              <span className={styles.toolIcon}>
-                <MsIcon name="menu_book" size={22} />
-              </span>
-              <div className={styles.toolTitle}>View full path</div>
-              <div className={styles.toolSub}>All units and lessons</div>
-            </Link>
-            <Link href="/paths/new" className={styles.tool}>
-              <span className={styles.toolIcon}>
-                <MsIcon name="upload" size={22} />
-              </span>
-              <div className={styles.toolTitle}>Upload material</div>
-              <div className={styles.toolSub}>Build a new path</div>
-            </Link>
           </div>
         </div>
 
