@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import type { JWT } from 'next-auth/jwt';
 import { rateLimit } from '@/lib/rate-limit';
 import { clientIpFromHeaders } from '@/lib/client-ip';
 import { rateLimitedResponse } from '@/lib/rate-limit-response';
@@ -184,6 +185,20 @@ function isNativeShell(request: NextRequest): boolean {
   return ua.includes('NotemageShell/');
 }
 
+// A JWT is only a *usable* session if it carries a valid authVersion claim.
+// Middleware can't do the full DB check (validateAuthToken) cheaply, but it can
+// reject tokens that predate authVersion revocation — those signed before the
+// auth-hardening deploy have no authVersion at all. Without this, middleware
+// bounces such a token /auth/login -> /dashboard while the dashboard layout's
+// DB check bounces it back, looping forever (ERR_TOO_MANY_REDIRECTS).
+// ponytail: shape check only; a present-but-DB-stale authVersion (admin revoke)
+// still needs the layout's DB redirect to log out — add a DB check here if that
+// path ever needs to be loop-free too.
+function hasUsableSession(token: JWT | null): boolean {
+  const v = token?.authVersion;
+  return token != null && typeof v === 'number' && Number.isSafeInteger(v) && v >= 1;
+}
+
 function isMarketingRoute(pathname: string): boolean {
   if (pathname === '/') return true;
   return SHELL_MARKETING_PREFIXES.some(
@@ -264,15 +279,20 @@ export async function middleware(request: NextRequest) {
     return withSecurityHeaders(NextResponse.redirect(new URL('/auth/login', request.url)));
   }
 
+  // Session validity for routing decisions below. A signed-but-unusable token
+  // (no authVersion — issued before auth hardening) must be treated as logged
+  // out here, or we bounce it to /dashboard while the layout bounces it back.
+  const authed = hasUsableSession(token);
+
   // Already-authed users hitting /auth/login (e.g. the iPad shell boots
   // straight into this path) should bypass the form entirely.
-  if (pathname.startsWith('/auth/login') && token) {
-    const target = token.onboardingComplete ? '/dashboard' : '/auth/register';
+  if (pathname.startsWith('/auth/login') && authed) {
+    const target = token?.onboardingComplete ? '/dashboard' : '/auth/register';
     return withSecurityHeaders(NextResponse.redirect(new URL(target, request.url)));
   }
 
   // Authenticated users hitting "/" → redirect to /dashboard
-  if (pathname === '/' && token) {
+  if (pathname === '/' && authed) {
     return withSecurityHeaders(NextResponse.redirect(new URL('/dashboard', request.url)));
   }
 
@@ -294,14 +314,14 @@ export async function middleware(request: NextRequest) {
   // invisible to normal web visitors (who start at `/`) but the Electron
   // shell hits it head-on because it has its own cookie jar and boots
   // directly into /auth/login with no session.
-  if (pathname !== '/' && !pathname.startsWith('/auth/') && !token) {
+  if (pathname !== '/' && !pathname.startsWith('/auth/') && !authed) {
     const signInUrl = new URL('/auth/login', request.url);
     signInUrl.searchParams.set('callbackUrl', pathname);
     return withSecurityHeaders(NextResponse.redirect(signInUrl));
   }
 
   // Logged in but onboarding incomplete → force to register
-  if (token && !token.onboardingComplete && !pathname.startsWith('/auth/')) {
+  if (authed && !token?.onboardingComplete && !pathname.startsWith('/auth/')) {
     return withSecurityHeaders(NextResponse.redirect(new URL('/auth/register', request.url)));
   }
 
