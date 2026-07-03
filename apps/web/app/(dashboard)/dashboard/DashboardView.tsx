@@ -4,6 +4,7 @@ import Link from 'next/link';
 import AppShell from '@/components/app/AppShell';
 import { useOptionalMage } from '@/components/mage';
 import { SubjectIcon } from '@/components/learn/SubjectIcon';
+import DashboardGreeting from '@/components/features/DashboardGreeting';
 import type { DashboardData } from '@/lib/dashboard-data';
 import ui from '@/components/app/ui.module.css';
 import styles from './Dashboard.module.css';
@@ -68,8 +69,7 @@ export default function DashboardView({ data, firstName, errored }: DashboardVie
     <AppShell>
       <header className={ui.header}>
         <div>
-          <div className={ui.eyebrow}>Your first path is ready</div>
-          <h1 className={ui.h1}>Let&apos;s keep going</h1>
+          <DashboardGreeting userName={firstName ?? 'Scholar'} />
         </div>
       </header>
 
