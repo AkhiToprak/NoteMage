@@ -11,6 +11,7 @@ import { trackEvent } from '@/lib/telemetry';
 import QuizPlayerShell from '@/components/quiz/player/QuizPlayerShell';
 import GradedResultPanel, { type GradedResultAction } from '@/components/quiz/player/GradedResultPanel';
 import { useOptionalMage } from '@/components/mage/MageProvider';
+import { buildQuizQuestionContext } from '@/lib/mage-types';
 import type { MageQuickAction, MissionStep, QuizSession, QuizSource } from '@/components/quiz/player/types';
 
 // Map a path activity kind → the Mission rail label. Mirrors the Figma rail
@@ -301,13 +302,15 @@ export default function CheckpointQuizViewer({
   }, [questionSource, pathTitle, pathId, slot.id]);
 
   const openMage = useCallback(() => {
+    const q = session && quizSet ? quizSet.questions[session.index] : undefined;
     mage?.open({
       type: 'quiz-question',
       ids: { pathId, slotId: slot.id, quizSetId: quizSet?.id },
       title: slot.title,
       activeQuestionId: session?.questionId ?? undefined,
+      questionContext: buildQuizQuestionContext(q),
     });
-  }, [mage, pathId, slot.id, slot.title, quizSet?.id, session?.questionId]);
+  }, [mage, pathId, slot.id, slot.title, quizSet, session]);
 
   const mageActions = useMemo<MageQuickAction[]>(
     () => [

@@ -350,6 +350,11 @@ export interface MageClientContext {
   selectedText?: string;
   /** Quiz question currently on screen (quiz-question / quiz-result). */
   activeQuestionId?: string;
+  /** Snapshot of the on-screen question (for code_write: language + prompt +
+   *  the learner's current code) so Mage helps on THIS question instead of
+   *  free-associating. Client-sent, capped server-side; carries the visible
+   *  prompt + the learner's own code, never an answer key. */
+  questionContext?: string;
   mode?: MageMode;
 }
 
@@ -377,6 +382,26 @@ export function mageContextKey(
   return 'global';
 }
 
+/**
+ * Build the `questionContext` snapshot for a quiz question the learner is on, so
+ * Mage answers about THIS question instead of free-associating (it was giving
+ * JavaScript advice on Python questions). Carries the visible prompt — plus the
+ * language for code_write — and never an answer key, so it's safe under the
+ * hint-only gate. Returns undefined when there's no question to describe.
+ */
+export function buildQuizQuestionContext(
+  q: { kind: string; question: string; payload?: unknown } | null | undefined,
+): string | undefined {
+  if (!q) return undefined;
+  const lang = (q.payload as { language?: string } | null)?.language;
+  return [
+    q.kind === 'code_write' && lang ? `This is a ${lang} coding exercise.` : null,
+    `Question the learner is working on: ${q.question}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 /** What the server resolves a client context into. Ids are authorized-only. */
 export interface ResolvedMageContext {
   type: MageContextType;
@@ -385,6 +410,7 @@ export interface ResolvedMageContext {
   title?: string;
   selectedText?: string;
   activeQuestionId?: string;
+  questionContext?: string;
   mode: MageMode;
   assistancePolicy: MageAssistancePolicy;
   /** Phase 8 — structural reveal gate derived from `assistancePolicy`. */

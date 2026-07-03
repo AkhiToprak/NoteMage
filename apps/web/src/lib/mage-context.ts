@@ -356,6 +356,7 @@ export async function expandMageContext(
     title: cap(raw?.title, 200),
     selectedText: cap(raw?.selectedText, 4000),
     activeQuestionId: typeof raw?.activeQuestionId === 'string' ? raw.activeQuestionId : undefined,
+    questionContext: cap(raw?.questionContext, 2000),
     mode,
     assistancePolicy,
     // Phase 8 — structural gate, derived from the policy (never client-claimed).

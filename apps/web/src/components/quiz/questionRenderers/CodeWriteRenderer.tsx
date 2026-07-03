@@ -353,7 +353,12 @@ function CaseResultRow({ index, result }: { index: number; result: RunResult }) 
         ? 'rgb(var(--verdict-fail-rgb) / 0.3)'
         : 'var(--nm-primary)';
   return (
+    // Auto-expand anything that isn't a clean pass — a failed test (verdict
+    // false) or a practice run (verdict undefined) — so the learner sees the
+    // actual vs expected output without hunting for a click target. Passing
+    // tests stay collapsed.
     <details
+      open={verdict !== true}
       style={{
         background: bg,
         border: `1px solid ${border}`,

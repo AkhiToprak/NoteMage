@@ -25,7 +25,7 @@ import { useOptionalMage } from '@/components/mage/MageProvider';
 import { useRegisterMageContext } from '@/components/mage';
 import { gradeForPercentage } from '@/lib/path-gating';
 import { trackEvent } from '@/lib/telemetry';
-import type { MageContextType } from '@/lib/mage-types';
+import { buildQuizQuestionContext, type MageContextType } from '@/lib/mage-types';
 import type { MageQuickAction, MissionStep, QuizSession, QuizSource } from '@/components/quiz/player/types';
 
 interface RunnerQuestion {
@@ -216,13 +216,15 @@ export default function QuizSessionRunner({
   }, [session?.mode, examResult, isExam, isRemediation]);
 
   const openMage = useCallback(() => {
+    const q = session && set ? set.questions[session.index] : undefined;
     mage?.open({
       type: mageType,
       ids: { notebookId, quizSetId: setId, examId },
       title,
       activeQuestionId: session?.questionId ?? undefined,
+      questionContext: buildQuizQuestionContext(q),
     });
-  }, [mage, mageType, notebookId, setId, examId, title, session?.questionId]);
+  }, [mage, mageType, notebookId, setId, examId, title, session, set]);
 
   const mageActions = useMemo<MageQuickAction[]>(
     () => [

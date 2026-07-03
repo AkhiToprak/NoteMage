@@ -117,6 +117,18 @@ export async function POST(request: NextRequest) {
         });
         if (readiness) studyState = formatExamStudyState(readiness);
       }
+
+      // The on-screen question the learner is looking at — for code_write, its
+      // language + prompt + the learner's current code — so Mage answers about
+      // THIS question instead of free-associating (e.g. JS advice on a Python
+      // task). Appended to the corpus so it grounds the turn even when no other
+      // source resolved; carries the visible prompt + learner code, no answer key.
+      if (resolved.questionContext) {
+        groundingParts = [
+          ...(groundingParts ?? []),
+          `THE LEARNER IS CURRENTLY ON THIS QUESTION:\n${resolved.questionContext}`,
+        ];
+      }
     }
 
     // Phase 6/7 — resolve the server's per-context action menu into cards with

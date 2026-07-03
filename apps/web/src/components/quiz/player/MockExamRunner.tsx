@@ -24,6 +24,7 @@ import QuizViewer from '@/components/notebook/QuizViewer';
 import QuizPlayerShell from '@/components/quiz/player/QuizPlayerShell';
 import { useOptionalMage } from '@/components/mage/MageProvider';
 import { useRegisterMageContext } from '@/components/mage';
+import { buildQuizQuestionContext } from '@/lib/mage-types';
 import { trackEvent } from '@/lib/telemetry';
 import type { MageQuickAction, MissionStep, QuizSession, QuizSource } from '@/components/quiz/player/types';
 import type { QuestionNavigatorItem } from '@/components/exam';
@@ -237,13 +238,15 @@ export default function MockExamRunner({
   }, [total, session?.index, answered, flags]);
 
   const openMage = useCallback(() => {
+    const q = session && set ? set.questions[session.index] : undefined;
     mage?.open({
       type: 'exam',
       ids: { notebookId, quizSetId: setId, examId },
       title,
       activeQuestionId: session?.questionId ?? undefined,
+      questionContext: buildQuizQuestionContext(q),
     });
-  }, [mage, notebookId, setId, examId, title, session?.questionId]);
+  }, [mage, notebookId, setId, examId, title, session, set]);
 
   const mageActions = useMemo<MageQuickAction[]>(
     () => [
