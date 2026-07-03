@@ -33,6 +33,7 @@ import {
   type PathStructureToolInput,
   type TheorySectionToolInput,
   type QuizForSlotToolInput,
+  type PathAssessmentSpec,
   type PathSlotKind,
 } from './ai-tools';
 import { repairMathLatex } from './math-latex-repair';
@@ -43,6 +44,7 @@ import {
   buildTheoryPrompt,
   buildFlashcardsPrompt,
   buildQuizPrompt,
+  PATH_QUIZ_PROMPT_VERSION,
   type PathStructureContext,
   type SlotContentContext,
 } from './path-prompts';
@@ -75,12 +77,12 @@ export { resolveFlashcardFigures, resolveQuizFigures };
 import { refundUsage } from './usage-limits';
 import {
   QuizSetV2Schema,
-  SourceAnchorSchema,
   TheorySectionSchema,
   PathDiagramSchema,
   TheoryFigureSchema,
   DIAGRAM_CLOZE_MASK,
   type QuestionKind,
+  type QuizQuestionV2,
   type TheorySection,
   type PathDiagram,
   type DiagramClozePayload,
@@ -113,11 +115,18 @@ import { normalizePathLanguage, type PathLanguageCode } from './path-languages';
 import { CANCELLING_STATUS, deletePathCascade } from './path-loader';
 import { invalidateDashboardCache } from './dashboard-data';
 import { weaknessConceptsEnabled } from './feature-flags';
+import { verifiedSourceAnchor } from './source-grounding';
 import { attachConceptTags } from './concept-write';
 import { resolveModel } from './model-routing';
 import { LEARNING_SLOT_BATCH_TOOL } from './ai-tools';
 import { buildLearningBatchPrompt } from './path-prompts';
 import { isLearningBatchEnabled, splitLearningBatchPayload } from './path-learning-batch';
+import {
+  applyQuizVerification,
+  shouldVerifyQuiz,
+  verifyQuiz,
+  type QuizVerificationResult,
+} from './quiz-verifier';
 
 // ─────────────────────────────────────────────────────────────────────
 // Public types
@@ -284,11 +293,12 @@ function addNormalizedUsage(meter: UsageMeter, u: NormalizedUsage): void {
 }
 
 /** Derive the billing provider from a model id (for the per-model ledger rows).
- *  GLM models route via OpenRouter (`z-ai/glm-*`); Gemini ids start with
- *  `gemini`; everything else is Anthropic. */
+ *  GLM (`z-ai/glm-*`) and DeepSeek (`deepseek/*`) route via OpenRouter; Gemini
+ *  ids start with `gemini`; everything else is Anthropic. */
 function providerOfModel(model: string): Provider {
   if (model.startsWith('gemini')) return 'gemini';
   if (model.startsWith('z-ai/') || model.includes('glm')) return 'openrouter';
+  if (model.startsWith('deepseek/')) return 'openrouter';
   return 'anthropic';
 }
 
@@ -760,6 +770,8 @@ interface SlotForGeneration {
   topicHint: string;
   /** Stage A's measurable objective for the slot (verb-first capability). */
   objective: string | null;
+  /** Stage A's structured assessment blueprint. */
+  assessmentSpec: PathAssessmentSpec | null;
   sortOrder: number;
   /**
    * Stage A's resolved `covers` — ids of the earlier slots in the same phase
@@ -923,11 +935,11 @@ const EMPTY_ANCHOR: AnchorColumns = {
 function anchorColumns(
   rawSource: unknown,
   sourceIndex: Map<string, SourceMaterialRef> | null | undefined,
+  corpus: string | null | undefined,
 ): AnchorColumns {
   if (rawSource == null) return EMPTY_ANCHOR;
-  const parsed = SourceAnchorSchema.safeParse(rawSource);
-  if (!parsed.success) return EMPTY_ANCHOR;
-  const src = parsed.data;
+  const src = verifiedSourceAnchor(rawSource, corpus);
+  if (!src) return EMPTY_ANCHOR;
   const ref = resolveSourceIdentity(sourceIndex, src.label);
   return {
     sourceLabel: src.label ?? null,
@@ -1152,6 +1164,7 @@ async function loadPlanForGeneration(
         kind: (s.kind as PathSlotKind) ?? 'learning',
         topicHint: s.description ?? s.title,
         objective: s.objective ?? null,
+        assessmentSpec: readAssessmentSpec(s.assessmentSpec),
         sortOrder: s.sortOrder,
         coversSlotIds: Array.isArray(s.coversSlotIds) ? s.coversSlotIds : [],
         existingActivityKinds: new Set(
@@ -1246,6 +1259,7 @@ function makeSlotContentContext(
     slotKind: slot.kind,
     slotTopicHint: slot.topicHint,
     slotObjective: slot.objective ?? undefined,
+    assessmentSpec: slot.assessmentSpec ?? undefined,
     learnerBrief: plan.learnerBrief ?? undefined,
     reviewOf,
     subjects: plan.subjects,
@@ -1261,6 +1275,40 @@ function makeSlotContentContext(
     flashcardImageCatalog: plan.flashcardFiguresEnabled ? plan.imageCatalog : null,
     quizImageCatalog: plan.quizFiguresEnabled ? plan.imageCatalog : null,
     diagramsEnabled: plan.diagramsEnabled,
+  };
+}
+
+function readAssessmentSpec(value: Prisma.JsonValue | null): PathAssessmentSpec | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const spec = value as Record<string, unknown>;
+  const knowledgeType = spec.knowledgeType;
+  const learnerAction = spec.learnerAction;
+  const evidence = spec.evidence;
+  const difficulty = spec.difficulty;
+  const transfer = spec.transfer;
+  if (
+    typeof knowledgeType !== 'string' ||
+    !['factual', 'conceptual', 'procedural', 'metacognitive'].includes(knowledgeType) ||
+    typeof learnerAction !== 'string' ||
+    typeof evidence !== 'string' ||
+    typeof difficulty !== 'string' ||
+    !['foundational', 'standard', 'stretch'].includes(difficulty) ||
+    typeof transfer !== 'string' ||
+    !['near', 'mixed', 'far'].includes(transfer)
+  ) {
+    return null;
+  }
+  const commonErrors = Array.isArray(spec.commonErrors)
+    ? spec.commonErrors.filter((v): v is string => typeof v === 'string').slice(0, 3)
+    : undefined;
+  return {
+    knowledgeType: knowledgeType as PathAssessmentSpec['knowledgeType'],
+    learnerAction,
+    evidence,
+    difficulty: difficulty as PathAssessmentSpec['difficulty'],
+    transfer: transfer as PathAssessmentSpec['transfer'],
+    ...(commonErrors && commonErrors.length > 0 ? { commonErrors } : {}),
+    ...(typeof spec.scoringRule === 'string' ? { scoringRule: spec.scoringRule } : {}),
   };
 }
 
@@ -1647,7 +1695,7 @@ async function generateTheoryActivity(
               tail,
               '',
               '--- REPAIR NOTICE ---',
-              'Your previous theory section was rejected. Explain what went wrong in one sentence, then output the corrected JSON.',
+              'Your previous theory section was rejected. Output only the corrected structured response.',
               `Error: ${corrective}`,
             ].join('\n')
           : tail,
@@ -1770,7 +1818,7 @@ async function persistTheoryActivity(
 
   // Source-highlighting — resolve the lesson's primary anchor (corpus-resolved
   // identity + quote + media seek). All-null when the section wasn't grounded.
-  const theoryAnchor = anchorColumns(rawTheorySource, plan.sourceIndex);
+  const theoryAnchor = anchorColumns(rawTheorySource, plan.sourceIndex, plan.corpus);
 
   await db.$transaction(async (tx) => {
     const theory = await tx.theoryContent.create({
@@ -2015,7 +2063,7 @@ async function generateFlashcardsActivity(
               tail,
               '',
               '--- REPAIR NOTICE ---',
-              'Your previous flashcards response was unusable. Explain what went wrong in one sentence, then output the corrected JSON.',
+              'Your previous flashcards response was unusable. Output only the corrected structured response.',
               `Error: ${corrective}`,
               '`flashcards` MUST be a non-empty JSON array of { question, answer } objects.',
             ].join('\n')
@@ -2167,7 +2215,7 @@ async function persistFlashcardsActivity(
             const imgs = snappedByCard.get(i);
             // Source-highlighting — per-card grounding anchor (corpus-resolved
             // identity + quote + media seek). All-null when the card wasn't grounded.
-            const anchor = anchorColumns(fc.source, plan.sourceIndex);
+            const anchor = anchorColumns(fc.source, plan.sourceIndex, plan.corpus);
             return {
               id: cardIds[i],
               question: fc.question,
@@ -2443,19 +2491,52 @@ async function tryDegradedQuiz(
   return null;
 }
 
+async function loadKnownMisconceptions(
+  plan: PlanForGeneration,
+  phase: PhaseForGeneration,
+  slot: SlotForGeneration,
+): Promise<string[]> {
+  if (!weaknessConceptsEnabled()) return [];
+  let slotIds: string[];
+  if (slot.kind === 'final_exam') {
+    slotIds = plan.phases.flatMap((p) => p.slots.map((s) => s.id));
+  } else if (slot.coversSlotIds.length > 0) {
+    slotIds = slot.coversSlotIds;
+  } else if (slot.kind === 'learning') {
+    slotIds = [slot.id];
+  } else {
+    slotIds = phase.slots
+      .filter((candidate) => candidate.sortOrder < slot.sortOrder)
+      .map((candidate) => candidate.id);
+  }
+  if (slotIds.length === 0) return [];
+  const rows = await db.conceptMastery.findMany({
+    where: {
+      userId: plan.userId,
+      misconceptionLabel: { not: null },
+      concept: { slotId: { in: slotIds } },
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: 6,
+    select: { misconceptionLabel: true },
+  });
+  return rows
+    .map((row) => row.misconceptionLabel?.trim() ?? '')
+    .filter((label) => label.length > 0);
+}
+
 async function generateQuizActivity(
   plan: PlanForGeneration,
   phase: PhaseForGeneration,
   slot: SlotForGeneration,
   nextSortOrder: number
 ): Promise<void> {
-  const ctx = makeSlotContentContext(plan, phase, slot);
+  const knownMisconceptions = await loadKnownMisconceptions(plan, phase, slot).catch(() => []);
+  const ctx = { ...makeSlotContentContext(plan, phase, slot), knownMisconceptions };
   const { system, tail } = buildQuizPrompt(ctx);
-  // Quiz model is resolver-driven (model-routing.ts): the optimized default is
-  // Haiku for ALL tiers (it beat Sonnet/Flash on correctness in the audit), so
-  // the old ultra→Sonnet upgrade is gone. `MODEL_COMPOSITION_LEGACY=1` restores
-  // it, and `PATH_QUIZ_MODEL` pins the quiz model. `plan.ultra` is still passed
-  // through callQuizDispatch (it drives the legacy upgrade + the structure tier).
+  // Quiz model is resolver-driven (model-routing.ts): BASIC uses the cheap
+  // GLM flash tier; ULTRA keeps GLM-5.2 for context headroom. The independent
+  // verifier below is a separate sampled/final-exam OpenRouter call.
 
   // Validate-and-repair with the kind-filter folded IN. parseQuizInput normalizes
   // drift, salvages per-question, runs Zod + semantic checks; here we ALSO drop
@@ -2488,7 +2569,7 @@ async function generateQuizActivity(
               tail,
               '',
               '--- REPAIR NOTICE ---',
-              'Your previous quiz was rejected. Explain what went wrong in one sentence, then output the corrected JSON.',
+              'Your previous quiz was rejected. Output only the corrected structured response.',
               `Error: ${corrective}`,
             ].join('\n')
           : tail,
@@ -2556,8 +2637,45 @@ async function generateQuizActivity(
     );
   }
 
-  const finalQuestions = questions;
+  const verifyThisQuiz = shouldVerifyQuiz({
+    slotKind: slot.kind,
+    sampleKey: `${plan.id}:${slot.id}`,
+  });
+  let verification: QuizVerificationResult | null = null;
+  if (verifyThisQuiz) {
+    // The semantic verifier sees only anchors that passed the deterministic
+    // verbatim-quote check. A fabricated quote therefore becomes "no source"
+    // and fails closed on a source-backed quiz.
+    const verifierQuestions = questions.map((question) => {
+      const copy = { ...question } as QuizQuestionV2 & { source?: unknown };
+      const source = verifiedSourceAnchor(copy.source, plan.corpus);
+      if (source) copy.source = source;
+      else delete copy.source;
+      return copy as QuizQuestionV2;
+    });
+    verification = await verifyQuiz({
+      userId: plan.userId,
+      objective: slot.objective ?? undefined,
+      assessmentSpec: slot.assessmentSpec ?? undefined,
+      hasSourceMaterials: Boolean(plan.corpus?.trim()),
+      questions: verifierQuestions,
+    });
+  }
+  const verificationApplied = applyQuizVerification(questions, verification, minCount);
+  const finalQuestions = verificationApplied.questions;
+  if (verificationApplied.rejectedIndexes.length > 0) {
+    logTelemetry(plan.userId, 'path.quiz.verified', {
+      planId: plan.id,
+      slotId: slot.id,
+      status: verificationApplied.status,
+      rejected: verificationApplied.rejectedIndexes,
+    });
+  }
   const finalTitle = parsed.title;
+  const generatorRoute = resolveModel('path-quiz', {
+    ultra: plan.ultra,
+    providerOverride: plan.gemini ? 'gemini' : undefined,
+  });
 
   // Figure-reuse (P4): validate the model's per-question exhibits against the
   // catalog (drop hallucinated/duplicate refs, cap at 3), then SNAPSHOT each
@@ -2638,7 +2756,7 @@ async function generateQuizActivity(
   // Mirrors the figure drop policy above — a bad anchor must never fail a question.
   const anchorByQuestion = new Map<number, AnchorColumns>();
   finalQuestions.forEach((q, i) => {
-    const cols = anchorColumns((q as { source?: unknown }).source, plan.sourceIndex);
+    const cols = anchorColumns((q as { source?: unknown }).source, plan.sourceIndex, plan.corpus);
     if (cols.sourceQuote) anchorByQuestion.set(i, cols);
   });
 
@@ -2651,6 +2769,20 @@ async function generateQuizActivity(
         // flat lists while preserving the viewer's notebookId routing.
         sourcePathId: plan.id,
         title: finalTitle,
+        generationPromptVersion: PATH_QUIZ_PROMPT_VERSION,
+        generationProvider: generatorRoute.provider,
+        generationModel: generatorRoute.model,
+        verificationStatus: verificationApplied.status,
+        verificationModel: verification?.model ?? null,
+        ...(verification
+          ? {
+              verificationDetails: {
+                items: verification.items,
+                error: verification.error ?? null,
+                rejectedIndexes: verificationApplied.rejectedIndexes,
+              } as unknown as Prisma.InputJsonValue,
+            }
+          : {}),
         ...(diagrams.length > 0 ? { diagrams: diagrams as unknown as Prisma.InputJsonValue } : {}),
         questions: {
           create: [
@@ -2809,10 +2941,11 @@ async function generateLearningSlotBatch(
   try {
     raw = await forcedStructuredCall<unknown>({
       // Attributed to the 'theory' stage for routing + cost — this call does
-      // the work of both the theory AND flashcards stages, but `Stage` has no
-      // combined value and 'theory' already resolves to the same GLM model
-      // 'flashcards' would (resolvePathStage treats every Stage B stage
-      // identically), so no routing behavior differs from picking either.
+      // the work of both the theory AND flashcards stages. DELIBERATE now that
+      // Stage B routing differs: theory resolves to GLM-5.2 (32k completion
+      // ceiling, theory-quality bar) while basic flashcards ride the
+      // 16,384-capped flash tier — a combined theory+flashcards payload needs
+      // the 5.2 headroom.
       stage: 'theory',
       corpus: plan.corpus,
       staticInstructions: system,

@@ -12,19 +12,39 @@
 //
 // Model ids are NOT duplicated here: each `ModelToken` maps to the canonical id
 // exported by anthropic.ts / gemini.ts, so a model version bump is a one-line
-// change there. Env override values are TOKENS (haiku|sonnet|flash|flash-lite),
-// not raw ids — so an operator can't typo a non-existent model into a knob.
+// change there. Env override values are TOKENS (haiku|sonnet|flash|flash-lite|
+// glm-haiku|glm-sonnet|glm-flash|deepseek-flash), not raw ids — so an operator
+// can't typo a non-existent model into a knob.
 
 import type { TierKey } from './tiers';
 import { AI_GENERATION_MODEL, AI_GENERATION_MODEL_LITE } from './anthropic';
 import { GEMINI_PATH_MODEL, GEMINI_PATH_MODEL_LITE, GEMINI_CHAT_MODEL } from './gemini';
-import { GLM_HAIKU_MODEL, GLM_SONNET_MODEL } from './openrouter';
+import {
+  DEEPSEEK_FLASH_MODEL,
+  GLM_FLASH_MODEL,
+  GLM_HAIKU_MODEL,
+  GLM_SONNET_MODEL,
+  OPENROUTER_GEMINI_FLASH_LITE_MODEL,
+} from './openrouter';
 
 export type ModelProvider = 'anthropic' | 'gemini' | 'openrouter';
 
 /** The model slots the composition picks between. `glm-haiku` / `glm-sonnet`
- *  are the OpenRouter/GLM replacements activated by GLM_COMPOSITION (applyGlm). */
-export type ModelToken = 'haiku' | 'sonnet' | 'flash' | 'flash-lite' | 'glm-haiku' | 'glm-sonnet';
+ *  are the OpenRouter/GLM replacements activated by GLM_COMPOSITION (applyGlm);
+ *  `glm-flash` is the cheap GLM tier (4.7-flash) backing the high-volume
+ *  structured slots. `deepseek-flash` (deepseek-v4-flash, 1M ctx) is PIN-ONLY —
+ *  no default routes to it; it exists so a per-feature env pin (e.g.
+ *  PATH_THEORY_MODEL=deepseek-flash) can run an experiment without a deploy. */
+export type ModelToken =
+  | 'haiku'
+  | 'sonnet'
+  | 'flash'
+  | 'flash-lite'
+  | 'glm-haiku'
+  | 'glm-sonnet'
+  | 'glm-flash'
+  | 'or-flash-lite'
+  | 'deepseek-flash';
 
 export interface ResolvedModel {
   provider: ModelProvider;
@@ -43,6 +63,7 @@ export type ModelFeature =
   | 'path-theory'
   | 'path-flashcards'
   | 'path-quiz'
+  | 'quiz-verify'
   | 'path-preview'
   | 'chat-plain'
   | 'chat-generate'
@@ -98,6 +119,12 @@ function fromToken(token: ModelToken): ResolvedModel {
       return { provider: 'openrouter', model: GLM_HAIKU_MODEL, token };
     case 'glm-sonnet':
       return { provider: 'openrouter', model: GLM_SONNET_MODEL, token };
+    case 'glm-flash':
+      return { provider: 'openrouter', model: GLM_FLASH_MODEL, token };
+    case 'or-flash-lite':
+      return { provider: 'openrouter', model: OPENROUTER_GEMINI_FLASH_LITE_MODEL, token };
+    case 'deepseek-flash':
+      return { provider: 'openrouter', model: DEEPSEEK_FLASH_MODEL, token };
   }
 }
 
@@ -123,6 +150,14 @@ function parseToken(value: string | undefined): ModelToken | null {
     case 'glm-5.2':
     case 'glm5.2':
       return 'glm-sonnet';
+    case 'glm-flash':
+    case 'glm-4.7-flash':
+    case 'glm4.7-flash':
+      return 'glm-flash';
+    case 'deepseek-flash':
+    case 'deepseek-v4-flash':
+    case 'deepseek':
+      return 'deepseek-flash';
     default:
       return null;
   }
@@ -230,15 +265,18 @@ function resolvePathStage(stage: PathStage, ctx: ResolveModelCtx): ResolvedModel
     return fromToken(legacyPathProvider(stage) === 'gemini' ? 'flash' : 'haiku');
   }
 
-  // 4. Path generation runs entirely on GLM-5.2 (validated 2026-06-28: ~half
-  //    Claude's cost at better quality, and GLM-4.7's per-call overhead erased
-  //    its per-token discount on a many-call workload, so a single flagship
-  //    model is both cheaper and simpler than the old GLM-4.7/Gemini mix). All
-  //    four stages — structure, theory, flashcards, quiz — resolve to glm-sonnet
-  //    for BOTH basic and ultra; the basic/ultra split is by content (corpus
-  //    caps, theory visuals), not model. PATH_<STAGE>_MODEL still pins a single
-  //    stage (step 2) and MODEL_COMPOSITION_LEGACY=1 reverts to the prior
+  // 4. Structure + theory stay on GLM-5.2 (the quality surfaces: one structure
+  //    call sets the whole path, theory prose is the product). Flashcards +
+  //    quiz — the per-slot volume stages — run on GLM-4.7-flash for BASIC
+  //    paths (live catalog 2026-07-02: $0.06/$0.40 vs 5.2's $0.93/$3.00, cache
+  //    reads 18× cheaper; same forced-tool shape + Zod validation + repair
+  //    loop). ULTRA keeps GLM-5.2 on those stages: the 600k-char ultra corpus
+  //    can exceed flash's 203K window on dense material, and ultra is 3/mo
+  //    capped so its spend is bounded — basic ("unlimited"/mo) is where the
+  //    flash price matters. PATH_<STAGE>_MODEL still pins a single stage
+  //    (step 2) and MODEL_COMPOSITION_LEGACY=1 reverts to the prior
   //    Anthropic/Gemini routing (step 3) as the rollback.
+  if ((stage === 'flashcards' || stage === 'quiz') && !ultra) return fromToken('glm-flash');
   return fromToken('glm-sonnet');
 }
 
@@ -258,9 +296,11 @@ function resolveChatPlain(ctx: ResolveModelCtx): ResolvedModel {
     return { provider: 'gemini', model: GEMINI_CHAT_MODEL, token: 'flash-lite' };
   }
 
-  // Optimized: Flash for BOTH free and pro (cheaper than Haiku, higher quality
-  // than Flash-Lite). Generation intents never reach here — they stay Haiku.
-  return fromToken('flash');
+  // Optimized: FREE → Flash-Lite (50-msg/mo meter; keeps per-free-user AI COGS
+  // at the unit-economics floor), PRO/admin → Flash. Generation intents never
+  // reach here — they route via chat-generate.
+  if (ctx.tier && ctx.tier !== 'FREE') return fromToken('flash');
+  return fromToken('flash-lite');
 }
 
 // ── mage answer (grounded/action turn — always Anthropic) ──────────────────
@@ -355,22 +395,30 @@ export function resolveModel(
 
     case 'chat-generate':
       // In-chat artifact generation (flashcards/quiz/mindmap/… via a forced
-      // tool). HAIKU REMOVED: now defaults to GLM-4.7 (glm-haiku) — the
+      // tool). Defaults to GLM-4.7-flash (glm-flash): forced-tool structured
+      // output at ~1/7 of GLM-4.7's price, and the chat GLM stream path sends
+      // max_tokens ≤ 4096 — well under flash's 16,384 completion cap. The
       // chat-stream dispatch branches on provider, so this routes straight to
       // OpenRouter. CHAT_GENERATE_MODEL pins it; MODEL_COMPOSITION_LEGACY=1
       // reverts to Claude Haiku.
-      return resolveStatic('CHAT_GENERATE_MODEL', 'haiku', 'glm-haiku');
+      return resolveStatic('CHAT_GENERATE_MODEL', 'haiku', 'glm-flash');
 
     case 'chat-intent':
       // Per-turn intent gate (forced single-enum tool, runs only on ambiguous
-      // turns the heuristic can't resolve). HAIKU REMOVED: defaults to GLM-4.7
-      // (glm-haiku) — chat-intent dispatches on provider (openrouter → forced
-      // callOpenRouter). CHAT_INTENT_MODEL pins it; MODEL_COMPOSITION_LEGACY=1
-      // reverts to Claude Haiku.
-      return resolveStatic('CHAT_INTENT_MODEL', 'haiku', 'glm-haiku');
+      // turns the heuristic can't resolve). Defaults to GLM-4.7-flash
+      // (glm-flash) — a tiny forced-enum call on the cheapest reliable
+      // tool-calling tier. chat-intent dispatches on provider (openrouter →
+      // forced callOpenRouter). CHAT_INTENT_MODEL pins it;
+      // MODEL_COMPOSITION_LEGACY=1 reverts to Claude Haiku.
+      return resolveStatic('CHAT_INTENT_MODEL', 'haiku', 'glm-flash');
 
     case 'mage-answer':
       return resolveMageAnswer(ctx);
+
+    case 'quiz-verify':
+      // Independent, narrow quality check. Always Gemini 2.5 Flash-Lite via
+      // OpenRouter—not Google-direct—so its exact billed cost is captured.
+      return fromToken('or-flash-lite');
 
     case 'exam-study-plan':
       // Daily/multi-day task ordering + the "Why this plan" rationale. Structured

@@ -12,6 +12,7 @@
 
 import { db } from '@/lib/db';
 import { enforceIpCap, generatePlaceholderUsername, hashIp } from '@/lib/registration';
+import { logSecurityEvent } from '@/lib/security-events';
 
 export type OAuthProvider = 'google' | 'apple';
 
@@ -37,9 +38,17 @@ export async function findOrCreateOAuthUser(input: OAuthUserInput): Promise<OAut
   // 1. Already linked? Just log in.
   const existingLink = await db.oAuthAccount.findUnique({
     where: { provider_providerAccountId: { provider, providerAccountId } },
-    select: { userId: true },
+    select: { userId: true, user: { select: { banned: true } } },
   });
   if (existingLink) {
+    if (existingLink.user.banned) {
+      logSecurityEvent({
+        userId: existingLink.userId,
+        type: 'oauth.denied',
+        detail: { provider, reason: 'banned' },
+      });
+      return { ok: false, reason: 'banned' };
+    }
     return { ok: true, userId: existingLink.userId };
   }
 
@@ -59,20 +68,32 @@ export async function findOrCreateOAuthUser(input: OAuthUserInput): Promise<OAut
 
   if (existingByEmail) {
     if (existingByEmail.banned) {
+      logSecurityEvent({
+        userId: existingByEmail.id,
+        type: 'oauth.denied',
+        detail: { provider, reason: 'banned' },
+      });
       return { ok: false, reason: 'banned' };
     }
     await db.oAuthAccount.create({
       data: { userId: existingByEmail.id, provider, providerAccountId },
+    });
+    logSecurityEvent({
+      userId: existingByEmail.id,
+      type: 'oauth.linked',
+      detail: { provider },
     });
     return { ok: true, userId: existingByEmail.id };
   }
 
   // 3. New user — pre-launch gate, IP cap, then create User + OAuthAccount.
   if (!allowNewUser) {
+    logSecurityEvent({ type: 'oauth.denied', detail: { provider, reason: 'signup_disabled' } });
     return { ok: false, reason: 'signup_disabled' };
   }
   const cap = await enforceIpCap(ip);
   if (!cap.ok) {
+    logSecurityEvent({ type: 'oauth.denied', detail: { provider, reason: 'ip_cap' } });
     return { ok: false, reason: 'ip_cap' };
   }
 
@@ -102,5 +123,6 @@ export async function findOrCreateOAuthUser(input: OAuthUserInput): Promise<OAut
     return user;
   });
 
+  logSecurityEvent({ userId: created.id, type: 'oauth.created', detail: { provider } });
   return { ok: true, userId: created.id };
 }

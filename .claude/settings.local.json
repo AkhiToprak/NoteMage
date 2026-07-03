@@ -68,7 +68,8 @@
       "Bash(open \"https://quizzard.site/auth/login#figmacapture=8b808c12-768d-4567-9911-d8168528ea3a&figmaendpoint=https%3A%2F%2Fmcp.figma.com%2Fmcp%2Fcapture%2F8b808c12-768d-4567-9911-d8168528ea3a%2Fsubmit&figmadelay=5000\")",
       "Bash(export PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\")",
       "Skill(hallmark)",
-      "Skill(hallmark:*)"
+      "Skill(hallmark:*)",
+      "Bash(git fetch *)"
     ]
   }
 }

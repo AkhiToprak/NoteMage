@@ -15,6 +15,8 @@ import {
   YOUTUBE_VIDEOS_TOOL,
 } from './ai-tools';
 
+export const CHAT_QUIZ_PROMPT_VERSION = 'chat-quiz-2026-07-02-v2';
+
 /** The ~plain-chat core — no tool-usage prose. Loaded on every turn. */
 export const CHAT_BASE_INSTRUCTIONS = [
   'Help the user study, understand, and review their notes and documents.',

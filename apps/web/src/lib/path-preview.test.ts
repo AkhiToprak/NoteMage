@@ -309,7 +309,7 @@ describe('buildPathStructurePrompt — preview vs full', () => {
   it('keeps the full multi-section guidance when maxNodes is unset', () => {
     const { system } = buildPathStructurePrompt({ ...base });
     expect(system).toContain('Output 3–6 sections');
-    expect(system).toContain('spaced repetition');
+    expect(system).toContain('retrieval practice and interleaving');
     expect(system).not.toContain('SHORT PREVIEW');
   });
 });

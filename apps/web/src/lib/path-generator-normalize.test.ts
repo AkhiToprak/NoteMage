@@ -9,10 +9,65 @@ import { describe, it, expect } from 'vitest';
 import { QuizSetV2Schema } from '@notemage/shared';
 import {
   normalizeFlashcardsInput,
+  normalizePathStructure,
   normalizeQuizQuestions,
   safeParseQuizQuestions,
   runSemanticChecks,
 } from './path-generator-normalize';
+
+describe('normalizePathStructure assessment blueprint', () => {
+  it('preserves a valid assessmentSpec from the existing Stage-A call', () => {
+    const result = normalizePathStructure({
+      title: 'Cells',
+      description: 'Learn cells',
+      phases: [
+        {
+          title: 'Section 1',
+          description: 'Foundations',
+          slots: [
+            {
+              title: 'Membranes',
+              kind: 'learning',
+              topicHint: 'Membrane transport',
+              objective: 'Compare passive and active transport.',
+              assessmentSpec: {
+                knowledgeType: 'conceptual',
+                learnerAction: 'Compare two transport scenarios.',
+                evidence: 'Correctly identifies energy use and concentration direction.',
+                difficulty: 'standard',
+                transfer: 'near',
+                commonErrors: ['Assuming every transport process uses ATP'],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.phases[0].slots[0].assessmentSpec).toMatchObject({
+      knowledgeType: 'conceptual',
+      transfer: 'near',
+    });
+  });
+
+  it('drops malformed assessment specs without failing the path', () => {
+    const result = normalizePathStructure({
+      phases: [
+        {
+          slots: [
+            {
+              title: 'Membranes',
+              kind: 'learning',
+              topicHint: 'Transport',
+              objective: 'Compare transport.',
+              assessmentSpec: { knowledgeType: 'magic' },
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.phases[0].slots[0].assessmentSpec).toBeUndefined();
+  });
+});
 
 describe('normalizeFlashcardsInput', () => {
   it('keeps canonical {question, answer} string pairs', () => {
@@ -126,6 +181,28 @@ describe('normalizeFlashcardsInput', () => {
 });
 
 describe('normalizeQuizQuestions', () => {
+  it('preserves misconception-specific MC option feedback and absorbs common drift', () => {
+    const [question] = normalizeQuizQuestions([
+      {
+        kind: 'mc',
+        prompt: 'Q',
+        payload: { options: ['a', 'b', 'c', 'd'], correctIndex: 0 },
+        option_feedback: [
+          null,
+          { error: 'Multiplied one term', correction: 'Distribute to both terms.' },
+          'Keep the coefficient on every term.',
+          { misconception: 'Added instead of multiplying', explanation: 'Apply multiplication.' },
+        ],
+      },
+    ]);
+    expect(question.payload.optionFeedback).toEqual([
+      null,
+      { misconception: 'Multiplied one term', explanation: 'Distribute to both terms.' },
+      { explanation: 'Keep the coefficient on every term.' },
+      { misconception: 'Added instead of multiplying', explanation: 'Apply multiplication.' },
+    ]);
+  });
+
   // Figure-reuse (P4): the optional per-question figure object passes through
   // verbatim (figure / image key) for the generator to validate; questions
   // without one carry no figure key.

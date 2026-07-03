@@ -18,7 +18,6 @@ export type JobKind =
   | 'import.onenote'
   | 'path.generate'
   | 'path.regenerate'
-  | 'path.translate'
   // Exam Mode (Phase 6) — recurring exam-reminder sweep. Self-reschedules each
   // run (see scheduleReminderSweep) so the queue acts as a cron without an
   // external scheduler.
@@ -54,7 +53,6 @@ export interface JobPayloadByKind {
   'import.onenote': { jobId: string };
   'path.generate': { planId: string; allowRefund?: boolean };
   'path.regenerate': { planId: string };
-  'path.translate': { planId: string; language: string };
   'reminders.sweep': Record<string, never>;
   'concept.backfill': { slotId: string };
   'concept.misconception': { conceptId: string; userId: string };

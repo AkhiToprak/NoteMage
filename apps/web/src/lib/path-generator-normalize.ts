@@ -14,7 +14,7 @@
 // failure collection ([path-generator.ts] `Promise.allSettled` loop) still
 // gets a clean Zod error message.
 
-import type { PathStructureToolInput } from './ai-tools';
+import type { PathAssessmentSpec, PathStructureToolInput } from './ai-tools';
 import { QuizQuestionV2Schema, type QuizQuestionV2 } from '@notemage/shared';
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -388,6 +388,25 @@ function normalizeMcPayload(payload: Record<string, unknown>): Record<string, un
 
   const out: Record<string, unknown> = { options };
   if (correctIndex !== undefined) out.correctIndex = correctIndex;
+  const rawFeedback = payload.optionFeedback ?? payload.option_feedback;
+  if (Array.isArray(rawFeedback) && rawFeedback.length === 4) {
+    const optionFeedback = rawFeedback.map((entry) => {
+      if (entry === null) return null;
+      if (typeof entry === 'string' && entry.trim()) {
+        return { explanation: entry.trim() };
+      }
+      if (!isPlainObject(entry)) return null;
+      const explanation =
+        asNonEmptyString(entry.explanation) ??
+        asNonEmptyString(entry.feedback) ??
+        asNonEmptyString(entry.correction);
+      if (!explanation) return null;
+      const misconception =
+        asNonEmptyString(entry.misconception) ?? asNonEmptyString(entry.error);
+      return misconception ? { misconception, explanation } : { explanation };
+    });
+    out.optionFeedback = optionFeedback;
+  }
   return out;
 }
 
@@ -661,7 +680,14 @@ export function normalizeQuizQuestions(raw: unknown): NormalizedQuizQuestion[] {
       asNonEmptyString(q.question) ??
       asNonEmptyString(q.text) ??
       '';
-    const payloadIn = isPlainObject(q.payload) ? q.payload : {};
+    const payloadIn: Record<string, unknown> = isPlainObject(q.payload) ? { ...q.payload } : {};
+    if (
+      kind === 'mc' &&
+      payloadIn.optionFeedback === undefined &&
+      payloadIn.option_feedback === undefined
+    ) {
+      payloadIn.optionFeedback = q.optionFeedback ?? q.option_feedback;
+    }
     const payload = normalizeQuestionPayload(kind, payloadIn);
     const normalized: NormalizedQuizQuestion = { kind, prompt, payload };
     const hint = asNonEmptyString(q.hint);
@@ -803,6 +829,9 @@ export function normalizePathStructure(raw: unknown): PathStructureToolInput {
           asNonEmptyString(slotRaw.objective) ??
           asNonEmptyString(slotRaw.learningObjective) ??
           undefined,
+        assessmentSpec: normalizeAssessmentSpec(
+          slotRaw.assessmentSpec ?? slotRaw.assessment_spec,
+        ),
         covers: covers.length > 0 ? covers : undefined,
       });
     }
@@ -820,5 +849,40 @@ export function normalizePathStructure(raw: unknown): PathStructureToolInput {
     title: asNonEmptyString(raw.title) ?? '',
     description: asNonEmptyString(raw.description) ?? '',
     phases,
+  };
+}
+
+function normalizeAssessmentSpec(raw: unknown): PathAssessmentSpec | undefined {
+  if (!isPlainObject(raw)) return undefined;
+  const knowledgeType = asNonEmptyString(raw.knowledgeType ?? raw.knowledge_type);
+  const learnerAction = asNonEmptyString(raw.learnerAction ?? raw.learner_action);
+  const evidence = asNonEmptyString(raw.evidence);
+  const difficulty = asNonEmptyString(raw.difficulty);
+  const transfer = asNonEmptyString(raw.transfer);
+  if (
+    !knowledgeType ||
+    !['factual', 'conceptual', 'procedural', 'metacognitive'].includes(knowledgeType) ||
+    !learnerAction ||
+    !evidence ||
+    !difficulty ||
+    !['foundational', 'standard', 'stretch'].includes(difficulty) ||
+    !transfer ||
+    !['near', 'mixed', 'far'].includes(transfer)
+  ) {
+    return undefined;
+  }
+  const commonErrors = toUnknownArray(raw.commonErrors ?? raw.common_errors)
+    .map(asNonEmptyString)
+    .filter((v): v is string => v !== null)
+    .slice(0, 3);
+  const scoringRule = asNonEmptyString(raw.scoringRule ?? raw.scoring_rule);
+  return {
+    knowledgeType: knowledgeType as PathAssessmentSpec['knowledgeType'],
+    learnerAction,
+    evidence,
+    difficulty: difficulty as PathAssessmentSpec['difficulty'],
+    transfer: transfer as PathAssessmentSpec['transfer'],
+    ...(commonErrors.length > 0 ? { commonErrors } : {}),
+    ...(scoringRule ? { scoringRule } : {}),
   };
 }

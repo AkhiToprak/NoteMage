@@ -4,16 +4,28 @@ import GoogleProvider from 'next-auth/providers/google';
 import AppleProvider from 'next-auth/providers/apple';
 import bcrypt from 'bcryptjs';
 import { headers } from 'next/headers';
-import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getIpFromHeaders, normalizeEmail } from '@/lib/registration';
 import { findOrCreateOAuthUser } from '@/auth/oauth-user';
 import { logSecurityEvent } from '@/lib/security-events';
 import { verifyTurnstile } from '@/lib/turnstile';
-import { loginChallengeRequired, recordLoginFailure, clearLoginChallenge } from '@/lib/login-challenge';
+import {
+  loginChallengeRequired,
+  recordLoginFailure,
+  clearLoginChallenge,
+} from '@/lib/login-challenge';
+import {
+  checkLoginThrottle,
+  clearLoginThrottle,
+  recordLoginFailureForEmail,
+} from '@/lib/login-throttle';
+import { validateAuthToken } from '@/lib/auth-context';
 
-const MAX_FAILED_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 60 * 60 * 1000; // 1 hour
+const INVALID_PASSWORD_HASH = '$2b$12$qiHZV66WfI1ZOumi6NZ2r.HPQoBOmCfrIsLX3KTw0ctD.JE4rXejO';
+
+function logOAuthDenial(provider: string, reason: string): void {
+  logSecurityEvent({ type: 'oauth.denied', detail: { provider, reason } });
+}
 
 /**
  * Read the canonical user shape from the DB and stamp it onto the JWT.
@@ -36,6 +48,7 @@ export async function hydrateTokenFromDb(
       avatarUrl: true,
       role: true,
       tier: true,
+      authVersion: true,
       scholarName: true,
       nameStyle: true,
       equippedTitleId: true,
@@ -51,6 +64,7 @@ export async function hydrateTokenFromDb(
   token.avatarUrl = freshUser.avatarUrl ?? undefined;
   token.role = freshUser.role;
   token.tier = freshUser.tier;
+  token.authVersion = freshUser.authVersion;
   token.scholarName = freshUser.scholarName ?? undefined;
   token.nameStyle =
     (freshUser.nameStyle as { fontId?: string; colorId?: string } | null) ?? undefined;
@@ -113,10 +127,27 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        const email = normalizeEmail(credentials.email);
+
+        // Check the account-independent delay before looking up the user. The
+        // key contains only an HMAC of the normalized email, and a Redis error
+        // blocks authentication rather than silently dropping the defense.
+        const throttle = await checkLoginThrottle(email);
+        if (!throttle.allowed) {
+          logSecurityEvent({
+            type: 'login.throttled',
+            detail: {
+              reason: throttle.unavailable ? 'redis_unavailable' : 'progressive_delay',
+              retryAfterMs: throttle.retryAfterMs,
+            },
+          });
+          throw new Error('LOGIN_THROTTLED');
+        }
 
         // Adaptive bot gate: after repeated failed logins from this IP, require
         // a solved Turnstile challenge before we even check the password.
-        // Dormant until TURNSTILE_SECRET_KEY is set (src/lib/login-challenge.ts).
+        // Production requires the complete Turnstile key pair; missing config
+        // makes this branch fail closed.
         let ip = 'unknown';
         try {
           ip = getIpFromHeaders(await headers());
@@ -130,7 +161,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         const user = await db.user.findUnique({
-          where: { email: normalizeEmail(credentials.email) },
+          where: { email },
           select: {
             id: true,
             email: true,
@@ -143,6 +174,7 @@ export const authOptions: NextAuthOptions = {
             onboardingComplete: true,
             role: true,
             tier: true,
+            authVersion: true,
             scholarName: true,
             nameStyle: true,
             equippedTitleId: true,
@@ -150,25 +182,8 @@ export const authOptions: NextAuthOptions = {
             equippedBackgroundId: true,
             tutorialState: true,
             banned: true,
-            banReason: true,
-            failedLoginAttempts: true,
-            lockedAt: true,
           },
         });
-
-        // Check if account is locked (before password check, but after user lookup)
-        if (user?.lockedAt) {
-          const unlockAt = user.lockedAt.getTime() + LOCKOUT_DURATION_MS;
-          if (unlockAt > Date.now()) {
-            // Lock is still active — include unlock time in error for the frontend
-            throw new Error(`ACCOUNT_LOCKED:${new Date(unlockAt).toISOString()}`);
-          }
-          // Lock has expired — auto-clear and let login proceed
-          await db.user.update({
-            where: { id: user.id },
-            data: { failedLoginAttempts: 0, lockedAt: null },
-          });
-        }
 
         // Always run bcrypt to prevent timing-based user enumeration
         // AND to prevent leaking "this email is an OAuth-only account" via
@@ -178,7 +193,7 @@ export const authOptions: NextAuthOptions = {
         // wall-clock time as a normal wrong-password attempt.
         const passwordMatch = await bcrypt.compare(
           credentials.password,
-          user?.password ?? '$2a$12$invalidhashplaceholdervalue1234'
+          user?.password ?? INVALID_PASSWORD_HASH
         );
 
         // OAuth-only accounts (password === null) must never authenticate
@@ -188,53 +203,30 @@ export const authOptions: NextAuthOptions = {
         const isOauthOnly = user !== null && user.password === null;
 
         if (!user || !passwordMatch || isOauthOnly) {
-          // Track failed attempts only for accounts that actually have a
-          // password to guess. OAuth-only accounts (`isOauthOnly`) are
-          // skipped so an attacker can't lock them out by spamming the
-          // credentials form with a known email.
-          if (user && !isOauthOnly) {
-            // Atomic increment + lock in a single statement. Incrementing and
-            // reading the count separately races: concurrent attempts can all
-            // read a pre-cap value and sail past MAX_FAILED_ATTEMPTS. Doing it
-            // under one row lock with RETURNING gives each request the true
-            // post-increment count, and the `"lockedAt" IS NULL` guard means
-            // exactly one request stamps the lock as the counter crosses the
-            // cap (acts as an atomic compare-and-set).
-            const rows = await db.$queryRaw<{ failedLoginAttempts: number; lockedAt: Date | null }[]>(
-              Prisma.sql`
-                UPDATE users
-                SET "failedLoginAttempts" = "failedLoginAttempts" + 1,
-                    "lockedAt" = CASE
-                      WHEN "failedLoginAttempts" + 1 >= ${MAX_FAILED_ATTEMPTS} AND "lockedAt" IS NULL
-                        THEN NOW()
-                      ELSE "lockedAt"
-                    END
-                WHERE id = ${user.id}
-                RETURNING "failedLoginAttempts", "lockedAt"
-              `
-            );
-
-            const updated = rows[0];
-            if (updated && updated.lockedAt && updated.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-              logSecurityEvent({
-                userId: user.id,
-                type: 'account.locked',
-                detail: { failedLoginAttempts: updated.failedLoginAttempts },
-              });
-              const unlockAt = new Date(updated.lockedAt.getTime() + LOCKOUT_DURATION_MS);
-              throw new Error(`ACCOUNT_LOCKED:${unlockAt.toISOString()}`);
-            }
-          }
+          // Every account state consumes the same HMAC-keyed counter: real,
+          // unknown, and OAuth-only addresses are indistinguishable here.
+          const failure = await recordLoginFailureForEmail(email);
           await recordLoginFailure(ip);
           logSecurityEvent({ userId: user?.id ?? null, type: 'login.failed' });
+          if (!failure.recorded || (failure.delayMs ?? 0) > 0) {
+            logSecurityEvent({
+              userId: user?.id ?? null,
+              type: 'login.throttled',
+              detail: {
+                reason: failure.recorded ? 'progressive_delay_armed' : 'redis_unavailable',
+                failureCount: failure.count,
+                delayMs: failure.delayMs,
+              },
+            });
+          }
           return null;
         }
 
         // Block banned users from logging in
         if (user.banned) {
-          throw new Error(
-            user.banReason ? `Account banned: ${user.banReason}` : 'Your account has been banned.'
-          );
+          await Promise.all([recordLoginFailureForEmail(email), recordLoginFailure(ip)]);
+          logSecurityEvent({ userId: user.id, type: 'login.banned' });
+          return null;
         }
 
         // Email-confirmation hard gate. A correct password on an account whose
@@ -244,16 +236,12 @@ export const authOptions: NextAuthOptions = {
         // (they're created provider-verified), and pre-existing accounts were
         // grandfathered in the add_email_verification migration.
         if (!user.emailVerified) {
+          if (!(await clearLoginThrottle(email))) throw new Error('LOGIN_THROTTLED');
           throw new Error('EMAIL_NOT_VERIFIED');
         }
 
-        // Successful login — reset failed attempt counter
-        if (user.failedLoginAttempts > 0) {
-          await db.user.update({
-            where: { id: user.id },
-            data: { failedLoginAttempts: 0, lockedAt: null },
-          });
-        }
+        // A Redis outage must not let a correct login bypass throttle cleanup.
+        if (!(await clearLoginThrottle(email))) throw new Error('LOGIN_THROTTLED');
         await clearLoginChallenge(ip);
 
         logSecurityEvent({ userId: user.id, type: 'login.success' });
@@ -267,6 +255,7 @@ export const authOptions: NextAuthOptions = {
           hasBirthDate: user.birthDate != null,
           role: user.role,
           tier: user.tier,
+          authVersion: user.authVersion,
           scholarName: user.scholarName ?? undefined,
           nameStyle: (user.nameStyle as { fontId?: string; colorId?: string } | null) ?? undefined,
           equippedTitleId: user.equippedTitleId ?? undefined,
@@ -292,7 +281,10 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       if (!account || account.provider === 'credentials') return true;
       const provider = account.provider;
-      if (provider !== 'google' && provider !== 'apple') return false;
+      if (provider !== 'google' && provider !== 'apple') {
+        logOAuthDenial(provider, 'unsupported_provider');
+        return false;
+      }
 
       // Both providers set email_verified on the profile (Apple only ever
       // returns verified emails; Google sends a real boolean/string claim).
@@ -302,13 +294,22 @@ export const authOptions: NextAuthOptions = {
         picture?: string;
       };
       const emailVerified = p.email_verified === true || p.email_verified === 'true';
-      if (!emailVerified) return false;
+      if (!emailVerified) {
+        logOAuthDenial(provider, 'email_unverified');
+        return false;
+      }
 
       const email = normalizeEmail(user.email ?? p.email);
-      if (!email) return false;
+      if (!email) {
+        logOAuthDenial(provider, 'email_missing');
+        return false;
+      }
 
       const providerAccountId = account.providerAccountId;
-      if (!providerAccountId) return false;
+      if (!providerAccountId) {
+        logOAuthDenial(provider, 'provider_account_id_missing');
+        return false;
+      }
 
       // headers() can throw outside a request context — fail open and
       // skip the IP cap. Provider email verification is our fallback.
@@ -360,6 +361,7 @@ export const authOptions: NextAuthOptions = {
           hasBirthDate?: boolean;
           role?: string;
           tier?: string;
+          authVersion: number;
           scholarName?: string;
           nameStyle?: { fontId?: string; colorId?: string };
           equippedTitleId?: string;
@@ -379,6 +381,7 @@ export const authOptions: NextAuthOptions = {
         token.hasBirthDate = u.hasBirthDate;
         token.role = u.role;
         token.tier = u.tier;
+        token.authVersion = u.authVersion;
         token.scholarName = u.scholarName;
         token.nameStyle = u.nameStyle;
         token.equippedTitleId = u.equippedTitleId;
@@ -396,9 +399,12 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Re-read from DB when session is explicitly updated (e.g. after
-      // onboarding or after the user equips a new cosmetic).
+      // onboarding or after the user equips a new cosmetic). Validate first:
+      // a revoked token must never copy the new authVersion into itself and
+      // thereby become valid again.
       if (trigger === 'update' && token.id) {
-        await hydrateTokenFromDb(token, token.id as string);
+        const auth = await validateAuthToken(token);
+        if (auth) await hydrateTokenFromDb(token, auth.userId);
       }
       return token;
     },

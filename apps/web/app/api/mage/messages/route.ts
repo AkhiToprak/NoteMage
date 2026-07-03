@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
-import { getAuthUserId } from '@/lib/auth';
+import { getAuthContext, getAuthUserId } from '@/lib/auth';
 import { getMageName } from '@/lib/scholar';
 import { db } from '@/lib/db';
 import {
@@ -42,11 +41,10 @@ import { mageGenerationActionsEnabled } from '@/lib/feature-flags';
  */
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getAuthUserId(request);
-    if (!userId) return unauthorizedResponse();
-
-    const token = await getToken({ req: request });
-    const mageName = getMageName(token?.scholarName as string | undefined);
+    const auth = await getAuthContext(request);
+    if (!auth) return unauthorizedResponse();
+    const userId = auth.userId;
+    const mageName = getMageName(auth.scholarName);
 
     checkAndUnlockAchievements(userId).catch(console.error);
 
@@ -145,7 +143,7 @@ export async function POST(request: NextRequest) {
     // panel turns share one thread.
     const contextKey = mageContextKey(resolved ? { ids: resolved.ids } : null);
     const threadNotebookId = contextKey.startsWith('notebook:')
-      ? resolved?.ids.notebookId ?? null
+      ? (resolved?.ids.notebookId ?? null)
       : null;
 
     // Prefer an explicitly-selected owned chatId (the panel's active thread, incl.
@@ -250,7 +248,10 @@ export async function GET(request: NextRequest) {
     // The history overlay loads a specific thread by id (ownership-scoped);
     // otherwise resume the surface's latest thread for (userId, contextKey).
     const chat = explicitChatId
-      ? await db.notebookChat.findFirst({ where: { id: explicitChatId, userId }, select: { id: true } })
+      ? await db.notebookChat.findFirst({
+          where: { id: explicitChatId, userId },
+          select: { id: true },
+        })
       : await db.notebookChat.findFirst({
           where: { userId, contextKey },
           orderBy: { updatedAt: 'desc' },

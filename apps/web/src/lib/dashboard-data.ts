@@ -96,8 +96,8 @@ function pathsCacheKey(userId: string): string {
  * Invalidate the per-user path-derived caches: the dashboard summary AND the
  * serialized path-overview list ({@link loadSerializedPathsForUser}). Both are
  * computed from the same StudyPlan tree, so any path mutation
- * (create/delete/reset/translate/cancel/regenerate), slot/activity completion,
- * or generation/translation finishing must clear both. Every such call site
+ * (create/delete/reset/cancel/regenerate), slot/activity completion,
+ * or generation finishing must clear both. Every such call site
  * already invokes this, so the path-list cache stays exactly as fresh as the
  * dashboard cache it sits beside.
  */

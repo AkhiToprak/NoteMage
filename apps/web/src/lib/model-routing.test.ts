@@ -96,36 +96,51 @@ describe("resolveModel('path-preview') — onboarding preview", () => {
 });
 
 /**
- * GLM migration v1 — path generation runs ENTIRELY on GLM-5.2 as the default
- * (flag-independent; see resolvePathStage). All four stages resolve to
- * glm-sonnet for both basic and ultra. Per-stage PATH_<STAGE>_MODEL overrides
- * still win, and MODEL_COMPOSITION_LEGACY=1 reverts paths to the prior routing.
+ * GLM migration v2 — structure + theory default to GLM-5.2 (quality surfaces);
+ * the per-slot volume stages (flashcards, quiz) default to GLM-4.7-flash on
+ * BASIC paths and stay on GLM-5.2 for ULTRA (600k-char corpora can exceed
+ * flash's 203K window; ultra is 3/mo-capped so its spend is bounded). Per-stage
+ * PATH_<STAGE>_MODEL overrides still win, and MODEL_COMPOSITION_LEGACY=1
+ * reverts paths to the prior routing.
  */
-describe('resolveModel — path stages default to GLM-5.2', () => {
+describe('resolveModel — path stage split (GLM-5.2 quality / GLM-4.7-flash volume)', () => {
   afterEach(() => {
     delete process.env.GLM_COMPOSITION;
     delete process.env.MODEL_COMPOSITION_LEGACY;
     delete process.env.PATH_QUIZ_MODEL;
   });
 
-  it('all four path stages → glm-sonnet (GLM-5.2), with the flag on OR off', () => {
+  it('structure + theory → glm-sonnet (GLM-5.2) for basic AND ultra, flag on OR off', () => {
     for (const flag of [false, true]) {
       if (flag) process.env.GLM_COMPOSITION = '1';
       else delete process.env.GLM_COMPOSITION;
-      for (const f of ['path-structure', 'path-theory', 'path-flashcards', 'path-quiz'] as const) {
-        const m = resolveModel(f, { ultra: f === 'path-structure' });
-        expect(m.provider).toBe('openrouter');
-        expect(m.token).toBe('glm-sonnet');
-        expect(m.model).toMatch(/glm-5\.2/);
+      for (const f of ['path-structure', 'path-theory'] as const) {
+        for (const ultra of [false, true]) {
+          const m = resolveModel(f, { ultra });
+          expect(m.provider).toBe('openrouter');
+          expect(m.token).toBe('glm-sonnet');
+          expect(m.model).toMatch(/glm-5\.2/);
+        }
       }
     }
   });
 
-  it('basic-tier structure is also GLM-5.2 (no Gemini split anymore)', () => {
-    expect(resolveModel('path-structure', { ultra: false })).toMatchObject({
-      token: 'glm-sonnet',
-      provider: 'openrouter',
-    });
+  it('BASIC flashcards + quiz → glm-flash (GLM-4.7-flash)', () => {
+    for (const f of ['path-flashcards', 'path-quiz'] as const) {
+      const m = resolveModel(f, { ultra: false });
+      expect(m.provider).toBe('openrouter');
+      expect(m.token).toBe('glm-flash');
+      expect(m.model).toMatch(/glm-4\.7-flash/);
+    }
+  });
+
+  it('ULTRA flashcards + quiz stay on glm-sonnet (context headroom)', () => {
+    for (const f of ['path-flashcards', 'path-quiz'] as const) {
+      expect(resolveModel(f, { ultra: true })).toMatchObject({
+        token: 'glm-sonnet',
+        provider: 'openrouter',
+      });
+    }
   });
 
   it('a gemini providerOverride is IGNORED — paths never route to Gemini', () => {
@@ -134,6 +149,10 @@ describe('resolveModel — path stages default to GLM-5.2', () => {
       expect(m.provider).toBe('openrouter');
       expect(m.token).toBe('glm-sonnet');
     }
+    expect(resolveModel('path-quiz', { ultra: false, providerOverride: 'gemini' })).toMatchObject({
+      token: 'glm-flash',
+      provider: 'openrouter',
+    });
   });
 
   it('PATH_QUIZ_MODEL still pins a stage back to real Claude', () => {
@@ -148,42 +167,62 @@ describe('resolveModel — path stages default to GLM-5.2', () => {
   });
 });
 
+describe('resolveModel — independent quiz verifier', () => {
+  it('always routes Gemini 2.5 Flash-Lite through OpenRouter', () => {
+    expect(resolveModel('quiz-verify')).toMatchObject({
+      provider: 'openrouter',
+      model: 'google/gemini-2.5-flash-lite',
+      token: 'or-flash-lite',
+    });
+  });
+});
+
 /**
- * The formerly-Haiku non-path slots (essay, page-generate, chat-generate,
- * chat-intent) now HARD-DEFAULT to GLM-4.7 (glm-haiku) — Haiku was removed
- * app-wide, so GLM_COMPOSITION no longer changes them; only
- * MODEL_COMPOSITION_LEGACY=1 reverts them to Claude Haiku. Gemini slots are
- * untouched; per-feature overrides win. (Paths + mage-answer + path-preview are
- * hard-defaulted to GLM elsewhere.)
+ * The formerly-Haiku non-path slots HARD-DEFAULT to GLM — essay/page-generate
+ * on GLM-4.7 (glm-haiku); the high-volume structured chat slots (chat-generate,
+ * chat-intent) on GLM-4.7-flash (glm-flash). GLM_COMPOSITION no longer changes
+ * them; only MODEL_COMPOSITION_LEGACY=1 reverts them to Claude Haiku. Gemini
+ * slots are untouched; per-feature overrides win. (Paths + mage-answer +
+ * path-preview are hard-defaulted to GLM elsewhere.)
  */
-describe('resolveModel — formerly-Haiku non-path slots run on GLM-4.7', () => {
+describe('resolveModel — formerly-Haiku non-path slots run on GLM', () => {
   afterEach(() => {
     delete process.env.GLM_COMPOSITION;
     delete process.env.MODEL_COMPOSITION_LEGACY;
     delete process.env.ESSAY_MODEL;
   });
 
-  const glmHaikuSlots = ['page-generate', 'essay', 'chat-generate', 'chat-intent'] as const;
+  const glmHaikuSlots = ['page-generate', 'essay'] as const;
+  const glmFlashSlots = ['chat-generate', 'chat-intent'] as const;
 
-  it('default (no flag): all resolve to glm-haiku (GLM-4.7)', () => {
+  it('default (no flag): essay/page-generate → glm-haiku, chat slots → glm-flash', () => {
     for (const f of glmHaikuSlots) {
       const m = resolveModel(f);
       expect(m.provider).toBe('openrouter');
       expect(m.token).toBe('glm-haiku');
-      expect(m.model).toMatch(/glm-4\.7/);
+      expect(m.model).toMatch(/glm-4\.7$/);
+    }
+    for (const f of glmFlashSlots) {
+      const m = resolveModel(f);
+      expect(m.provider).toBe('openrouter');
+      expect(m.token).toBe('glm-flash');
+      expect(m.model).toMatch(/glm-4\.7-flash/);
     }
   });
 
-  it('GLM_COMPOSITION=1 leaves them on GLM-4.7 (already GLM)', () => {
+  it('GLM_COMPOSITION=1 leaves them on their GLM tokens (already GLM)', () => {
     process.env.GLM_COMPOSITION = '1';
     for (const f of glmHaikuSlots) {
       expect(resolveModel(f)).toMatchObject({ token: 'glm-haiku', provider: 'openrouter' });
     }
+    for (const f of glmFlashSlots) {
+      expect(resolveModel(f)).toMatchObject({ token: 'glm-flash', provider: 'openrouter' });
+    }
   });
 
-  it('MODEL_COMPOSITION_LEGACY=1 reverts them to Claude Haiku', () => {
+  it('MODEL_COMPOSITION_LEGACY=1 reverts them all to Claude Haiku', () => {
     process.env.MODEL_COMPOSITION_LEGACY = '1';
-    for (const f of glmHaikuSlots) {
+    for (const f of [...glmHaikuSlots, ...glmFlashSlots]) {
       expect(resolveModel(f)).toMatchObject({ token: 'haiku', provider: 'anthropic' });
     }
   });
@@ -195,14 +234,43 @@ describe('resolveModel — formerly-Haiku non-path slots run on GLM-4.7', () => 
     });
   });
 
-  it('Gemini slots stay on Gemini', () => {
-    expect(resolveModel('chat-plain', { tier: 'PRO' }).provider).toBe('gemini');
+  it('Gemini slots stay on Gemini (chat-plain splits FREE→Flash-Lite, PRO→Flash)', () => {
+    expect(resolveModel('chat-plain', { tier: 'PRO' })).toMatchObject({
+      provider: 'gemini',
+      token: 'flash',
+    });
+    expect(resolveModel('chat-plain', { tier: 'FREE' })).toMatchObject({
+      provider: 'gemini',
+      token: 'flash-lite',
+    });
+    expect(resolveModel('chat-plain').token).toBe('flash-lite');
     expect(resolveModel('chat-title').provider).toBe('gemini');
   });
 
   it('explicit override pins a slot (e.g. ESSAY_MODEL=glm-5.2)', () => {
     process.env.ESSAY_MODEL = 'glm-5.2';
     expect(resolveModel('essay')).toMatchObject({ token: 'glm-sonnet', provider: 'openrouter' });
+  });
+
+  it('glm-flash parses via token name and slug aliases', () => {
+    process.env.ESSAY_MODEL = 'glm-flash';
+    expect(resolveModel('essay')).toMatchObject({ token: 'glm-flash', provider: 'openrouter' });
+    process.env.ESSAY_MODEL = 'glm-4.7-flash';
+    expect(resolveModel('essay').token).toBe('glm-flash');
+  });
+
+  it('deepseek-flash is a PIN-ONLY token — parses via aliases, no default routes to it', () => {
+    for (const alias of ['deepseek-flash', 'deepseek-v4-flash', 'deepseek']) {
+      process.env.ESSAY_MODEL = alias;
+      const m = resolveModel('essay');
+      expect(m).toMatchObject({ token: 'deepseek-flash', provider: 'openrouter' });
+      expect(m.model).toMatch(/deepseek-v4-flash/);
+    }
+    delete process.env.ESSAY_MODEL;
+    // No default anywhere resolves to deepseek — spot-check the likely suspects.
+    for (const f of ['essay', 'path-theory', 'path-quiz', 'chat-generate'] as const) {
+      expect(resolveModel(f).token).not.toBe('deepseek-flash');
+    }
   });
 
   it('MODEL_COMPOSITION_LEGACY wins over GLM_COMPOSITION (no GLM)', () => {
@@ -267,11 +335,13 @@ describe("resolveModel('weakness-session-generate') — mirrors exam-mock-questi
     delete process.env.EXAM_MOCK_QUESTIONS_MODEL;
   });
 
-  it('resolves identically to exam-mock-questions under default env (glm-sonnet)', () => {
+  it('resolves identically to exam-mock-questions under default env (glm-flash)', () => {
     const weakness = resolveModel('weakness-session-generate');
     const examMock = resolveModel('exam-mock-questions');
     expect(weakness).toEqual(examMock);
-    expect(weakness.token).toBe('glm-sonnet');
+    // Non-ultra path-quiz routing → the flash tier (session/practice corpora
+    // are 3.5k/14k chars — far under flash's 203K window).
+    expect(weakness.token).toBe('glm-flash');
   });
 
   it('WEAKNESS_SESSION_MODEL pins the model (e.g. =sonnet)', () => {

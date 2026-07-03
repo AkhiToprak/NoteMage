@@ -4,9 +4,7 @@
 //   2. Emit: theoryInputToTipTap interleaves pathImage / pathDiagram nodes.
 //   3. Hallucination-drop: resolveFigures rejects unknown/duplicate refs;
 //      resolveDiagrams drops per-kind-invalid diagrams.
-//   4. Translation round-trip: collectTheoryVisualSlots get/set writes the
-//      translated value BACK into attrs (the #1 regression risk).
-//   5. Moderation: tiptapJsonToPlainText surfaces diagram labels + image alt.
+//   4. Moderation: tiptapJsonToPlainText surfaces diagram labels + image alt.
 
 import { describe, it, expect } from 'vitest';
 import {
@@ -25,11 +23,6 @@ import {
   extractDiagramsFromTheoryBody,
   mergeDiagrams,
 } from '@/lib/path-generator';
-import {
-  collectTheoryVisualSlots,
-  cloneDiagramColumn,
-  collectColumnDiagramSlots,
-} from '@/lib/path-translator';
 import { tiptapJsonToPlainText, collectDiagramColumnStrings } from '@/lib/contentConverter';
 import type { SourceImage } from '@/lib/path-image-catalog';
 
@@ -284,45 +277,6 @@ describe('resolveDiagrams drops invalid + caps at 2', () => {
   });
 });
 
-describe('collectTheoryVisualSlots round-trip', () => {
-  it('writes translated values back into attrs (image alt + diagram labels)', () => {
-    const doc = {
-      type: 'doc',
-      content: [
-        { type: 'pathImage', attrs: { ref: 0, alt: 'original alt' } },
-        {
-          type: 'pathDiagram',
-          attrs: {
-            diagram: {
-              kind: 'timeline',
-              title: 'original title',
-              events: [
-                { date: '1789', label: 'original label A' },
-                { date: '1799', label: 'original label B' },
-              ],
-            },
-          },
-        },
-      ],
-    };
-    const slots = collectTheoryVisualSlots(doc);
-    // alt + title + 2 event labels — dates are NOT translatable.
-    expect(slots).toHaveLength(4);
-    slots.forEach((s, i) => s.set(`translated ${i}`));
-
-    const image = doc.content[0] as { attrs: { alt: string } };
-    const diagram = doc.content[1] as {
-      attrs: { diagram: { title: string; events: { date: string; label: string }[] } };
-    };
-    expect(image.attrs.alt).toBe('translated 0');
-    expect(diagram.attrs.diagram.title).toBe('translated 1');
-    expect(diagram.attrs.diagram.events[0].label).toBe('translated 2');
-    expect(diagram.attrs.diagram.events[1].label).toBe('translated 3');
-    // Dates untouched.
-    expect(diagram.attrs.diagram.events[0].date).toBe('1789');
-  });
-});
-
 describe('tiptapJsonToPlainText surfaces visual strings for moderation', () => {
   it('includes image alt + diagram labels', () => {
     const doc = {
@@ -391,35 +345,6 @@ describe('mergeDiagrams', () => {
   it('returns [] for empty input', () => {
     expect(mergeDiagrams([])).toEqual([]);
     expect(mergeDiagrams([[], []])).toEqual([]);
-  });
-});
-
-describe('diagram-column translation helpers', () => {
-  it('cloneDiagramColumn deep-copies an array and rejects non-arrays', () => {
-    const col = [{ ...TIMELINE }];
-    const clone = cloneDiagramColumn(col);
-    expect(clone).not.toBe(col);
-    expect(clone).toEqual(col);
-    expect(cloneDiagramColumn(null)).toBeNull();
-    expect(cloneDiagramColumn('x')).toBeNull();
-  });
-
-  it('collectColumnDiagramSlots round-trips labels back into the cloned column', () => {
-    const clone = cloneDiagramColumn([
-      { kind: 'timeline', title: 'orig title', events: [
-        { date: '1789', label: 'orig A' },
-        { date: '1799', label: 'orig B' },
-      ] },
-    ]);
-    const slots = collectColumnDiagramSlots(clone);
-    // title + 2 event labels (dates excluded).
-    expect(slots).toHaveLength(3);
-    slots.forEach((s, i) => s.set(`t${i}`));
-    const d = clone![0] as { title: string; events: { date: string; label: string }[] };
-    expect(d.title).toBe('t0');
-    expect(d.events[0].label).toBe('t1');
-    expect(d.events[1].label).toBe('t2');
-    expect(d.events[0].date).toBe('1789'); // untouched
   });
 });
 

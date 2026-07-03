@@ -503,7 +503,7 @@ export function mageModePromptParts(mode: MageMode): MageModePromptParts {
   return {
     uncoveredDirective,
     depthDirective:
-      'Keep it tight: lead with the answer in a sentence or two, then only the essential detail. Don’t pad.',
+      'Keep it tight: lead with the most useful next step in a sentence or two, then only the essential detail. Don’t pad.',
   };
 }
 

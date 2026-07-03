@@ -8,8 +8,8 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-import { normalizeEmail } from '@/lib/registration';
-import { verifyPasswordResetCode } from '@/lib/verification';
+import { hashIp, normalizeEmail } from '@/lib/registration';
+import { resetPasswordWithCode } from '@/lib/verification';
 import { logSecurityEvent } from '@/lib/security-events';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,7 +27,10 @@ export async function POST(request: NextRequest) {
     // infeasible.
     const rl = await rateLimit(`reset-password:${ip}`, 10, 60 * 1000, true);
     if (!rl.success) {
-      return tooManyRequestsResponse('Too many attempts. Please try again shortly.', rl.retryAfterMs);
+      return tooManyRequestsResponse(
+        'Too many attempts. Please try again shortly.',
+        rl.retryAfterMs
+      );
     }
 
     const body = await request.json().catch(() => null);
@@ -57,31 +60,14 @@ export async function POST(request: NextRequest) {
       return badRequestResponse('That code is invalid or has expired.');
     }
 
-    const result = await verifyPasswordResetCode(user.id, cleanCode);
+    // Hash before opening the transaction that locks the reset-code row.
+    const hashed = await bcrypt.hash(password, 12);
+    const result = await resetPasswordWithCode(user.id, cleanCode, hashed, user.emailVerified);
     if (!result.ok) {
       return badRequestResponse('That code is invalid or has expired.');
     }
 
-    const hashed = await bcrypt.hash(password, 12);
-
-    // One transaction: rewrite the password, clear any brute-force lockout
-    // (reset doubles as a lock-recovery path, mirroring authorize()'s success
-    // path), stamp emailVerified if it was never confirmed (proving email
-    // ownership), and burn the reset codes.
-    await db.$transaction([
-      db.user.update({
-        where: { id: user.id },
-        data: {
-          password: hashed,
-          failedLoginAttempts: 0,
-          lockedAt: null,
-          emailVerified: user.emailVerified ?? new Date(),
-        },
-      }),
-      db.passwordResetCode.deleteMany({ where: { userId: { equals: user.id } } }),
-    ]);
-
-    logSecurityEvent({ userId: user.id, type: 'password.reset', ip });
+    logSecurityEvent({ userId: user.id, type: 'password.reset', ip: hashIp(ip) });
 
     return successResponse({ reset: true }, 'Your password has been reset.');
   } catch (err) {

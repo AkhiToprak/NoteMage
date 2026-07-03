@@ -365,8 +365,6 @@ export default function CheckpointQuizViewer({
             title={quizSet.title}
             initialQuestions={quizSet.questions as never}
             isCheckpoint={isGraded}
-            hideManagementActions
-            externalChrome
             onSession={setSession}
             onComplete={(result) => void handleQuizComplete(result)}
           />

@@ -31,12 +31,24 @@ import { loadExamReadiness } from './exam-scope';
 import { forcedStructuredCall, type NormalizedUsage } from './path-generator-routing';
 import { QUIZ_FOR_SLOT_TOOL, quizPayloadCatalogFor, type QuizForSlotToolInput } from './ai-tools';
 import { normalizeQuizQuestions } from './path-generator-normalize';
-import { QuizSetV2Schema, QuizSourceSchema, type QuestionKind } from '@notemage/shared';
+import {
+  QuizSetV2Schema,
+  QuizSourceSchema,
+  type QuestionKind,
+  type QuizQuestionV2,
+} from '@notemage/shared';
 import { buildLegacyColumns } from './quiz-grading';
 import { logAiUsage } from './ai-usage';
 import { logTelemetry } from './telemetry-server';
 import type { MageActionId, MageContextIds } from './mage-types';
 import type { TierKey } from './tiers';
+import { verifiedSourceAnchor } from './source-grounding';
+import {
+  applyQuizVerification,
+  shouldVerifyQuiz,
+  verifyQuiz,
+  type QuizVerificationResult,
+} from './quiz-verifier';
 
 // ─────────────────────────────────────────────────────────────────────
 // Constants + pure helpers (unit-tested)
@@ -57,6 +69,7 @@ export const PRACTICE_QUIZ_KINDS: QuestionKind[] = ['mc', 'true_false', 'fill_bl
 const PRACTICE_CORPUS_CAP = 14_000;
 /** Most focus topics we list in the prompt tail. */
 const MAX_FOCUS_TOPICS = 8;
+export const PRACTICE_QUIZ_PROMPT_VERSION = 'practice-quiz-2026-07-02-v2';
 
 /** Bounded question count per origin — keeps the single Haiku call cheap + fast. */
 export function practiceQuizCount(origin: PracticeOrigin): number {
@@ -116,7 +129,7 @@ export function buildPracticeQuizInstructions(kinds: QuestionKind[]): string {
     'Ground every question in the SOURCE MATERIALS — never invent facts they do not support. When focus topics are listed, weight the quiz toward them.',
     '',
     'STRICT SHAPE RULES — the server rejects questions that violate these:',
-    '1. `mc` `options` is an ARRAY OF PLAIN STRINGS (never objects like {text,isCorrect}); mark the answer with the top-level `correctIndex` (0–3).',
+    '1. `mc` `options` is an ARRAY OF PLAIN STRINGS (never objects like {text,isCorrect}); mark the answer with the top-level `correctIndex` (0–3), and include payload.optionFeedback aligned to all four options (null for the correct option; targeted misconception correction for each wrong option).',
     '2. `true_false` payload is `{"correct": true|false}`.',
     '3. `fill_blank` payload MUST wrap answers inside `blank: { acceptableAnswers: [...] }` — never at the payload root.',
     '4. `match_pairs` uses keys `left` and `right` on each pair — never term/definition.',
@@ -124,7 +137,7 @@ export function buildPracticeQuizInstructions(kinds: QuestionKind[]): string {
     `Use ONLY these question kinds: ${kinds.join(', ')}. Mix at least two kinds when the material supports it.`,
     'Give each question a short `correctExplanation` and `wrongExplanation` so the learner learns from mistakes.',
     '',
-    'PROVENANCE: when a question is grounded in a specific passage of the SOURCE MATERIALS, attach a `source` object `{ "label": <the "## " section heading the passage came from>, "quote": <a VERBATIM excerpt of <=60 words from that section> }`. Copy the quote word-for-word — never paraphrase or invent one. Omit `source` entirely for any question written from general knowledge.',
+    'PROVENANCE: when SOURCE MATERIALS are present, every question must attach a `source` object `{ "label": <the "## " section heading the passage came from>, "quote": <a VERBATIM excerpt of <=60 words from that section> }`. Copy the quote word-for-word—never paraphrase or invent one. Only omit `source` when no source corpus was supplied.',
     '',
     quizPayloadCatalogFor(kinds),
   ].join('\n');
@@ -148,6 +161,19 @@ export function buildPracticeFocusTail(opts: {
 }
 
 type ValidatedPracticeQuiz = ReturnType<typeof QuizSetV2Schema.parse>;
+
+interface PracticeGenerationMeta {
+  promptVersion: string;
+  provider: NormalizedUsage['provider'];
+  model: string;
+  verificationStatus: string;
+  verification: QuizVerificationResult | null;
+  rejectedIndexes: number[];
+  /** In-memory only; used to verify source quotes before persistence. */
+  sourceCorpus: string | null;
+}
+
+type AssembledPracticeQuiz = ValidatedPracticeQuiz & { generationMeta?: PracticeGenerationMeta };
 
 /**
  * Validate raw tool output into a practice quiz: normalize drift → Zod-check the
@@ -180,6 +206,7 @@ export function parsePracticeQuiz(
  *  kind/payload), exactly as the path generator does. Pure. */
 export function practiceQuestionRows(
   questions: ValidatedPracticeQuiz['questions'],
+  sourceCorpus?: string | null,
 ): Prisma.QuizQuestionCreateWithoutQuizSetInput[] {
   return questions.map((q, i) => {
     const legacy = buildLegacyColumns(q.kind, q.payload);
@@ -189,7 +216,12 @@ export function practiceQuestionRows(
     // drawer light up only when a verbatim quote survived.
     const rawSource = (q as { source?: unknown }).source;
     const parsedSource = rawSource == null ? null : QuizSourceSchema.safeParse(rawSource);
-    const source = parsedSource && parsedSource.success ? parsedSource.data : null;
+    const source =
+      parsedSource && parsedSource.success
+        ? sourceCorpus === undefined
+          ? parsedSource.data
+          : verifiedSourceAnchor(parsedSource.data, sourceCorpus)
+        : null;
     return {
       kind: q.kind,
       payload: q.payload as unknown as Prisma.InputJsonValue,
@@ -471,7 +503,7 @@ export async function assemblePracticeQuiz(opts: {
   kinds?: readonly QuestionKind[];
   /** Appended to the dynamic (uncached) tail — e.g. a mock's difficulty steer. */
   extraInstruction?: string;
-}): Promise<ValidatedPracticeQuiz> {
+}): Promise<AssembledPracticeQuiz> {
   const safe = new Set<QuestionKind>(PRACTICE_QUIZ_KINDS);
   const requested = (opts.kinds ?? PRACTICE_QUIZ_KINDS).filter((k) => safe.has(k));
   const kinds: QuestionKind[] = requested.length > 0 ? requested : PRACTICE_QUIZ_KINDS;
@@ -552,22 +584,76 @@ export async function assemblePracticeQuiz(opts: {
   }
 
   if (!parsed) throw new Error('practice quiz generation produced no usable questions');
+
+  const verifyThisQuiz = shouldVerifyQuiz({
+    slotKind: opts.origin === 'exam_sim' ? 'final_exam' : 'assessment',
+    sampleKey: `${opts.origin}:${opts.title}:${opts.focusTopics.join('|')}`,
+  });
+  let verification: QuizVerificationResult | null = null;
+  if (verifyThisQuiz) {
+    const verifierQuestions = parsed.questions.map((question) => {
+      const copy = { ...question } as QuizQuestionV2 & { source?: unknown };
+      const source = verifiedSourceAnchor(copy.source, corpus);
+      if (source) copy.source = source;
+      else delete copy.source;
+      return copy as QuizQuestionV2;
+    });
+    verification = await verifyQuiz({
+      userId: opts.userId,
+      objective:
+        opts.focusTopics.length > 0
+          ? `Assess these focus topics: ${opts.focusTopics.join(', ')}`
+          : 'Assess the most important ideas in the supplied material.',
+      hasSourceMaterials: Boolean(corpus),
+      questions: verifierQuestions,
+    });
+  }
+  const minCount = Math.min(parsed.questions.length, opts.origin === 'exam_sim' ? 8 : 3);
+  const applied = applyQuizVerification(parsed.questions, verification, minCount);
   // Use the deterministic practice title, not the model's generic one.
-  return { ...parsed, title: opts.title };
+  return {
+    ...parsed,
+    title: opts.title,
+    questions: applied.questions,
+    generationMeta: {
+      promptVersion: PRACTICE_QUIZ_PROMPT_VERSION,
+      provider: usage.provider,
+      model: usage.model,
+      verificationStatus: applied.status,
+      verification,
+      rejectedIndexes: applied.rejectedIndexes,
+      sourceCorpus: corpus,
+    },
+  };
 }
 
 /** Persist a validated practice quiz as a standalone `QuizSet` under `notebookId`. */
 export async function persistPracticeQuizSet(
   userId: string,
   notebookId: string,
-  parsed: ValidatedPracticeQuiz,
+  parsed: AssembledPracticeQuiz,
 ): Promise<string> {
+  const meta = parsed.generationMeta;
   const set = await db.quizSet.create({
     data: {
       userId,
       notebookId,
       title: parsed.title,
-      questions: { create: practiceQuestionRows(parsed.questions) },
+      generationPromptVersion: meta?.promptVersion ?? null,
+      generationProvider: meta?.provider ?? null,
+      generationModel: meta?.model || null,
+      verificationStatus: meta?.verificationStatus ?? null,
+      verificationModel: meta?.verification?.model ?? null,
+      ...(meta?.verification
+        ? {
+            verificationDetails: {
+              items: meta.verification.items,
+              error: meta.verification.error ?? null,
+              rejectedIndexes: meta.rejectedIndexes,
+            } as unknown as Prisma.InputJsonValue,
+          }
+        : {}),
+      questions: { create: practiceQuestionRows(parsed.questions, meta?.sourceCorpus) },
     },
     select: { id: true },
   });

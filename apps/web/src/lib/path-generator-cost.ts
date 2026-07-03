@@ -58,6 +58,14 @@ export const COSTS: Record<string, RateCard> = {
   // Flash-Lite — the cheapest tier; backs theory/flashcards/classify/title/
   // inline/summary. Same explicit-cache caveat as Flash.
   'gemini-2.5-flash-lite': { input: 0.1, output: 0.4, cacheRead: 0.025, cacheWrite: 0.025 },
+  // Same model routed through OpenRouter for the independent quiz verifier.
+  // OpenRouter's inline usage.cost wins; this rate is the offline fallback.
+  'google/gemini-2.5-flash-lite': {
+    input: 0.1,
+    output: 0.4,
+    cacheRead: 0.01,
+    cacheWrite: 0,
+  },
 };
 
 /**
@@ -70,12 +78,23 @@ export const COSTS: Record<string, RateCard> = {
  */
 function glmRates(model: string): RateCard | undefined {
   if (!model.startsWith('z-ai/glm-')) return undefined;
+  // Flash tier — checked before the version tests so a future glm-5-flash
+  // still prices as flash. Live rates 2026-07-02: $0.06/$0.40, cache read $0.01.
+  if (/-flash/.test(model)) return { input: 0.06, output: 0.4, cacheRead: 0.01, cacheWrite: 0 };
   if (/glm-5/.test(model)) return { input: 0.95, output: 3.0, cacheRead: 0.24, cacheWrite: 0 };
   return { input: 0.4, output: 1.75, cacheRead: 0.1, cacheWrite: 0 };
 }
 
+/** DeepSeek-via-OpenRouter fallback rates (live catalog 2026-07-02:
+ *  deepseek-v4-flash $0.089/$0.18, cache read $0.018). Exact billed USD
+ *  arrives inline (usage.cost) — this is the fallback only. */
+function deepseekRates(model: string): RateCard | undefined {
+  if (!model.startsWith('deepseek/')) return undefined;
+  return { input: 0.089, output: 0.18, cacheRead: 0.018, cacheWrite: 0 };
+}
+
 function computeModelCost(usage: ModelUsage): number {
-  const rates = COSTS[usage.model] ?? glmRates(usage.model);
+  const rates = COSTS[usage.model] ?? glmRates(usage.model) ?? deepseekRates(usage.model);
   if (!rates) return 0;
   return (
     (usage.inputTokens * rates.input +

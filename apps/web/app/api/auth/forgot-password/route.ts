@@ -17,7 +17,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Starts (and re-sends) the password-reset flow. Unauthenticated and
 // anti-enumeration: always returns the same generic success so it can't be used
 // to probe which emails are registered. This endpoint doubles as the resend —
-// issuePasswordResetCode deletes the prior code and mints a fresh one.
+// issuePasswordResetCode atomically replaces the prior code with a fresh one.
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,12 +41,17 @@ export async function POST(request: NextRequest) {
     }
     const ipCap = await rateLimit(`forgot-password:ip:${ip}`, 10, 60 * 60 * 1000, true);
     if (!ipCap.success) {
-      return tooManyRequestsResponse('Too many requests. Please try again later.', ipCap.retryAfterMs);
+      return tooManyRequestsResponse(
+        'Too many requests. Please try again later.',
+        ipCap.retryAfterMs
+      );
     }
 
     // Bot gate — no-op until TURNSTILE_SECRET_KEY is set (src/lib/turnstile.ts).
     if (!(await verifyTurnstile(body?.turnstileToken, ip))) {
-      return badRequestResponse('Verification failed. Please complete the challenge and try again.');
+      return badRequestResponse(
+        'Verification failed. Please complete the challenge and try again.'
+      );
     }
 
     const user = await db.user.findUnique({

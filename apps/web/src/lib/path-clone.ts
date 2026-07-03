@@ -92,6 +92,8 @@ export interface CloneSourceActivity {
 export interface CloneSourceSlot {
   title: string;
   description: string | null;
+  objective?: string | null;
+  assessmentSpec?: Prisma.JsonValue | null;
   kind: string;
   sortOrder: number;
   prerequisiteSlotIds?: string[];
@@ -134,6 +136,10 @@ export function buildPhasesCreate(
       create: phase.slots.map((slot) => ({
         title: slot.title,
         description: slot.description,
+        objective: slot.objective ?? null,
+        ...(slot.assessmentSpec
+          ? { assessmentSpec: slot.assessmentSpec as Prisma.InputJsonValue }
+          : {}),
         kind: slot.kind,
         sortOrder: slot.sortOrder,
         prerequisiteSlotIds: [],

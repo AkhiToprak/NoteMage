@@ -1,5 +1,6 @@
 import { randomInt } from 'crypto';
 import bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 
 // Email-confirmation codes for the credentials-signup hard block. Codes are
@@ -18,6 +19,13 @@ export type VerifyCodeResult =
   | { ok: true }
   | { ok: false; reason: 'no_code' | 'expired' | 'too_many_attempts' | 'invalid' };
 
+type LockedCodeRow = {
+  id: string;
+  codeHash: string;
+  attempts: number;
+  expiresAt: Date;
+};
+
 function generateCode(): string {
   // randomInt is uniform over [0, 1_000_000); pad so "42" → "000042".
   return randomInt(0, 1_000_000).toString().padStart(6, '0');
@@ -25,19 +33,19 @@ function generateCode(): string {
 
 /**
  * Mint a fresh 6-digit code for `userId` and return the plaintext (so the
- * caller can email it — only the hash is persisted). Any prior code for the
- * user is deleted first, so there is exactly one active code at a time and
- * the attempt counter resets on every resend.
+ * caller can email it — only the hash is persisted). Upsert replaces any
+ * prior code so one active row remains and attempts reset on every resend.
  */
 export async function issueEmailVerificationCode(userId: string): Promise<string> {
   const code = generateCode();
   const codeHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
   const expiresAt = new Date(Date.now() + CODE_TTL_MS);
 
-  await db.$transaction([
-    db.emailVerificationCode.deleteMany({ where: { userId: { equals: userId } } }),
-    db.emailVerificationCode.create({ data: { userId, codeHash, expiresAt } }),
-  ]);
+  await db.emailVerificationCode.upsert({
+    where: { userId },
+    update: { codeHash, expiresAt, attempts: 0, createdAt: new Date() },
+    create: { userId, codeHash, expiresAt },
+  });
 
   return code;
 }
@@ -49,40 +57,43 @@ export async function issueEmailVerificationCode(userId: string): Promise<string
  * generic message to avoid leaking which step failed.
  */
 export async function verifyEmailCode(userId: string, code: string): Promise<VerifyCodeResult> {
-  const row = await db.emailVerificationCode.findFirst({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
+  return db.$transaction(async (tx) => {
+    const rows = await tx.$queryRaw<LockedCodeRow[]>(Prisma.sql`
+      SELECT "id", "codeHash", "attempts", "expiresAt"
+      FROM "email_verification_codes"
+      WHERE "userId" = ${userId}
+      FOR UPDATE
+    `);
+    const row = rows[0];
+    if (!row) return { ok: false, reason: 'no_code' };
+
+    if (row.expiresAt.getTime() < Date.now()) {
+      await tx.emailVerificationCode.delete({ where: { id: row.id } });
+      return { ok: false, reason: 'expired' };
+    }
+
+    if (row.attempts >= MAX_ATTEMPTS) {
+      await tx.emailVerificationCode.delete({ where: { id: row.id } });
+      return { ok: false, reason: 'too_many_attempts' };
+    }
+
+    const match = await bcrypt.compare(code, row.codeHash);
+    if (!match) {
+      if (row.attempts + 1 >= MAX_ATTEMPTS) {
+        await tx.emailVerificationCode.delete({ where: { id: row.id } });
+        return { ok: false, reason: 'too_many_attempts' };
+      }
+      await tx.emailVerificationCode.update({
+        where: { id: row.id },
+        data: { attempts: { increment: 1 } },
+      });
+      return { ok: false, reason: 'invalid' };
+    }
+
+    await tx.user.update({ where: { id: userId }, data: { emailVerified: new Date() } });
+    await tx.emailVerificationCode.delete({ where: { id: row.id } });
+    return { ok: true };
   });
-
-  if (!row) return { ok: false, reason: 'no_code' };
-
-  if (row.expiresAt.getTime() < Date.now()) {
-    await db.emailVerificationCode.deleteMany({ where: { userId: { equals: userId } } });
-    return { ok: false, reason: 'expired' };
-  }
-
-  if (row.attempts >= MAX_ATTEMPTS) {
-    // Spent — make the user request a new code rather than keep guessing.
-    await db.emailVerificationCode.deleteMany({ where: { userId: { equals: userId } } });
-    return { ok: false, reason: 'too_many_attempts' };
-  }
-
-  const match = await bcrypt.compare(code, row.codeHash);
-  if (!match) {
-    await db.emailVerificationCode.update({
-      where: { id: row.id },
-      data: { attempts: { increment: 1 } },
-    });
-    return { ok: false, reason: 'invalid' };
-  }
-
-  // Success — verify the account and burn every outstanding code.
-  await db.$transaction([
-    db.user.update({ where: { id: userId }, data: { emailVerified: new Date() } }),
-    db.emailVerificationCode.deleteMany({ where: { userId: { equals: userId } } }),
-  ]);
-
-  return { ok: true };
 }
 
 // ── Password reset ─────────────────────────────────────────────────────────
@@ -93,61 +104,77 @@ export async function verifyEmailCode(userId: string, code: string): Promise<Ver
 
 /**
  * Mint a fresh 6-digit password-reset code for `userId` and return the
- * plaintext (so the caller can email it — only the hash is persisted). Any
- * prior reset code for the user is deleted first, so there is exactly one
- * active code at a time and the attempt counter resets on every request.
+ * plaintext (so the caller can email it — only the hash is persisted). Upsert
+ * replaces any prior code and resets attempts on every request.
  */
 export async function issuePasswordResetCode(userId: string): Promise<string> {
   const code = generateCode();
   const codeHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
   const expiresAt = new Date(Date.now() + CODE_TTL_MS);
 
-  await db.$transaction([
-    db.passwordResetCode.deleteMany({ where: { userId: { equals: userId } } }),
-    db.passwordResetCode.create({ data: { userId, codeHash, expiresAt } }),
-  ]);
+  await db.passwordResetCode.upsert({
+    where: { userId },
+    update: { codeHash, expiresAt, attempts: 0, createdAt: new Date() },
+    create: { userId, codeHash, expiresAt },
+  });
 
   return code;
 }
 
 /**
- * Check a submitted password-reset code for `userId`. On success the reset
- * code rows are cleared (single-use) — but, unlike `verifyEmailCode`, this does
- * NOT touch the user row: the reset route owns the password write so the whole
- * change (hash + lockout reset + emailVerified + code burn) lands in one
- * transaction. Failures are granular for server logging; callers must surface a
- * single generic message.
+ * Consume a reset code and change the password in one row-locking transaction.
+ * `hashedPassword` is computed by the caller before the transaction begins.
  */
-export async function verifyPasswordResetCode(
+export async function resetPasswordWithCode(
   userId: string,
-  code: string
+  code: string,
+  hashedPassword: string,
+  currentEmailVerified: Date | null
 ): Promise<VerifyCodeResult> {
-  const row = await db.passwordResetCode.findFirst({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-  });
+  return db.$transaction(async (tx) => {
+    const rows = await tx.$queryRaw<LockedCodeRow[]>(Prisma.sql`
+      SELECT "id", "codeHash", "attempts", "expiresAt"
+      FROM "password_reset_codes"
+      WHERE "userId" = ${userId}
+      FOR UPDATE
+    `);
+    const row = rows[0];
+    if (!row) return { ok: false, reason: 'no_code' };
 
-  if (!row) return { ok: false, reason: 'no_code' };
+    if (row.expiresAt.getTime() < Date.now()) {
+      await tx.passwordResetCode.delete({ where: { id: row.id } });
+      return { ok: false, reason: 'expired' };
+    }
 
-  if (row.expiresAt.getTime() < Date.now()) {
-    await db.passwordResetCode.deleteMany({ where: { userId: { equals: userId } } });
-    return { ok: false, reason: 'expired' };
-  }
+    if (row.attempts >= MAX_ATTEMPTS) {
+      await tx.passwordResetCode.delete({ where: { id: row.id } });
+      return { ok: false, reason: 'too_many_attempts' };
+    }
 
-  if (row.attempts >= MAX_ATTEMPTS) {
-    // Spent — make the user request a new code rather than keep guessing.
-    await db.passwordResetCode.deleteMany({ where: { userId: { equals: userId } } });
-    return { ok: false, reason: 'too_many_attempts' };
-  }
+    const match = await bcrypt.compare(code, row.codeHash);
+    if (!match) {
+      if (row.attempts + 1 >= MAX_ATTEMPTS) {
+        await tx.passwordResetCode.delete({ where: { id: row.id } });
+        return { ok: false, reason: 'too_many_attempts' };
+      }
+      await tx.passwordResetCode.update({
+        where: { id: row.id },
+        data: { attempts: { increment: 1 } },
+      });
+      return { ok: false, reason: 'invalid' };
+    }
 
-  const match = await bcrypt.compare(code, row.codeHash);
-  if (!match) {
-    await db.passwordResetCode.update({
-      where: { id: row.id },
-      data: { attempts: { increment: 1 } },
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedPassword,
+        authVersion: { increment: 1 },
+        failedLoginAttempts: 0,
+        lockedAt: null,
+        emailVerified: currentEmailVerified ?? new Date(),
+      },
     });
-    return { ok: false, reason: 'invalid' };
-  }
-
-  return { ok: true };
+    await tx.passwordResetCode.delete({ where: { id: row.id } });
+    return { ok: true };
+  });
 }

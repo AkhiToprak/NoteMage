@@ -216,6 +216,22 @@ export interface StudyPlanToolInput {
 
 export type PathSlotKind = 'learning' | 'review' | 'assessment' | 'final_exam';
 
+/**
+ * Item-writing blueprint produced inside the existing Stage-A structure call.
+ * This is deliberately richer than a Bloom verb while adding no model call:
+ * Stage B receives the observable evidence, transfer target, and common errors
+ * alongside the slot objective.
+ */
+export interface PathAssessmentSpec {
+  knowledgeType: 'factual' | 'conceptual' | 'procedural' | 'metacognitive';
+  learnerAction: string;
+  evidence: string;
+  difficulty: 'foundational' | 'standard' | 'stretch';
+  transfer: 'near' | 'mixed' | 'far';
+  commonErrors?: string[];
+  scoringRule?: string;
+}
+
 export interface PathStructureSlot {
   title: string;
   kind: PathSlotKind;
@@ -229,6 +245,8 @@ export interface PathStructureSlot {
   // and the normalizer falls back to the topicHint. Persisted on
   // `CheckpointSlot.objective`.
   objective?: string;
+  /** Structured assessment blueprint emitted in the same Stage-A call. */
+  assessmentSpec?: PathAssessmentSpec;
   // Section-local 0-based indices of the EARLIER slots this checkpoint
   // consolidates/tests. Computed by `enforceSpacedReviews`; NOT emitted by the
   // model. The persist step resolves these to `CheckpointSlot.coversSlotIds`.
@@ -370,7 +388,7 @@ export const FLASHCARD_TOOL: Anthropic.Messages.Tool = {
 // that lives in each caller's surrounding prose.
 const QUIZ_PAYLOAD_CATALOG_LINES = [
   'Payload shapes — the server rejects drift, so match these exactly:',
-  '- mc → {"options":["A","B","C","D"],"correctIndex":0..3}. Plain strings only; no {text,isCorrect} objects.',
+  '- mc → {"options":["A","B","C","D"],"correctIndex":0..3,"optionFeedback":[null,{"misconception":"specific error","explanation":"targeted correction"},…]}. Plain option strings only; no {text,isCorrect} objects. `optionFeedback` has exactly 4 entries aligned by option index: null for the correct option and targeted feedback for each wrong option.',
   '- true_false → {"correct": true|false}. The prompt itself is the statement to judge; payload only carries the answer key.',
   '- fill_blank → {"blank":{"acceptableAnswers":["answer","alt-spelling"]}}. Provide 2–4 acceptable variants; `caseSensitive` and `fuzzyThreshold` are optional (default fuzzyThreshold 0.85). In the `prompt`, mark the blank with a run of plain underscores (e.g. "In 1894, France and ____ formed an alliance"). NEVER use placeholder syntax like "{{BLANK}}", "{BLANK}", or "[BLANK]" — the learner will see it literally.',
   '- word_bank → {"template":"... {{0}} ... {{1}} ...","slots":[{"correctAnswer":"x"},…],"wordBank":["x","y","distractor"]}. All three keys required. The `prompt` is a SHORT lead-in (e.g. "Complete the statement:") — do NOT paste the template into the prompt; the renderer shows the template separately and you\'ll get "{{0}}" rendered literally. `wordBank` must contain EVERY slot answer including duplicates: if the same word fills two slots, list it twice. Add 2–4 distractor tokens on top of the answer set.',
@@ -411,7 +429,7 @@ export function quizPayloadCatalogFor(kinds: QuestionKind[]): string {
  */
 export function quizShapeExamples(): string {
   return [
-    'CORRECT shape:   `{"kind":"mc","prompt":"…","payload":{"options":["a","b","c","d"],"correctIndex":0}}`',
+    'CORRECT shape:   `{"kind":"mc","prompt":"…","payload":{"options":["a","b","c","d"],"correctIndex":0,"optionFeedback":[null,{"misconception":"…","explanation":"…"},{"misconception":"…","explanation":"…"},{"misconception":"…","explanation":"…"}]}}`',
     'WRONG (rejected): `{"kind":"mc","prompt":"…","options":["a","b","c","d"],"correctIndex":0}`',
   ].join('\n');
 }
@@ -429,6 +447,7 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
     'STRICT SHAPE RULES — read carefully, the server rejects questions that violate these:',
     '1. `options` (for `mc`) is an ARRAY OF PLAIN STRINGS. NEVER an array of objects like `{ text, isCorrect }` or `{ label, value }`. Just bare strings.',
     '2. Mark the correct answer on `mc` questions with the top-level `correctIndex` (0–3). NEVER attach a `correct`/`isCorrect` flag to an option.',
+    '2a. For `mc`, add payload.optionFeedback with exactly 4 entries aligned to the options: null at correctIndex and a misconception-specific correction for every wrong option.',
     '3. `fill_blank` and `translation` payloads MUST wrap the answers inside `blank: { acceptableAnswers: [...] }`. NEVER put `acceptableAnswers` at the payload root.',
     '4. `word_bank` payloads MUST include all three of `template`, `slots`, and `wordBank` — none are optional.',
     '5. `match_pairs` uses keys `left` and `right` on each pair object. NEVER `term`/`definition` or `key`/`value`.',
@@ -851,10 +870,10 @@ const PATH_STRUCTURE_TOOL_BASE: Anthropic.Messages.Tool = {
   description: [
     'Design the section / slot skeleton for a guided learning path.',
     'Output the curriculum spine ONLY — title, description, and a list of phases ("sections"), each containing an ordered list of slots ("checkpoints").',
-    'Each slot has: a short title; a "kind" (learning | review | assessment); a "topicHint" (what to TEACH); and an "objective" (the concrete, testable thing the learner can DO after it).',
+    'Each slot has: a short title; a "kind" (learning | review | assessment); a "topicHint" (what to TEACH); an "objective" (the concrete, testable thing the learner can DO after it); and an "assessmentSpec" describing what evidence would prove mastery.',
     'Scale to the material: produce as many sections and slots as the source material and available days genuinely support — never pad. Thin material → fewer, tighter slots. A focused 3-section path beats a bloated 6-section one.',
     'No two slots may overlap — each teaches a DISTINCT concept. Order slots so each builds on the ones before it (prerequisites first).',
-    'Rules for slot kinds — build in spaced repetition:',
+    'Rules for slot kinds — build in retrieval practice and interleaving:',
     '- "learning" teaches one new concept; "review" consolidates + quizzes earlier slots (no new theory); "assessment" is the graded gate.',
     '- Add a "review" slot after roughly every 2 "learning" slots. NEVER output a section that is only learning slots followed by one assessment.',
     '- The LAST slot of every phase MUST be "assessment" (the checkpoint quiz that gates the next section).',
@@ -916,12 +935,57 @@ const PATH_STRUCTURE_TOOL_BASE: Anthropic.Messages.Tool = {
                     description:
                       'One line: the concrete, testable thing the learner can DO after this slot, phrased verb-first (e.g. "Conjugate regular -ar verbs in the present tense"). The slot quiz is written to test THIS.',
                   },
+                  assessmentSpec: {
+                    type: 'object',
+                    description:
+                      'A compact assessment blueprint. Describe observable evidence of mastery; do not classify from the objective verb alone.',
+                    properties: {
+                      knowledgeType: {
+                        type: 'string',
+                        enum: ['factual', 'conceptual', 'procedural', 'metacognitive'],
+                      },
+                      learnerAction: {
+                        type: 'string',
+                        description: 'The observable action the learner must perform.',
+                      },
+                      evidence: {
+                        type: 'string',
+                        description: 'What a correct response must demonstrate.',
+                      },
+                      difficulty: {
+                        type: 'string',
+                        enum: ['foundational', 'standard', 'stretch'],
+                      },
+                      transfer: {
+                        type: 'string',
+                        enum: ['near', 'mixed', 'far'],
+                        description: 'How far the assessment context should move beyond the taught example.',
+                      },
+                      commonErrors: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        maxItems: 3,
+                        description: 'Up to three plausible reasoning errors, not joke distractors.',
+                      },
+                      scoringRule: {
+                        type: 'string',
+                        description: 'A concise statement of what earns full credit.',
+                      },
+                    },
+                    required: [
+                      'knowledgeType',
+                      'learnerAction',
+                      'evidence',
+                      'difficulty',
+                      'transfer',
+                    ],
+                  },
                 },
                 // `objective` is required so every slot carries the verb-first,
                 // testable outcome its quiz is written against (the alignment
                 // anchor). normalizePathStructure still falls back to topicHint
                 // if an odd response omits it, so this can't hard-fail a path.
-                required: ['title', 'kind', 'topicHint', 'objective'],
+                required: ['title', 'kind', 'topicHint', 'objective', 'assessmentSpec'],
               },
               description:
                 'Ordered slots: learning slots with a "review" interleaved after ~every 2 of them; the last slot kind MUST be "assessment".',

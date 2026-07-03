@@ -1,11 +1,9 @@
 // NM-M1 guard — defense-in-depth invariant for the API auth surface.
 //
-// The middleware does NOT blanket-gate /api/* (a runtime gate was deferred
-// because a wrong public-route allowlist would break every public endpoint).
-// Instead, this test asserts that EVERY `app/api/**/route.ts` either enforces
-// session auth itself or is on an explicit, justified public allowlist. A new
-// route added without auth and without a conscious allowlist entry fails CI —
-// which is exactly the regression that produced the audit's reachable IDORs.
+// Middleware provides a coarse anonymous-request gate, while this test asserts
+// that EVERY `app/api/**/route.ts` also performs database-validated session
+// authorization itself or is on an explicit, justified public allowlist. A new
+// route without either fails CI.
 //
 // To add a genuinely public route: add it to PUBLIC_ALLOWLIST *with* a comment
 // explaining what protects it instead of a session (signature, OAuth state,
@@ -20,10 +18,10 @@ import { fileURLToPath } from 'node:url';
 // test is independent of the working directory vitest is launched from.
 const API_DIR = join(dirname(fileURLToPath(import.meta.url)), '../..', 'app', 'api');
 
-// Any of these means the handler establishes the caller's identity from the
-// session/JWT. `getToken` is next-auth's lower-level JWT read (used by routes
-// that branch on tier/role without a DB round-trip).
-const SESSION_AUTH = /\bgetAuthUserId\b|\bgetAdminUserId\b|\bgetServerSession\b|\bgetToken\b/;
+// Only centralized helpers count. A raw JWT/session read proves cookie
+// integrity but does not validate user existence, ban state, authVersion, or
+// the current database role.
+const SESSION_AUTH = /\bgetAuthUserId\b|\bgetAdminUserId\b|\bgetAuthContext\b/;
 
 // Routes that are public-by-design or protected by something other than a
 // session. Each entry is the path relative to app/api, posix-separated.

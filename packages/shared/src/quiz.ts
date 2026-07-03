@@ -72,9 +72,21 @@ export type ExecutableCodeLanguage = (typeof EXECUTABLE_CODE_LANGUAGES)[number];
 export const QuestionKindSchema = z.enum(QUESTION_KINDS);
 export type QuestionKind = z.infer<typeof QuestionKindSchema>;
 
+export const McOptionFeedbackSchema = z.object({
+  /** The specific misconception or reasoning slip represented by this option. */
+  misconception: z.string().trim().min(1).max(240).optional(),
+  /** Corrective feedback shown only when the learner selected this option. */
+  explanation: z.string().trim().min(1).max(1200),
+});
+export type McOptionFeedback = z.infer<typeof McOptionFeedbackSchema>;
+
 export const McPayloadSchema = z.object({
   options: z.array(z.string().min(1)).length(4),
   correctIndex: z.number().int().min(0).max(3),
+  // One entry per option. The correct option may use null because its feedback
+  // already lives in `correctExplanation`; wrong options should carry a
+  // misconception-specific correction. Optional for legacy quizzes.
+  optionFeedback: z.array(McOptionFeedbackSchema.nullable()).length(4).optional(),
 });
 export type McPayload = z.infer<typeof McPayloadSchema>;
 

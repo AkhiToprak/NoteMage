@@ -11,7 +11,6 @@ import type { SerializedPath } from '@/lib/path-loader';
 import type { PathPlan } from '@/components/learn/PathView';
 import { DeletePathDialog } from '@/components/learn/DeletePathDialog';
 import { ResetPathDialog } from '@/components/learn/ResetPathDialog';
-import { TranslatePathDialog } from '@/components/learn/TranslatePathDialog';
 import { CancelPathDialog } from '@/components/learn/CancelPathDialog';
 import ui from '@/components/app/ui.module.css';
 import styles from './Paths.module.css';
@@ -180,7 +179,6 @@ function PathCard({
   compact = false,
   onDelete,
   onReset,
-  onTranslate,
   onCancel,
 }: {
   p: SerializedPath;
@@ -189,7 +187,6 @@ function PathCard({
   compact?: boolean;
   onDelete: (p: SerializedPath) => void;
   onReset: (p: SerializedPath) => void;
-  onTranslate: (p: SerializedPath) => void;
   onCancel: (p: SerializedPath) => void;
 }) {
   const stats = derivePathStats(p as unknown as PathPlan);
@@ -245,12 +242,6 @@ function PathCard({
         },
       ]
     : [
-        {
-          key: 'translate',
-          icon: 'translate',
-          label: 'Translate',
-          onSelect: () => onTranslate(p),
-        },
         {
           key: 'reset',
           icon: 'restart_alt',
@@ -451,10 +442,9 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
   // Per-path action dialog state.
   const [deleteTarget, setDeleteTarget] = useState<DialogTarget>(null);
   const [resetTarget, setResetTarget] = useState<DialogTarget>(null);
-  const [translateTarget, setTranslateTarget] = useState<DialogTarget>(null);
   const [cancelTarget, setCancelTarget] = useState<SerializedPath | null>(null);
 
-  // Re-fetch after a mutating dialog action (delete/reset/translate/cancel).
+  // Re-fetch after a mutating dialog action (delete/reset/cancel).
   const refresh = () => {
     fetch('/api/learn/paths')
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
@@ -687,7 +677,6 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
                   isGenerating={p.generationStatus === 'generating'}
                   onDelete={setDeleteTarget}
                   onReset={setResetTarget}
-                  onTranslate={setTranslateTarget}
                   onCancel={setCancelTarget}
                 />
               ))}
@@ -711,7 +700,6 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
                     compact
                     onDelete={setDeleteTarget}
                     onReset={setResetTarget}
-                    onTranslate={setTranslateTarget}
                     onCancel={setCancelTarget}
                   />
                 ))}
@@ -757,15 +745,6 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
           planTitle={resetTarget.title}
           onClose={() => setResetTarget(null)}
           onReset={() => { setResetTarget(null); refresh(); }}
-        />
-      )}
-      {translateTarget && (
-        <TranslatePathDialog
-          planId={translateTarget.id}
-          planTitle={translateTarget.title}
-          currentLanguage={(translateTarget as { language?: string }).language ?? 'en'}
-          onClose={() => setTranslateTarget(null)}
-          onTranslated={() => { setTranslateTarget(null); refresh(); }}
         />
       )}
     </AppShell>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import NextAuth from 'next-auth';
 import { authOptions } from '@/auth/config';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { isCredentialsCallbackPath } from '@/lib/auth-paths';
 
 const handler = NextAuth(authOptions);
 
@@ -18,7 +19,7 @@ async function rateLimitedPost(req: NextRequest, ctx: unknown) {
   // signOut() → /api/auth/signout and update() → /api/auth/session are left
   // unthrottled here; NextAuth's CSRF check and the Postgres account-lockout in
   // authorize() still backstop credential brute force.
-  const isCredentialLogin = req.nextUrl.pathname.endsWith('/callback/credentials');
+  const isCredentialLogin = isCredentialsCallbackPath(req.nextUrl.pathname);
   if (isCredentialLogin) {
     const ip = getClientIp(req);
     // Security-critical: fail closed so a Redis outage can't drop the brute-force cap.

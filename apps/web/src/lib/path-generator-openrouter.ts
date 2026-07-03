@@ -15,7 +15,7 @@
 // back ON for the structure call — see path-generator-routing.ts.
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { callOpenRouter, type OpenRouterUsage } from './openrouter';
+import { callOpenRouter, openRouterMaxCompletionTokens, type OpenRouterUsage } from './openrouter';
 import { anthropicToolToOpenAI } from './openrouter-tools';
 
 // GLM output ceiling — deliberately higher than the shared Anthropic
@@ -87,6 +87,9 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
     onUsage,
   } = opts;
   const toolArray = (tools ?? [tool]).map(anthropicToolToOpenAI);
+  // Flash-tier GLM enforces a 16,384 completion ceiling — clamp so a request
+  // asking the 32k default isn't rejected by the provider.
+  const effectiveMaxTokens = Math.min(maxTokens, openRouterMaxCompletionTokens(model));
   let lastError: unknown = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -96,7 +99,7 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
         user: userMessage,
         tools: toolArray,
         toolChoice: { type: 'function', function: { name: tool.name } },
-        maxTokens,
+        maxTokens: effectiveMaxTokens,
         ...(reasoningEffort ? { reasoningEffort } : { disableReasoning: true }),
         sessionId,
       });
@@ -108,7 +111,7 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
       // GLM-5.2 can burn the whole output budget on thinking and truncate here).
       if (result.finishReason === 'length') {
         throw new Error(
-          `GLM ${tool.name} truncated at ${maxTokens}-token cap (finish_reason=length)`,
+          `GLM ${tool.name} truncated at ${effectiveMaxTokens}-token cap (finish_reason=length)`,
         );
       }
       const call = result.toolCalls.find((c) => c.name === tool.name) ?? result.toolCalls[0];

@@ -56,14 +56,20 @@ export default function AccountSettingsPage() {
       const res = await fetch('/api/user/password', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword: passwords.current, newPassword: passwords.newPass }),
+        body: JSON.stringify({
+          currentPassword: passwords.current,
+          newPassword: passwords.newPass,
+        }),
       });
       const json = await res.json().catch(() => null);
       if (res.ok) {
-        setPwStatus({ type: 'success', msg: 'Password updated.' });
         setPasswords({ current: '', newPass: '', confirm: '' });
+        await signOut({ callbackUrl: '/auth/login' });
       } else {
-        setPwStatus({ type: 'error', msg: json?.error ?? "Couldn't update password. Please try again." });
+        setPwStatus({
+          type: 'error',
+          msg: json?.error ?? "Couldn't update password. Please try again.",
+        });
       }
     } catch {
       setPwStatus({ type: 'error', msg: 'Network error. Please try again.' });
@@ -101,7 +107,10 @@ export default function AccountSettingsPage() {
         body: JSON.stringify({ customGreeting: value }),
       });
       if (res.ok) {
-        setGreetingStatus({ type: 'success', msg: value ? 'Custom greeting saved!' : 'Reset to random greetings.' });
+        setGreetingStatus({
+          type: 'success',
+          msg: value ? 'Custom greeting saved!' : 'Reset to random greetings.',
+        });
         if (!value) setCustomGreeting('');
       } else {
         const json = await res.json().catch(() => null);
@@ -123,7 +132,10 @@ export default function AccountSettingsPage() {
         body: JSON.stringify({ scholarName: value }),
       });
       if (res.ok) {
-        setMageNameStatus({ type: 'success', msg: value ? 'Mage name saved!' : 'Reset to default "Mage".' });
+        setMageNameStatus({
+          type: 'success',
+          msg: value ? 'Mage name saved!' : 'Reset to default "Mage".',
+        });
         if (!value) setMageNameInput('');
         await updateSession();
       } else {
@@ -186,7 +198,7 @@ export default function AccountSettingsPage() {
       setGoalStatus(
         res.ok
           ? { type: 'success', msg: 'Study goals updated!' }
-          : { type: 'error', msg: 'Failed to save. Try again.' },
+          : { type: 'error', msg: 'Failed to save. Try again.' }
       );
     } catch {
       setGoalStatus({ type: 'error', msg: 'Network error. Try again.' });
@@ -255,9 +267,17 @@ export default function AccountSettingsPage() {
 
         <form
           onSubmit={handlePasswordUpdate}
-          style={{ display: 'flex', flexDirection: 'column', gap: 14, borderTop: '1px solid var(--border)', paddingTop: 20 }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+            borderTop: '1px solid var(--border)',
+            paddingTop: 20,
+          }}
         >
-          <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Change password</h3>
+          <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>
+            Change password
+          </h3>
           <input
             type="password"
             aria-label="Current password"
@@ -267,7 +287,9 @@ export default function AccountSettingsPage() {
             className="set-input"
             style={settingsInput}
           />
-          <div style={{ display: 'grid', gridTemplateColumns: isPhone ? '1fr' : '1fr 1fr', gap: 12 }}>
+          <div
+            style={{ display: 'grid', gridTemplateColumns: isPhone ? '1fr' : '1fr 1fr', gap: 12 }}
+          >
             <input
               type="password"
               aria-label="New password"
@@ -288,7 +310,12 @@ export default function AccountSettingsPage() {
             />
           </div>
           <StatusLine status={pwStatus} />
-          <button type="submit" disabled={pwLoading} className={saveBtn} style={{ alignSelf: 'flex-start', opacity: pwLoading ? 0.7 : 1 }}>
+          <button
+            type="submit"
+            disabled={pwLoading}
+            className={saveBtn}
+            style={{ alignSelf: 'flex-start', opacity: pwLoading ? 0.7 : 1 }}
+          >
             {pwLoading ? 'Updating…' : 'Update password'}
           </button>
         </form>
@@ -314,13 +341,26 @@ export default function AccountSettingsPage() {
           className="set-input"
           style={settingsInput}
         />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>
             {customGreeting.length}/120 · Leave empty for random greetings
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             {customGreeting && (
-              <button type="button" onClick={() => saveGreeting(null)} disabled={greetingLoading} className={ghostBtn}>
+              <button
+                type="button"
+                onClick={() => saveGreeting(null)}
+                disabled={greetingLoading}
+                className={ghostBtn}
+              >
                 Clear
               </button>
             )}
@@ -340,7 +380,11 @@ export default function AccountSettingsPage() {
 
       {/* ── Mage name ── */}
       <SettingsCard>
-        <CardHead icon="auto_awesome" title="Mage name" desc="Give your AI study assistant a custom name." />
+        <CardHead
+          icon="auto_awesome"
+          title="Mage name"
+          desc="Give your AI study assistant a custom name."
+        />
         <input
           type="text"
           placeholder="e.g. Archimedes, Sage, Athena…"
@@ -353,13 +397,26 @@ export default function AccountSettingsPage() {
           className="set-input"
           style={settingsInput}
         />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>
             {mageNameInput.length}/30 · Leave empty for default “Mage”
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             {mageNameInput && (
-              <button type="button" onClick={() => saveMageName(null)} disabled={mageNameLoading} className={ghostBtn}>
+              <button
+                type="button"
+                onClick={() => saveMageName(null)}
+                disabled={mageNameLoading}
+                className={ghostBtn}
+              >
                 Clear
               </button>
             )}
@@ -379,9 +436,19 @@ export default function AccountSettingsPage() {
 
       {/* ── Study goals ── */}
       <SettingsCard>
-        <CardHead icon="track_changes" tint="amber" title="Study goals" desc="Set the targets that drive your daily habit." />
-        <form onSubmit={handleGoalSave} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: isPhone ? '1fr' : '1fr 1fr', gap: 12 }}>
+        <CardHead
+          icon="track_changes"
+          tint="amber"
+          title="Study goals"
+          desc="Set the targets that drive your daily habit."
+        />
+        <form
+          onSubmit={handleGoalSave}
+          style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
+        >
+          <div
+            style={{ display: 'grid', gridTemplateColumns: isPhone ? '1fr' : '1fr 1fr', gap: 12 }}
+          >
             {GOAL_CONFIGS.map((config) => {
               const target = studyGoals[config.key];
               const isSelected = target !== null;
@@ -407,7 +474,8 @@ export default function AccountSettingsPage() {
                     border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)',
                     cursor: 'pointer',
                     userSelect: 'none',
-                    transition: 'border-color 0.18s var(--ease), background-color 0.18s var(--ease)',
+                    transition:
+                      'border-color 0.18s var(--ease), background-color 0.18s var(--ease)',
                   }}
                 >
                   <span
@@ -422,18 +490,38 @@ export default function AccountSettingsPage() {
                   >
                     {config.icon}
                   </span>
-                  <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: isSelected ? 'var(--ink)' : 'var(--body)', lineHeight: 1.4 }}>
+                  <p
+                    style={{
+                      margin: '0 0 4px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: isSelected ? 'var(--ink)' : 'var(--body)',
+                      lineHeight: 1.4,
+                    }}
+                  >
                     {config.label(mageNameTrimmed)}
                   </p>
                   {isSelected && target !== null ? (
-                    <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
+                    <p
+                      style={{
+                        margin: '0 0 12px',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: 'var(--accent)',
+                      }}
+                    >
                       {target} {config.unit} / {config.cadence}
                     </p>
                   ) : (
-                    <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>Tap to set goal</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>
+                      Tap to set goal
+                    </p>
                   )}
                   {isSelected && (
-                    <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}
+                    >
                       {config.presets.map((preset) => {
                         const active = target === preset && !goalCustomInputs[config.key];
                         return (
@@ -454,7 +542,8 @@ export default function AccountSettingsPage() {
                               fontWeight: 600,
                               cursor: 'pointer',
                               fontFamily: 'inherit',
-                              transition: 'background-color 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease)',
+                              transition:
+                                'background-color 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease)',
                             }}
                           >
                             {preset}
@@ -472,7 +561,9 @@ export default function AccountSettingsPage() {
                         style={{
                           width: 52,
                           background: 'var(--surface)',
-                          border: goalCustomInputs[config.key] ? '1px solid var(--primary)' : '1px solid var(--border)',
+                          border: goalCustomInputs[config.key]
+                            ? '1px solid var(--primary)'
+                            : '1px solid var(--border)',
                           borderRadius: 8,
                           padding: '4px 8px',
                           color: 'var(--ink)',
@@ -488,7 +579,12 @@ export default function AccountSettingsPage() {
             })}
           </div>
           <StatusLine status={goalStatus} />
-          <button type="submit" disabled={goalLoading} className={saveBtn} style={{ alignSelf: 'flex-start', opacity: goalLoading ? 0.7 : 1 }}>
+          <button
+            type="submit"
+            disabled={goalLoading}
+            className={saveBtn}
+            style={{ alignSelf: 'flex-start', opacity: goalLoading ? 0.7 : 1 }}
+          >
             {goalLoading ? 'Saving…' : 'Save goals'}
           </button>
         </form>
@@ -497,22 +593,38 @@ export default function AccountSettingsPage() {
       {/* ── Grading system (conditional) ── */}
       {gradingAvailable && (
         <SettingsCard>
-          <CardHead icon="grade" title="Grading system" desc="How your grades are shown across NoteMage." />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <CardHead
+            icon="grade"
+            title="Grading system"
+            desc="How your grades are shown across NoteMage."
+          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              flexWrap: 'wrap',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
               <span style={{ fontSize: 28, lineHeight: 1 }} aria-hidden>
-                {gradingId ? getGradingSystem(gradingId)?.flag ?? '🎓' : '🎓'}
+                {gradingId ? (getGradingSystem(gradingId)?.flag ?? '🎓') : '🎓'}
               </span>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>
-                  {gradingId ? getGradingSystem(gradingId)?.label ?? gradingId : 'Not set yet'}
+                  {gradingId ? (getGradingSystem(gradingId)?.label ?? gradingId) : 'Not set yet'}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--body)', marginTop: 2 }}>
                   {gradingId ? 'Your current grading system' : 'Pick the system you use'}
                 </div>
               </div>
             </div>
-            <button type="button" onClick={() => setGradingPickerOpen(true)} className={`${ui.btn} ${ui.secondary} ${ui.small}`}>
+            <button
+              type="button"
+              onClick={() => setGradingPickerOpen(true)}
+              className={`${ui.btn} ${ui.secondary} ${ui.small}`}
+            >
               {gradingId ? 'Change' : 'Choose'}
             </button>
           </div>
@@ -521,12 +633,22 @@ export default function AccountSettingsPage() {
 
       {/* ── Danger zone ── */}
       <SettingsCard style={{ borderColor: 'var(--danger-line)' }}>
-        <CardHead icon="warning" tint="rose" title="Delete account" desc="Permanently remove your account and all your data." />
+        <CardHead
+          icon="warning"
+          tint="rose"
+          title="Delete account"
+          desc="Permanently remove your account and all your data."
+        />
         <button
           type="button"
           onClick={() => setDeleteOpen(true)}
           className={`${ui.btn} ${ui.small}`}
-          style={{ alignSelf: 'flex-start', background: 'var(--danger-soft)', color: 'var(--danger-ink)', border: '1px solid var(--danger-line)' }}
+          style={{
+            alignSelf: 'flex-start',
+            background: 'var(--danger-soft)',
+            color: 'var(--danger-ink)',
+            border: '1px solid var(--danger-line)',
+          }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
             delete_forever
@@ -644,20 +766,50 @@ function DeleteAccountModal({
       >
         <span
           aria-hidden
-          style={{ width: 52, height: 52, borderRadius: 15, background: 'var(--danger-soft)', color: 'var(--danger-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 15,
+            background: 'var(--danger-soft)',
+            color: 'var(--danger-ink)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 28 }}>
             warning
           </span>
         </span>
-        <h3 id="del-acct-title" style={{ margin: 0, fontSize: 19, fontWeight: 700, color: 'var(--ink)', textAlign: 'center' }}>
+        <h3
+          id="del-acct-title"
+          style={{
+            margin: 0,
+            fontSize: 19,
+            fontWeight: 700,
+            color: 'var(--ink)',
+            textAlign: 'center',
+          }}
+        >
           Delete your account?
         </h3>
-        <p style={{ margin: 0, fontSize: 13.5, color: 'var(--body)', lineHeight: 1.6, textAlign: 'center' }}>
-          All your paths, study packs, progress, and data will be permanently deleted. This cannot be undone.
+        <p
+          style={{
+            margin: 0,
+            fontSize: 13.5,
+            color: 'var(--body)',
+            lineHeight: 1.6,
+            textAlign: 'center',
+          }}
+        >
+          All your paths, study packs, progress, and data will be permanently deleted. This cannot
+          be undone.
         </p>
         <div style={{ width: '100%' }}>
-          <label htmlFor="del-acct-confirm" style={{ display: 'block', fontSize: 12.5, color: 'var(--body)', marginBottom: 8 }}>
+          <label
+            htmlFor="del-acct-confirm"
+            style={{ display: 'block', fontSize: 12.5, color: 'var(--body)', marginBottom: 8 }}
+          >
             Type <strong style={{ color: 'var(--danger-ink)' }}>DELETE</strong> to confirm
           </label>
           <input

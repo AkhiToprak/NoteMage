@@ -18,26 +18,47 @@ const getNativeServer = () => false;
 
 const SparkGold = (
   <svg viewBox="0 0 29 29" fill="none" aria-hidden focusable="false">
-    <path d="M10.6066 0L17.1889 9.81239L28.9778 10.6066L19.1654 17.1889L18.3712 28.9778L11.7889 19.1655L0 18.3712L9.81237 11.7889L10.6066 0Z" fill="#FFC83D" />
+    <path
+      d="M10.6066 0L17.1889 9.81239L28.9778 10.6066L19.1654 17.1889L18.3712 28.9778L11.7889 19.1655L0 18.3712L9.81237 11.7889L10.6066 0Z"
+      fill="#FFC83D"
+    />
   </svg>
 );
 const SparkPurple = (
   <svg viewBox="0 0 18 18" fill="none" aria-hidden focusable="false">
-    <path d="M9 0L11.291 6.70897L18 9L11.291 11.291L9 18L6.70897 11.291L0 9L6.70897 6.70897L9 0Z" fill="#7C5CFF" />
+    <path
+      d="M9 0L11.291 6.70897L18 9L11.291 11.291L9 18L6.70897 11.291L0 9L6.70897 6.70897L9 0Z"
+      fill="#7C5CFF"
+    />
   </svg>
 );
 
 const GoogleIcon = (
   <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden xmlns="http://www.w3.org/2000/svg">
-    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
-    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
-    <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
-    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
+    <path
+      fill="#FFC107"
+      d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+    />
+    <path
+      fill="#FF3D00"
+      d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+    />
+    <path
+      fill="#4CAF50"
+      d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+    />
+    <path
+      fill="#1976D2"
+      d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+    />
   </svg>
 );
 const AppleIcon = (
   <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden xmlns="http://www.w3.org/2000/svg">
-    <path fill="#18202f" d="M17.05 12.536c-.028-2.812 2.295-4.162 2.4-4.228-1.308-1.912-3.342-2.173-4.063-2.202-1.731-.175-3.38 1.018-4.258 1.018-.88 0-2.23-.993-3.668-.966-1.889.027-3.631 1.099-4.603 2.791-1.962 3.4-.501 8.424 1.411 11.184.934 1.35 2.05 2.867 3.513 2.812 1.411-.056 1.944-.912 3.651-.912s2.187.912 3.68.884c1.52-.027 2.486-1.377 3.421-2.73 1.078-1.571 1.523-3.098 1.551-3.175-.034-.017-2.978-1.144-3.035-4.476zm-2.788-8.21c.78-.944 1.308-2.257 1.163-3.562-1.128.045-2.49.75-3.299 1.694-.72.834-1.362 2.175-1.189 3.452 1.262.098 2.545-.64 3.325-1.584z" />
+    <path
+      fill="#18202f"
+      d="M17.05 12.536c-.028-2.812 2.295-4.162 2.4-4.228-1.308-1.912-3.342-2.173-4.063-2.202-1.731-.175-3.38 1.018-4.258 1.018-.88 0-2.23-.993-3.668-.966-1.889.027-3.631 1.099-4.603 2.791-1.962 3.4-.501 8.424 1.411 11.184.934 1.35 2.05 2.867 3.513 2.812 1.411-.056 1.944-.912 3.651-.912s2.187.912 3.68.884c1.52-.027 2.486-1.377 3.421-2.73 1.078-1.571 1.523-3.098 1.551-3.175-.034-.017-2.978-1.144-3.035-4.476zm-2.788-8.21c.78-.944 1.308-2.257 1.163-3.562-1.128.045-2.49.75-3.299 1.694-.72.834-1.362 2.175-1.189 3.452 1.262.098 2.545-.64 3.325-1.584z"
+    />
   </svg>
 );
 
@@ -131,16 +152,15 @@ function LoginForm() {
 
     setLoading(true);
     try {
-      const result = await signIn('credentials', { email, password, turnstileToken, redirect: false });
+      const result = await signIn('credentials', {
+        email,
+        password,
+        turnstileToken,
+        redirect: false,
+      });
 
       if (result?.error) {
-        if (result.error.includes('ACCOUNT_LOCKED:')) {
-          const unlockAt = new Date(result.error.split('ACCOUNT_LOCKED:')[1]);
-          const timeStr = unlockAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          setError(
-            `Your account has been locked due to too many failed login attempts. It will be unlocked at ${timeStr}.`
-          );
-        } else if (result.error === 'EMAIL_NOT_VERIFIED') {
+        if (result.error === 'EMAIL_NOT_VERIFIED') {
           setNeedsVerification(true);
         } else if (result.error === 'CAPTCHA_REQUIRED') {
           setChallengeRequired(true);
@@ -199,7 +219,9 @@ function LoginForm() {
               'An account already exists for this email. Please sign in with your password, then link it from settings.'
             );
           } else {
-            setError(`Sign in with ${provider === 'apple' ? 'Apple' : 'Google'} failed. Please try again.`);
+            setError(
+              `Sign in with ${provider === 'apple' ? 'Apple' : 'Google'} failed. Please try again.`
+            );
           }
           setOauthLoading(null);
           return;
@@ -221,7 +243,13 @@ function LoginForm() {
     return (
       <div className={styles.verifyRoot}>
         <div data-theme="dark" className={styles.verifyCard}>
-          <img src="/landing/notemage-wordmark.png" alt="Notemage" width={120} height={45} style={{ height: 36, width: 'auto', margin: '0 auto' }} />
+          <img
+            src="/landing/notemage-wordmark.png"
+            alt="Notemage"
+            width={120}
+            height={45}
+            style={{ height: 36, width: 'auto', margin: '0 auto' }}
+          />
           <h1 className={styles.verifyTitle}>Verify your email</h1>
           <VerifyCodeForm email={email} resendOnMount onVerified={handleVerifiedLogin} />
           <button
@@ -246,10 +274,18 @@ function LoginForm() {
         <Link href="/" className={styles.panelLogo} aria-label="NoteMage — home">
           <img src="/landing/notemage-wordmark.png" alt="NoteMage" width={80} height={30} />
         </Link>
-        <span className={`${styles.star} ${styles.starA}`} aria-hidden>{SparkGold}</span>
-        <span className={`${styles.star} ${styles.starB}`} aria-hidden>{SparkPurple}</span>
-        <span className={`${styles.star} ${styles.starC}`} aria-hidden>{SparkPurple}</span>
-        <span className={`${styles.star} ${styles.starD}`} aria-hidden>{SparkGold}</span>
+        <span className={`${styles.star} ${styles.starA}`} aria-hidden>
+          {SparkGold}
+        </span>
+        <span className={`${styles.star} ${styles.starB}`} aria-hidden>
+          {SparkPurple}
+        </span>
+        <span className={`${styles.star} ${styles.starC}`} aria-hidden>
+          {SparkPurple}
+        </span>
+        <span className={`${styles.star} ${styles.starD}`} aria-hidden>
+          {SparkGold}
+        </span>
         <div className={styles.panelInner}>
           <img className={styles.panelMascot} src="/landing/mage-plain.png" alt="" aria-hidden />
           <h2 className={styles.panelTitle}>Welcome back.</h2>
@@ -268,16 +304,28 @@ function LoginForm() {
           <h1 className={styles.formTitle}>Log in</h1>
           <p className={styles.formSub}>Welcome back — let&apos;s keep studying.</p>
 
-          {notice && !error && <div className={`${styles.banner} ${styles.bannerNotice}`}>{notice}</div>}
+          {notice && !error && (
+            <div className={`${styles.banner} ${styles.bannerNotice}`}>{notice}</div>
+          )}
           {error && <div className={`${styles.banner} ${styles.bannerError}`}>{error}</div>}
 
           <div className={styles.oauthList}>
-            <button type="button" className={styles.oauthBtn} onClick={() => handleOAuth('google')} disabled={oauthBusy}>
+            <button
+              type="button"
+              className={styles.oauthBtn}
+              onClick={() => handleOAuth('google')}
+              disabled={oauthBusy}
+            >
               {GoogleIcon}
               {oauthLoading === 'google' ? 'Redirecting…' : 'Continue with Google'}
             </button>
             {showApple && (
-              <button type="button" className={styles.oauthBtn} onClick={() => handleOAuth('apple')} disabled={oauthBusy}>
+              <button
+                type="button"
+                className={styles.oauthBtn}
+                onClick={() => handleOAuth('apple')}
+                disabled={oauthBusy}
+              >
                 {AppleIcon}
                 {oauthLoading === 'apple' ? 'Redirecting…' : 'Continue with Apple'}
               </button>
@@ -292,7 +340,9 @@ function LoginForm() {
 
           <form onSubmit={handleSubmit}>
             <div className={styles.field}>
-              <label htmlFor="email" className={styles.label}>Email</label>
+              <label htmlFor="email" className={styles.label}>
+                Email
+              </label>
               <div className={styles.inputWrap}>
                 <input
                   id="email"
@@ -310,8 +360,12 @@ function LoginForm() {
 
             <div className={styles.field}>
               <div className={styles.pwLabelRow}>
-                <label htmlFor="password" className={styles.label} style={{ marginBottom: 0 }}>Password</label>
-                <Link href="/auth/forgot-password" className={styles.forgot}>Forgot password?</Link>
+                <label htmlFor="password" className={styles.label} style={{ marginBottom: 0 }}>
+                  Password
+                </label>
+                <Link href="/auth/forgot-password" className={styles.forgot}>
+                  Forgot password?
+                </Link>
               </div>
               <div className={styles.inputWrap}>
                 <input
@@ -350,8 +404,7 @@ function LoginForm() {
           </form>
 
           <p className={styles.createLink}>
-            New to Notemage?{' '}
-            <Link href="/auth/register">Create an account</Link>
+            New to Notemage? <Link href="/auth/register">Create an account</Link>
           </p>
         </div>
       </div>

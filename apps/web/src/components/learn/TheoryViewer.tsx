@@ -12,8 +12,8 @@ import { PathDiagramSchema, type PathDiagram as PathDiagramData } from '@notemag
 // blockquotes, and lists the model wrote survived only as literal Markdown
 // characters — and the old read-only TipTap viewer rendered them as plain text.
 //
-// The stored shape has to stay TipTap JSON (path-translator + moderation walk
-// these nodes), so we fix rendering instead of storage: flatten runs of
+// The stored shape has to stay TipTap JSON (moderation walks these nodes), so
+// we fix rendering instead of storage: flatten runs of
 // standard blocks back to a Markdown string and hand them to the shared
 // MarkdownRenderer (the same renderer chat, flashcards, and quiz questions
 // use). The theory-visuals feature adds two custom block nodes — `pathImage`

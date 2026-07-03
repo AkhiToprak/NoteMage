@@ -63,7 +63,13 @@ export async function PUT(request: NextRequest) {
     }
 
     const hashed = await bcrypt.hash(newPassword, 12);
-    await db.user.update({ where: { id: userId }, data: { password: hashed } });
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        password: hashed,
+        authVersion: { increment: 1 },
+      },
+    });
     logSecurityEvent({ userId, type: 'password.changed' });
 
     return successResponse({ updated: true }, 'Password updated');

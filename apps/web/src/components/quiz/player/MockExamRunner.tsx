@@ -322,8 +322,6 @@ export default function MockExamRunner({
             title={set.title}
             initialQuestions={set.questions as never}
             isCheckpoint
-            hideManagementActions
-            externalChrome
             mock
             onSession={setSession}
             onComplete={(result) => handleComplete(result)}

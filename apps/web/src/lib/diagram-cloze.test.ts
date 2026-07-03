@@ -13,7 +13,6 @@ import {
   type PathDiagram,
 } from '@notemage/shared';
 import { buildDiagramClozeQuestion } from '@/lib/path-generator';
-import { questionSlots } from '@/lib/path-translator';
 
 // ── Fixtures ───────────────────────────────────────────────────────────
 
@@ -232,56 +231,3 @@ describe('DiagramClozePayloadSchema', () => {
   });
 });
 
-// ── Translation slots (mask marker never collected) ────────────────────
-
-describe('questionSlots — diagram_cloze translation', () => {
-  it('collects the 4 options + diagram labels, but SKIPS the mask marker', () => {
-    const q = buildDiagramClozeQuestion([TIMELINE_4], 'en')!;
-    // Deep-clone the payload the way translateQuizActivity does.
-    const payload = JSON.parse(JSON.stringify(q.payload)) as Record<string, unknown>;
-    const row = {
-      id: 'q1',
-      kind: 'diagram_cloze' as const,
-      question: q.question,
-      options: [] as string[],
-      correctIndex: q.payload.correctIndex,
-      hint: null,
-      correctExplanation: null,
-      wrongExplanation: null,
-    };
-    const slots = questionSlots(0, row as never, payload, false);
-    const texts = slots.map((s) => s.get());
-    // The mask marker is NEVER among the collected strings.
-    expect(texts).not.toContain(DIAGRAM_CLOZE_MASK);
-    // All 4 options are collected (they are natural-language labels).
-    for (const opt of q.payload.options) expect(texts).toContain(opt);
-    // The diagram title rides along.
-    expect(texts).toContain('Revolution');
-    // The unmasked event labels are collected; dates are not.
-    expect(texts).toContain('Estates-General');
-    expect(texts).not.toContain('1789');
-  });
-
-  it('write-back mutates options + labels in place, leaving correctIndex untouched', () => {
-    const q = buildDiagramClozeQuestion([CYCLE_4], 'en')!;
-    const payload = JSON.parse(JSON.stringify(q.payload)) as Record<string, unknown>;
-    const row = {
-      id: 'q1',
-      kind: 'diagram_cloze' as const,
-      question: q.question,
-      options: [] as string[],
-      correctIndex: q.payload.correctIndex,
-      hint: null,
-      correctExplanation: null,
-      wrongExplanation: null,
-    };
-    const slots = questionSlots(0, row as never, payload, false);
-    slots.forEach((s, i) => s.set(`X${i}`));
-    // Options were rewritten in the cloned payload.
-    expect((payload.options as string[]).every((o) => o.startsWith('X'))).toBe(true);
-    // correctIndex is an index, never a slot — unchanged.
-    expect(payload.correctIndex).toBe(q.payload.correctIndex);
-    // The masked node is still the marker (it was never a translatable slot).
-    expect(countMasked(payload.diagram as PathDiagram)).toBe(1);
-  });
-});

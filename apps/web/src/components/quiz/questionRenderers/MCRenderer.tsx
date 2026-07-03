@@ -40,6 +40,14 @@ export default function MCRenderer({
   const selectedIdx = currentAnswer?.kind === 'mc' ? currentAnswer.selectedIdx : undefined;
   const reviewIdx = reviewAnswer?.kind === 'mc' ? reviewAnswer.selectedIdx : undefined;
   const isCorrect = isAnswered && selectedIdx === question.correctIndex;
+  const feedbackFor = (index: number | undefined): string | null => {
+    if (index === undefined) return null;
+    const feedback = question.payload?.optionFeedback?.[index];
+    if (!feedback) return null;
+    return feedback.misconception
+      ? `**Likely mix-up:** ${feedback.misconception}\n\n${feedback.explanation}`
+      : feedback.explanation;
+  };
 
   // Present options in a content-independent order so the correct answer's
   // position can't be predicted from how the AI happened to emit them (models
@@ -258,7 +266,8 @@ export default function MCRenderer({
                 isCorrect
                   ? question.correctExplanation ||
                     `The answer is ${question.options[question.correctIndex]}.`
-                  : question.wrongExplanation ||
+                  : feedbackFor(selectedIdx) ||
+                    question.wrongExplanation ||
                     `The correct answer is ${question.options[question.correctIndex]}.`
               }
             />
@@ -313,7 +322,8 @@ export default function MCRenderer({
                     reviewIdx === question.correctIndex
                       ? question.correctExplanation ||
                         `The answer is ${question.options[question.correctIndex]}.`
-                      : question.wrongExplanation ||
+                      : feedbackFor(reviewIdx) ||
+                        question.wrongExplanation ||
                         `The correct answer is ${question.options[question.correctIndex]}.`
                   }
                 />

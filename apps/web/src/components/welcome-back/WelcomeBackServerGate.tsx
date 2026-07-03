@@ -1,6 +1,5 @@
-import { cookies } from 'next/headers';
-import { getToken } from 'next-auth/jwt';
 import { db } from '@/lib/db';
+import { getServerAuthToken } from '@/lib/server-auth';
 import { WelcomeBackClient } from './WelcomeBackClient';
 
 /** A user is "returning" once they've been away longer than this. */
@@ -19,14 +18,7 @@ const ABSENCE_MS = 3 * 24 * 60 * 60 * 1000;
  */
 export async function WelcomeBackServerGate() {
   try {
-    const jar = await cookies();
-    const cookieHeader = jar.toString();
-    if (!cookieHeader) return null;
-
-    const cookieObj = Object.fromEntries(jar.getAll().map((c) => [c.name, c.value]));
-    const token = (await getToken({
-      req: { cookies: cookieObj, headers: { cookie: cookieHeader } } as never,
-    })) as { id?: string; onboardingComplete?: boolean } | null;
+    const token = await getServerAuthToken();
 
     const userId = token?.id;
     if (!userId) return null;

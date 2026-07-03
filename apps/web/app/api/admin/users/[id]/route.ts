@@ -24,7 +24,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // ban/unban accounts. Admin auth remains the primary gate (fail-open).
     const rl = await rateLimit(rateLimitKey('admin-user-moderate', request, adminId), 30, 60_000);
     if (!rl.success) {
-      return tooManyRequestsResponse('Too many admin actions. Slow down a moment.', rl.retryAfterMs);
+      return tooManyRequestsResponse(
+        'Too many admin actions. Slow down a moment.',
+        rl.retryAfterMs
+      );
     }
 
     const { id: targetId } = await params;
@@ -57,6 +60,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           data: {
             banned: true,
             banReason: reason?.trim().slice(0, 500) || null,
+            authVersion: { increment: 1 },
           },
         });
         await logAdminAction(adminId, 'user.ban', targetId, {
@@ -71,6 +75,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           data: {
             banned: false,
             banReason: null,
+            authVersion: { increment: 1 },
           },
         });
         await logAdminAction(adminId, 'user.unban', targetId);
@@ -98,7 +103,10 @@ export async function DELETE(
     // so cap them tighter than moderation. Per-admin, fail-open.
     const rl = await rateLimit(rateLimitKey('admin-user-delete', request, adminId), 15, 60_000);
     if (!rl.success) {
-      return tooManyRequestsResponse('Too many delete actions. Slow down a moment.', rl.retryAfterMs);
+      return tooManyRequestsResponse(
+        'Too many delete actions. Slow down a moment.',
+        rl.retryAfterMs
+      );
     }
 
     const { id: targetId } = await params;

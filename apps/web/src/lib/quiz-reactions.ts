@@ -1,8 +1,4 @@
-import type {
-  MascotOneShot,
-  MascotPose,
-  MascotSize,
-} from '@/components/mascot/poses';
+import type { MascotOneShot, MascotPose, MascotSize } from '@/components/mascot/poses';
 import { pickCopy, type CopyTier } from './quiz-reactions-copy';
 
 export type ReactionMode = 'all' | 'minimal' | 'off';
@@ -35,7 +31,7 @@ export interface Reaction {
   pose: MascotPose;
   oneShot: MascotOneShot | null;
   size: MascotSize;
-  display: 'corner' | 'overlay' | 'takeover';
+  display: 'corner' | 'overlay';
   confetti: boolean;
   message: string;
   audio: string | null;
@@ -61,7 +57,7 @@ function buildReaction(
   kind: ReactionKind,
   tier: CopyTier,
   seed: number,
-  overrides: Omit<Reaction, 'kind' | 'message'>,
+  overrides: Omit<Reaction, 'kind' | 'message'>
 ): Reaction {
   return {
     kind,
@@ -75,10 +71,7 @@ function bigStreakShouldFire(correctStreak: number): boolean {
   return (correctStreak - 7) % 5 === 0;
 }
 
-export function computeReaction(
-  input: ReactionInput,
-  mode: ReactionMode,
-): Reaction | null {
+export function computeReaction(input: ReactionInput, mode: ReactionMode): Reaction | null {
   if (mode === 'off') return null;
 
   if (input.finalResult) {
@@ -97,20 +90,15 @@ export function computeReaction(
     }
 
     if (percentage === 100 && isPermitted('perfect_score', mode)) {
-      return buildReaction(
-        'perfect_score',
-        'perfectScore',
-        input.finalResult.totalQuestions,
-        {
-          pose: 'celebrate',
-          oneShot: 'celebrate',
-          size: 'xl',
-          display: 'overlay',
-          confetti: true,
-          audio: 'celebration',
-          durationMs: OVERLAY_DURATION_MS,
-        },
-      );
+      return buildReaction('perfect_score', 'perfectScore', input.finalResult.totalQuestions, {
+        pose: 'celebrate',
+        oneShot: 'celebrate',
+        size: 'xl',
+        display: 'overlay',
+        confetti: true,
+        audio: 'celebration',
+        durationMs: OVERLAY_DURATION_MS,
+      });
     }
 
     return null;
@@ -150,38 +138,30 @@ export function computeReaction(
         size: 'lg',
         display: 'corner',
         confetti: false,
-        audio: 'streak-big',
+        audio: 'streak-5',
         durationMs: CORNER_DURATION_MS,
       });
     }
     if (input.correctStreak === 5 && isPermitted('streak_mid', mode)) {
-      // Full-screen "5 in a row!" fire takeover (FireStreakTakeover), shown
-      // instead of a corner card — the screen catches fire and the wizard-book
-      // mascot rises out of the flames. Like streak_small it owns its own
-      // sound + dismiss, so the pose/size/confetti/duration fields are inert
-      // for this display.
       return buildReaction('streak_mid', 'streakMid', input.correctStreak, {
         pose: 'celebrate',
         oneShot: 'cheer-big',
         size: 'lg',
-        display: 'takeover',
+        display: 'corner',
         confetti: false,
-        audio: null,
-        durationMs: OVERLAY_DURATION_MS,
+        audio: 'streak-5',
+        durationMs: CORNER_DURATION_MS,
       });
     }
     if (input.correctStreak === 3 && isPermitted('streak_small', mode)) {
-      // Full-screen "3 in a row!" Flash-mage takeover (StreakTakeover), shown
-      // instead of a corner card. It owns its own sound + dismiss, so the
-      // pose/size/confetti/duration fields below are inert for this display.
       return buildReaction('streak_small', 'streakSmall', input.correctStreak, {
         pose: 'wink',
         oneShot: 'cheer-small',
         size: 'md',
-        display: 'takeover',
+        display: 'corner',
         confetti: false,
-        audio: null,
-        durationMs: OVERLAY_DURATION_MS,
+        audio: 'streak-3',
+        durationMs: CORNER_DURATION_MS,
       });
     }
   }

@@ -8,8 +8,8 @@ import { getRedis } from '@/lib/redis';
  * brute-force / credential-stuffing run (many emails from one IP) — which the
  * per-account lockout alone does not catch.
  *
- * Fully DORMANT unless Turnstile is configured (TURNSTILE_SECRET_KEY): with no
- * secret the helpers no-op and never touch Redis, so default deploys pay zero.
+ * Dormant without Turnstile only in development/test. Production treats a
+ * missing key pair as requiring a challenge, which then fails closed.
  */
 const WINDOW_SECONDS = 15 * 60;
 const THRESHOLD = 3;
@@ -18,9 +18,13 @@ function failKey(ip: string): string {
   return `login-fail:${ip}`;
 }
 
+function configured(): boolean {
+  return !!process.env.TURNSTILE_SECRET_KEY && !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+}
+
 /** True when this IP has failed enough recent logins to warrant a challenge. */
 export async function loginChallengeRequired(ip: string): Promise<boolean> {
-  if (!process.env.TURNSTILE_SECRET_KEY) return false;
+  if (!configured()) return process.env.NODE_ENV === 'production';
   try {
     const count = await getRedis().get<number>(failKey(ip));
     return (count ?? 0) >= THRESHOLD;
@@ -32,7 +36,7 @@ export async function loginChallengeRequired(ip: string): Promise<boolean> {
 
 /** Record one failed login from this IP (best-effort; sets the window TTL). */
 export async function recordLoginFailure(ip: string): Promise<void> {
-  if (!process.env.TURNSTILE_SECRET_KEY) return;
+  if (!configured()) return;
   try {
     const redis = getRedis();
     const count = await redis.incr(failKey(ip));
@@ -44,7 +48,7 @@ export async function recordLoginFailure(ip: string): Promise<void> {
 
 /** Clear the failure counter for this IP after a successful login. */
 export async function clearLoginChallenge(ip: string): Promise<void> {
-  if (!process.env.TURNSTILE_SECRET_KEY) return;
+  if (!configured()) return;
   try {
     await getRedis().del(failKey(ip));
   } catch {

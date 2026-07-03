@@ -156,6 +156,9 @@ export async function persistPlanStructure(
           title: slot.title,
           description: slot.topicHint,
           objective: slot.objective ?? null,
+          ...(slot.assessmentSpec
+            ? { assessmentSpec: slot.assessmentSpec as unknown as Prisma.InputJsonValue }
+            : {}),
           kind: slot.kind,
           sortOrder: j,
           coversSlotIds,
@@ -217,6 +220,14 @@ export async function persistPlanStructure(
           {
             title: 'Final Exam',
             description: `Path-wide capstone for "${planTitle}". Pulls questions from every section to simulate the real exam.`,
+            assessmentSpec: {
+              knowledgeType: 'conceptual',
+              learnerAction: 'Integrate and apply the path’s major concepts across sections.',
+              evidence: 'Correct responses explain relationships and transfer learning beyond memorized examples.',
+              difficulty: 'stretch',
+              transfer: 'mixed',
+              scoringRule: 'Full credit requires correct reasoning across the path’s representative concepts.',
+            },
             kind: 'final_exam',
             sortOrder: 0,
           },

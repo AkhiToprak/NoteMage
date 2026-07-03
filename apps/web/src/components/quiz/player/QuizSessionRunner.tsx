@@ -292,8 +292,6 @@ export default function QuizSessionRunner({
           title={set.title}
           initialQuestions={set.questions as never}
           isCheckpoint={isExam}
-          hideManagementActions
-          externalChrome
           sealed={isExam}
           onSession={setSession}
           onComplete={(result) => handleComplete(result)}

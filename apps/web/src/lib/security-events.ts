@@ -3,9 +3,15 @@ import { db } from '@/lib/db';
 export type SecurityEventType =
   | 'login.success'
   | 'login.failed'
+  | 'login.throttled'
+  | 'login.banned'
   | 'account.locked'
+  | 'session.rejected'
+  | 'session.version_mismatch'
+  | 'session.banned'
   | 'password.changed'
   | 'password.reset'
+  | 'oauth.denied'
   | 'oauth.created'
   | 'oauth.linked';
 

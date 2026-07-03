@@ -39,6 +39,8 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT extends DefaultJWT {
     id: string;
+    /** Internal revocation generation. Deliberately never copied to Session. */
+    authVersion: number;
     username?: string;
     avatarUrl?: string;
     onboardingComplete?: boolean;

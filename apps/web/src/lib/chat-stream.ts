@@ -46,7 +46,12 @@ import {
   type MageActionCard,
 } from './mage-actions';
 import { resolveChatIntent } from './chat-intent';
-import { CHAT_BASE_INSTRUCTIONS, INTENT_GUIDANCE, INTENT_TOOL } from './chat-guidance';
+import {
+  CHAT_BASE_INSTRUCTIONS,
+  CHAT_QUIZ_PROMPT_VERSION,
+  INTENT_GUIDANCE,
+  INTENT_TOOL,
+} from './chat-guidance';
 import {
   loadSourceImages,
   renderImageCatalog,
@@ -62,13 +67,22 @@ import { streamGeminiChatText } from './chat-stream-gemini';
 import { streamChatGLM } from './chat-stream-openrouter';
 import type { TierKey } from './tiers';
 import { buildLegacyColumns } from './quiz-grading';
-import { QuizSetV2Schema } from '@notemage/shared';
+import { QuizSetV2Schema, type QuizQuestionV2 } from '@notemage/shared';
 import { extractText } from './fileProcessing';
 import { readFile } from './storage';
 import { tiptapJsonToPlainText } from './contentConverter';
 import { searchYouTubeVideos } from './youtube';
 import { generateAndPersistTitle } from './chat-title';
 import { NextResponse } from 'next/server';
+import { selectRelevantContext } from './context-retrieval';
+import { verifiedSourceAnchor } from './source-grounding';
+import {
+  applyQuizVerification,
+  shouldVerifyQuiz,
+  verifyQuiz,
+  type QuizVerificationResult,
+} from './quiz-verifier';
+import { shuffleMcPayloadInPlace } from './quiz-option-shuffle';
 
 // Stable tool array sent on EVERY Anthropic chat call regardless of intent.
 // Tool definitions must never change between turns — a changed definition
@@ -273,18 +287,21 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     let contextOriginalChars = 0;
     let contextKeptChars = 0;
     if (contextParts.length > 0) {
-      const joined = contextParts.join('\n\n---\n\n');
-      contextOriginalChars = joined.length;
-      if (joined.length > MAX_CONTEXT_CHARS) {
-        const trimmed = joined.slice(0, MAX_CONTEXT_CHARS);
+      const selected = selectRelevantContext(
+        contextParts,
+        userMessage,
+        Math.max(1_000, MAX_CONTEXT_CHARS - 180),
+      );
+      contextOriginalChars = selected.originalChars;
+      if (selected.truncated) {
         contextParts.length = 0;
         contextParts.push(
-          `${trimmed}\n\n[Note: context was truncated to fit the model's input window. Some source material is not included.]`
+          `${selected.text}\n\n[Note: context was retrieved by relevance to fit the model's input window. Some source material is not included.]`
         );
         contextTruncated = true;
-        contextKeptChars = MAX_CONTEXT_CHARS;
+        contextKeptChars = contextParts[0].length;
       } else {
-        contextKeptChars = joined.length;
+        contextKeptChars = selected.keptChars;
       }
     }
 
@@ -546,7 +563,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
             ? 'EXAM MODE: the learner is in an exam context. Do NOT give away answers to exam or quiz questions, and do not work a question to its solution. Help them decide WHAT to review and HOW to approach it — point at weak topics and study moves, not answers.'
             : // hint_only — set by practice / a live question, OR by strict mode on
               // an otherwise-open surface (Phase 9). Neutral copy covers both.
-              "HINT-FIRST: lead with a hint or a guiding question that points the learner toward the answer before stating it outright; reserve the full worked answer for after that nudge. Don't hand over the solution in the first sentence.",
+              "HINT-FIRST: give exactly ONE useful hint or guiding question, then ask the learner to try the next step. Do NOT include the final answer or a full worked solution in this same response. A later turn may explain more after the learner attempts it or explicitly asks to reveal the solution.",
       });
     }
 
@@ -619,7 +636,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     const anthropicLegacyModel =
       activeResolved?.token === 'glm-sonnet'
         ? AI_GENERATION_MODEL
-        : activeResolved?.token === 'glm-haiku'
+        : activeResolved?.token === 'glm-haiku' || activeResolved?.token === 'glm-flash'
           ? AI_GENERATION_MODEL_LITE
           : activeModel;
     // Corpus leads for Gemini implicit caching. "Reference data, not
@@ -1136,22 +1153,41 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 return;
               }
 
+              const quizSourceCorpus =
+                contextParts.length > 0 ? contextParts.join('\n\n---\n\n') : null;
+              let quizVerification: QuizVerificationResult | null = null;
+              if (
+                shouldVerifyQuiz({
+                  slotKind: 'assessment',
+                  sampleKey: `${chatId}:${quizTitle}:${parsed.data.questions[0]?.prompt ?? ''}`,
+                })
+              ) {
+                const verifierQuestions = parsed.data.questions.map((question) => {
+                  const copy = { ...question } as QuizQuestionV2 & { source?: unknown };
+                  const source = verifiedSourceAnchor(copy.source, quizSourceCorpus);
+                  if (source) copy.source = source;
+                  else delete copy.source;
+                  return copy as QuizQuestionV2;
+                });
+                quizVerification = await verifyQuiz({
+                  userId,
+                  objective: userMessage,
+                  hasSourceMaterials: Boolean(quizSourceCorpus),
+                  questions: verifierQuestions,
+                });
+              }
+              const verificationApplied = applyQuizVerification(
+                parsed.data.questions,
+                quizVerification,
+                Math.min(3, parsed.data.questions.length),
+              );
+              const quizQuestions = verificationApplied.questions;
+
               // Shuffle MC options on the validated data so a TypeError on
               // raw input can never reach here.
-              for (const q of parsed.data.questions) {
+              for (const q of quizQuestions) {
                 if (q.kind !== 'mc') continue;
-                const mcPayload = q.payload;
-                let correctIdx = mcPayload.correctIndex;
-                for (let i = mcPayload.options.length - 1; i > 0; i--) {
-                  const j = Math.floor(Math.random() * (i + 1));
-                  [mcPayload.options[i], mcPayload.options[j]] = [
-                    mcPayload.options[j],
-                    mcPayload.options[i],
-                  ];
-                  if (correctIdx === i) correctIdx = j;
-                  else if (correctIdx === j) correctIdx = i;
-                }
-                mcPayload.correctIndex = correctIdx;
+                shuffleMcPayloadInPlace(q.payload);
               }
 
               // Figure-reuse (P5): validate per-question exhibits against the
@@ -1160,9 +1196,9 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
               // Pre-generated question ids let the row nest into the same
               // create. A copy failure drops that one exhibit; the question saves.
               const qFigures = figuresAvailable
-                ? resolveQuizFigures(parsed.data.questions, chatSourceImages).accepted
+                ? resolveQuizFigures(quizQuestions, chatSourceImages).accepted
                 : [];
-              const qQuestionIds = parsed.data.questions.map(() => randomUUID());
+              const qQuestionIds = quizQuestions.map(() => randomUUID());
               const qSnapped = new Map<
                 number,
                 { fileName: string; filePath: string; fileSize: number; mimeType: string; caption: string; sourcePageImageId: string }
@@ -1207,9 +1243,27 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                     chatId,
                     messageId: '',
                     title: quizTitle,
+                    generationPromptVersion: CHAT_QUIZ_PROMPT_VERSION,
+                    generationProvider: activeResolved?.provider ?? activeProvider,
+                    generationModel: activeModel,
+                    verificationStatus: verificationApplied.status,
+                    verificationModel: quizVerification?.model ?? null,
+                    ...(quizVerification
+                      ? {
+                          verificationDetails: {
+                            items: quizVerification.items,
+                            error: quizVerification.error ?? null,
+                            rejectedIndexes: verificationApplied.rejectedIndexes,
+                          },
+                        }
+                      : {}),
                     questions: {
-                      create: parsed.data.questions.map((q, i) => {
+                      create: quizQuestions.map((q, i) => {
                         const snap = qSnapped.get(i);
+                        const source = verifiedSourceAnchor(
+                          (q as { source?: unknown }).source,
+                          quizSourceCorpus,
+                        );
                         return {
                           id: qQuestionIds[i],
                           kind: q.kind,
@@ -1219,6 +1273,10 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                           hint: q.hint ?? null,
                           correctExplanation: q.correctExplanation ?? null,
                           wrongExplanation: q.wrongExplanation ?? null,
+                          sourceLabel: source?.label ?? null,
+                          sourcePage: source?.page ?? null,
+                          sourceQuote: source?.quote ?? null,
+                          sourceTimestampSec: source?.timestampSec ?? null,
                           sortOrder: i,
                           ...(snap
                             ? {

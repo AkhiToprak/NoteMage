@@ -75,6 +75,7 @@ model User {
   // add_email_verification migration so only new signups are gated.
   emailVerified              DateTime?
   role                       String             @default("user") // "user" | "admin"
+  authVersion                Int                @default(1) // Increment to revoke every existing JWT for this user
   banned                     Boolean            @default(false) // Banned users cannot log in
   banReason                  String? // Optional reason shown to banned user
   failedLoginAttempts        Int                @default(0) // Brute-force protection counter
@@ -192,10 +193,10 @@ model User {
   practiceSessions        PracticeSession[]
   // Email-confirmation codes for the credentials-signup gate (one active
   // row per user; reissued on resend).
-  emailVerificationCodes  EmailVerificationCode[]
+  emailVerificationCode   EmailVerificationCode?
   // Password-reset codes for the forgot-password flow (one active row per
   // user; reissued on each request — see src/lib/verification.ts).
-  passwordResetCodes      PasswordResetCode[]
+  passwordResetCode       PasswordResetCode?
 
   @@map("users")
 }
@@ -538,23 +539,32 @@ model FlashcardImage {
 // ============================================================================
 
 model QuizSet {
-  id           String   @id @default(cuid())
+  id                      String   @id @default(cuid())
   // Phase 9 — see NotebookChat for the userId/notebookId rationale.
-  userId       String
-  notebookId   String?
-  chatId       String?
-  messageId    String? // assistant message that created this set
-  title        String
-  sectionId    String? // optional: link to a notebook section
+  userId                  String
+  notebookId              String?
+  chatId                  String?
+  messageId               String? // assistant message that created this set
+  title                   String
+  sectionId               String? // optional: link to a notebook section
   // See FlashcardSet.sourcePathId — same rationale (filter from notebook
   // surfaces, keep `notebookId` for QuizViewer routing).
-  sourcePathId String?
+  sourcePathId            String?
   // Path-diagrams revival (Phase 3): PathDiagram[] copied (zero AI tokens) from
   // the covering theory's body, rendered by the checkpoint quiz viewer as a
   // collapsed reference panel above the question list. See FlashcardSet.diagrams.
-  diagrams     Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  diagrams                Json?
+  // Prompt/model provenance for generated quizzes. Nullable for legacy and
+  // manually-authored sets. Verification details are compact per-item issue
+  // records from the sampled/final-exam quality gate.
+  generationPromptVersion String?
+  generationProvider      String?
+  generationModel         String?
+  verificationStatus      String?
+  verificationModel       String?
+  verificationDetails     Json?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   notebook           StudyContainer?     @relation(fields: [notebookId], references: [id], onDelete: SetNull)
@@ -1053,6 +1063,9 @@ model CheckpointSlot {
   // `objective` says what the learner can DO, and the slot's quiz targets it.
   // Optional: legacy/Gemini rows without it fall back to the topicHint.
   objective           String?  @db.Text
+  // Structured assessment blueprint emitted in the existing Stage-A call.
+  // Stage B uses this instead of inferring cognitive demand from a verb alone.
+  assessmentSpec      Json?
   // "learning" | "review" | "assessment". Generator picks kind from phase
   // position; the last slot of each phase is always "assessment".
   kind                String   @default("learning")
@@ -1852,7 +1865,7 @@ model AiUsageEvent {
   id               String   @id @default(cuid())
   userId           String?
   feature          String // 'chat-plain', 'chat-generate', 'path-structure', 'path-generate', 'page-generate', 'essay', …
-  provider         String // 'anthropic' | 'gemini'
+  provider         String // 'anthropic' | 'gemini' | 'openrouter'
   model            String
   inputTokens      Int      @default(0)
   outputTokens     Int      @default(0)
@@ -1927,14 +1940,13 @@ model IpRegistration {
 // successful verify deletes them all.
 model EmailVerificationCode {
   id        String   @id @default(cuid())
-  userId    String
+  userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   codeHash  String // bcrypt hash of the 6-digit code
   attempts  Int      @default(0) // wrong-guess counter; row is dead past the cap
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  @@index([userId])
   @@map("email_verification_codes")
 }
 
@@ -1944,14 +1956,13 @@ model EmailVerificationCode {
 // verification path is never touched. See src/lib/verification.ts.
 model PasswordResetCode {
   id        String   @id @default(cuid())
-  userId    String
+  userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   codeHash  String // bcrypt hash of the 6-digit code
   attempts  Int      @default(0) // wrong-guess counter; row is dead past the cap
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  @@index([userId])
   @@map("password_reset_codes")
 }
 

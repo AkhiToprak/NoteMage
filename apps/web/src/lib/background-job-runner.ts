@@ -6,8 +6,6 @@ import { runPdfImportJob } from '@/lib/pdf-import/run-job';
 import { runVideoImportJob } from '@/lib/video-import/run-job';
 import { runOneNoteImportJob } from '@/lib/onenote-import/run-job';
 import { generatePath } from '@/lib/path-generator';
-import { translatePath } from '@/lib/path-translator';
-import { isPathLanguage } from '@/lib/path-languages';
 import { runConceptBackfill } from '@/lib/concept-backfill';
 import { runMisconceptionTag } from '@/lib/concept-misconception-tag';
 import { runConceptDedup, runConceptDedupBackfill } from '@/lib/concept-dedup';
@@ -30,12 +28,6 @@ export async function runJob(job: TypedBackgroundJob): Promise<void> {
       return;
     case 'path.regenerate':
       await generatePath(job.payload.planId);
-      return;
-    case 'path.translate':
-      if (!isPathLanguage(job.payload.language)) {
-        throw new Error(`Unsupported path translation language: ${job.payload.language}`);
-      }
-      await translatePath(job.payload.planId, job.payload.language);
       return;
     case 'concept.backfill':
       // Weakness Training Phase 1A (§3.3) — best-effort, idempotent, bounded.

@@ -75,6 +75,25 @@ describe('buildQuizPrompt — menu + catalog reflect allowed kinds', () => {
     expect(system).not.toContain('one of the 11 enum values');
     expect(system).toContain('one of the allowed kinds listed below');
   });
+
+  it('uses the assessment blueprint and requires option-specific MC feedback', () => {
+    const { system, tail } = buildQuizPrompt({
+      ...quizCtx(['general']),
+      slotObjective: 'Compare two competing explanations.',
+      assessmentSpec: {
+        knowledgeType: 'conceptual',
+        learnerAction: 'Compare explanations using evidence.',
+        evidence: 'Names the decisive distinction.',
+        difficulty: 'standard',
+        transfer: 'near',
+        commonErrors: ['Choosing by surface wording'],
+      },
+    });
+    expect(system).toContain('optionFeedback');
+    expect(system).toContain('do not infer cognitive demand from the objective verb alone');
+    expect(tail).toContain('Assessment blueprint:');
+    expect(tail).not.toContain('Bloom hint');
+  });
 });
 
 // Phase 6 (Goal B) — the math card-style steer must reach the flashcard system

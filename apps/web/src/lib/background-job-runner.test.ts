@@ -6,7 +6,6 @@ const mocks = vi.hoisted(() => ({
   runVideoImportJob: vi.fn(),
   runOneNoteImportJob: vi.fn(),
   generatePath: vi.fn(),
-  translatePath: vi.fn(),
 }));
 
 vi.mock('@/lib/pdf-import/run-job', () => ({ runPdfImportJob: mocks.runPdfImportJob }));
@@ -15,7 +14,6 @@ vi.mock('@/lib/onenote-import/run-job', () => ({
   runOneNoteImportJob: mocks.runOneNoteImportJob,
 }));
 vi.mock('@/lib/path-generator', () => ({ generatePath: mocks.generatePath }));
-vi.mock('@/lib/path-translator', () => ({ translatePath: mocks.translatePath }));
 
 import { runJob } from './background-job-runner';
 
@@ -55,17 +53,8 @@ describe('runJob', () => {
   it('dispatches path jobs with the expected options', async () => {
     await runJob(job('path.generate', { planId: 'plan-1', allowRefund: true }));
     await runJob(job('path.regenerate', { planId: 'plan-2' }));
-    await runJob(job('path.translate', { planId: 'plan-3', language: 'de' }));
 
     expect(mocks.generatePath).toHaveBeenCalledWith('plan-1', { allowRefund: true });
     expect(mocks.generatePath).toHaveBeenCalledWith('plan-2');
-    expect(mocks.translatePath).toHaveBeenCalledWith('plan-3', 'de');
-  });
-
-  it('rejects unsupported translation languages before calling the translator', async () => {
-    await expect(
-      runJob(job('path.translate', { planId: 'plan-1', language: 'xx' }))
-    ).rejects.toThrow('Unsupported path translation language');
-    expect(mocks.translatePath).not.toHaveBeenCalled();
   });
 });

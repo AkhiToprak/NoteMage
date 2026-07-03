@@ -23,9 +23,6 @@ export type FeatureType =
   // Path regeneration — counts re-runs of an already-generated path. Each is a
   // full AI generation, so a monthly anti-abuse cap is mandatory (never -1).
   | 'path_regenerate'
-  // Path translation re-trigger — counts on-demand translations of an existing
-  // path. Monthly anti-abuse cap.
-  | 'path_translate'
   // Sandboxed code execution — counts code-run invocations. Monthly anti-abuse cap.
   | 'code_execute';
 
@@ -80,7 +77,6 @@ export const TIERS: Record<TierKey, TierConfig> = {
       youtube_transcript: 120, // ⚠️ MINUTES of video (lifetime) — placeholder, set final number
       video_ingest: 15, // MINUTES — one-time lifetime trial of native video notes (see LIFETIME_LIMITS.FREE)
       path_regenerate: 5, // monthly anti-abuse cap on path re-generations
-      path_translate: 5, // monthly anti-abuse cap on on-demand path translations
       code_execute: 300, // monthly anti-abuse cap on sandboxed code runs
     },
     badge: {
@@ -116,7 +112,6 @@ export const TIERS: Record<TierKey, TierConfig> = {
       path_regenerate: 10, // monthly anti-abuse cap on path re-generations —
       // each regen is a FULL path generation (~$0.5–1.2), so 50 was a bigger
       // exposure than the ultra cap itself; 10 covers real recovery use.
-      path_translate: 50, // monthly anti-abuse cap on on-demand path translations
       code_execute: 3000, // monthly anti-abuse cap on sandboxed code runs
     },
     badge: {

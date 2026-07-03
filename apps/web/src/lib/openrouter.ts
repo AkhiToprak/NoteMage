@@ -2,10 +2,14 @@
  * OpenRouter client — OpenAI-compatible REST accessed via `fetch` (no SDK dep).
  *
  * We route the GLM models through OpenRouter for a single live-cost surface:
- *   • GLM-4.7 → the former Haiku slots (quiz gen, default Mage, chat generation)
- *   • GLM-5.2 → the former Sonnet slots (ultra path structure, deep Mage)
- * Gemini stays Google-direct; Anthropic remains the fallback behind the
- * per-feature env overrides in model-routing.ts.
+ *   • GLM-4.7 → the former Haiku slots (default Mage, essay, page-generate)
+ *   • GLM-4.7-flash → the cheap high-volume structured slots (basic path
+ *     quiz/flashcards, exam mock, weakness sessions, chat generation + intent)
+ *   • GLM-5.2 → the former Sonnet slots (path structure/theory, ultra
+ *     quiz/flashcards, deep Mage)
+ * Gemini generation stays Google-direct; the independent quiz verifier uses
+ * Gemini 2.5 Flash-Lite through OpenRouter so all verification spend appears
+ * on the same billed-cost surface. Anthropic remains available through routing.
  *
  * Caching: GLM uses automatic, prefix-based (implicit) caching — no
  * `cache_control` markers. Keep the prompt PREFIX stable (system + static
@@ -21,12 +25,38 @@
 
 export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-// GLM model slugs on OpenRouter. Confirmed in the catalog 2026-06-28
+// GLM model slugs on OpenRouter. Confirmed in the catalog 2026-07-02
 // (https://openrouter.ai/models): glm-4.7 = $0.40/$1.75 per 1M, 203K ctx;
-// glm-5.2 = $0.95/$3 per 1M, 1M ctx. Z.ai rotates point releases
-// (4.6 → 4.7 → 5 → 5.2), so re-check the slug if a call 404s. Both env-overridable.
+// glm-4.7-flash = $0.06/$0.40 per 1M, 203K ctx (completions capped at 16,384 —
+// see openRouterMaxCompletionTokens); glm-5.2 = $0.95/$3 per 1M, 1M ctx. Z.ai
+// rotates point releases (4.6 → 4.7 → 5 → 5.2), so re-check the slug if a call
+// 404s. All env-overridable.
 export const GLM_HAIKU_MODEL = process.env.GLM_HAIKU_MODEL?.trim() || 'z-ai/glm-4.7';
 export const GLM_SONNET_MODEL = process.env.GLM_SONNET_MODEL?.trim() || 'z-ai/glm-5.2';
+export const GLM_FLASH_MODEL = process.env.GLM_FLASH_MODEL?.trim() || 'z-ai/glm-4.7-flash';
+export const OPENROUTER_GEMINI_FLASH_LITE_MODEL =
+  process.env.OPENROUTER_QUIZ_VERIFIER_MODEL?.trim() || 'google/gemini-2.5-flash-lite';
+
+// DeepSeek via OpenRouter — the long-context cheap tier (live catalog
+// 2026-07-02: $0.089/$0.18 per 1M, cache read $0.018, 1M ctx, tools +
+// structured outputs, no provider completion cap). Backs the pin-only
+// `deepseek-flash` token in model-routing.ts (per-feature env-pin experiments,
+// e.g. PATH_THEORY_MODEL=deepseek-flash).
+export const DEEPSEEK_FLASH_MODEL =
+  process.env.DEEPSEEK_FLASH_MODEL?.trim() || 'deepseek/deepseek-v4-flash';
+
+/**
+ * Provider-enforced completion ceiling by slug (OpenRouter
+ * `top_provider.max_completion_tokens`, checked 2026-07-02): the z-ai flash
+ * tier rejects requests past 16,384; full-size GLM allows 32k+, and
+ * deepseek-v4-flash / google-via-OpenRouter are uncapped or higher (32_768
+ * kept as our own budget ceiling). Callers clamp their max_tokens with this so
+ * a capped-tier request isn't refused outright.
+ */
+export function openRouterMaxCompletionTokens(model: string): number {
+  if (model.startsWith('z-ai/') && model.includes('-flash')) return 16_384;
+  return 32_768;
+}
 
 export interface OpenRouterUsage {
   inputTokens: number;
@@ -94,6 +124,12 @@ export interface CallOpenRouterOptions {
    * with `OPENROUTER_PROVIDER_ORDER` (that biases first contact; this pins after).
    */
   sessionId?: string;
+  /**
+   * Per-call upstream preference. `undefined` inherits
+   * OPENROUTER_PROVIDER_ORDER; an empty array deliberately suppresses that
+   * global GLM-specific preference (needed for Google verifier calls).
+   */
+  providerOrder?: string[];
   signal?: AbortSignal;
 }
 
@@ -165,9 +201,26 @@ function buildOpenRouterBody(opts: CallOpenRouterOptions, stream: boolean): Reco
   // inconsistent run-to-run. Setting OPENROUTER_PROVIDER_ORDER (e.g. `z-ai`)
   // prefers the caching-capable upstream first; fallbacks stay enabled so a
   // down upstream still routes (caching when available, availability always).
-  const providerOrder = process.env.OPENROUTER_PROVIDER_ORDER?.trim();
-  if (providerOrder) {
-    body.provider = { order: providerOrder.split(',').map((s) => s.trim()).filter(Boolean) };
+  // The ENV knob is scoped to z-ai/* (its documented intent — a z-ai order on
+  // other families would silently replace their routing preference); an
+  // explicit opts.providerOrder always wins for any model.
+  const providerOrder =
+    opts.providerOrder === undefined
+      ? opts.model.startsWith('z-ai/')
+        ? (process.env.OPENROUTER_PROVIDER_ORDER ?? '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : []
+      : opts.providerOrder.map((s) => s.trim()).filter(Boolean);
+  if (providerOrder.length > 0) {
+    body.provider = { order: providerOrder };
+  } else if (opts.providerOrder === undefined && opts.model.startsWith('deepseek/')) {
+    // DeepSeek slugs are served by many upstreams with >10× price spread on
+    // the SAME model (checked 2026-07-02: v3.2 at $0.23/M StreamLake vs
+    // $3.00/M SambaNova) — sort by price so default routing can't land on the
+    // dear one. An explicit (even empty) opts.providerOrder opts out.
+    body.provider = { sort: 'price' };
   }
   if (stream) {
     body.stream = true;
