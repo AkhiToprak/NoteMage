@@ -2,4 +2,4 @@
 CREATE TYPE "BillingInterval" AS ENUM ('weekly', 'monthly', 'yearly');
 
 -- AlterTable
-ALTER TABLE "User" ADD COLUMN "billingInterval" "BillingInterval";
+ALTER TABLE "users" ADD COLUMN "billingInterval" "BillingInterval";
