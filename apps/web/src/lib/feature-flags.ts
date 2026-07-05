@@ -78,3 +78,14 @@ export function flashcardReviewQueueEnabled(): boolean {
 export function weaknessNudgeSweepEnabled(): boolean {
   return process.env.WEAKNESS_NUDGE_SWEEP === '1';
 }
+
+/**
+ * Mage web search (P5) — kill-switch for the OpenRouter web plugin on Mage
+ * answers. Web search is LIVE by default; set `WEB_SEARCH_DISABLED=1` and
+ * restart the container to disable all web-plugin attachment (grants + quota
+ * still work, they just never fetch) within a process lifecycle. Consumed by
+ * the chat stream when deciding whether to attach the web plugin.
+ */
+export function webSearchDisabled(): boolean {
+  return process.env.WEB_SEARCH_DISABLED === '1';
+}

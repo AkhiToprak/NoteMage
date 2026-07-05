@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import { RENDERERS } from '@/components/quiz/questionRenderers';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
 import type { QuizSession } from '@/components/quiz/player/types';
 import { grade } from '@/lib/quiz-grading';
+import { buildQuizActivityContext, type QuizActivityQuestion, type QuizActivityState } from '@/lib/mage-types';
 import {
   QuizReactionLayer,
   type QuizReactionLayerHandle,
@@ -398,7 +399,15 @@ export default function QuizViewer({
         const timeSpent = Math.round((Date.now() - quizStartTime) / 1000);
         const answersPayload = Array.from(answersToSubmit.entries()).map(([idx, entry]) => ({
           questionId: questions[idx].id,
-          userAnswer: entry.answer,
+          // Strip code_write `runs` at the network boundary: they're client-only
+          // live context for Mage, not answer data. The server persists the
+          // answer as a JSON blob and only reads kind+passed, so runs would just
+          // bloat the DB and resurface as stale review-answer context later. The
+          // in-memory `answers` Map keeps runs so post-submit Mage help still sees them.
+          userAnswer:
+            entry.answer.kind === 'code_write' && entry.answer.runs
+              ? { kind: entry.answer.kind, language: entry.answer.language, code: entry.answer.code, passed: entry.answer.passed }
+              : entry.answer,
         }));
         const res = await fetch(`/api/material/${notebookId}/quiz-sets/${setId}/attempts`, {
           method: 'POST',
@@ -678,6 +687,52 @@ export default function QuizViewer({
   const onSessionRef = useRef(onSession);
   onSessionRef.current = onSession;
   const currentIsCorrect = currentEntry ? currentEntry.isCorrect : null;
+
+  // Mage Real Context (P1) — the CURRENT question's serializer output. Sealed
+  // exam commits answers but never reveals to the learner (server also seals
+  // it) — keep `isSubmittedOrRevealed` false there so no answer key leaks
+  // client-side. Mock only counts as "submitted" once submit-all lands
+  // results/review (grading is staged until then).
+  // ponytail: no debounce here — the serializer is cheap and
+  // useRegisterMageContext is JSON-keyed; add a ~300ms debounce later if
+  // profiling shows code_write keystroke churn causing lag.
+  const mockDraft = mock ? mockDrafts.get(currentIndex) : undefined;
+  const isSubmittedOrRevealed = mock ? mode === 'results' || mode === 'review' : isAnswered && !sealed;
+  const activityAnswer: UserAnswer | undefined = mock
+    ? isSubmittedOrRevealed
+      ? currentEntry?.answer
+      : mockDraft
+    : isAnswered
+      ? currentEntry?.answer
+      : stagedAnswer;
+
+  const { activityContext, activityRevealing } = useMemo(() => {
+    const q = questions[currentIndex];
+    if (!q) return { activityContext: undefined, activityRevealing: undefined };
+    const activityQuestion: QuizActivityQuestion = {
+      id: q.id,
+      kind: q.kind ?? 'mc',
+      payload: q.payload,
+      question: q.question,
+      options: q.options,
+      correctIndex: q.correctIndex,
+      hint: q.hint,
+      correctExplanation: q.correctExplanation,
+      wrongExplanation: q.wrongExplanation,
+      figureCaption: q.image?.caption ?? undefined,
+    };
+    const state: QuizActivityState = {
+      surface: mock ? 'mock-exam' : 'practice',
+      isSubmittedOrRevealed,
+      answer: activityAnswer,
+      isCorrect: currentIsCorrect ?? undefined,
+      hintShown: showHint,
+      runs: activityAnswer?.kind === 'code_write' ? activityAnswer.runs : undefined,
+    };
+    const built = buildQuizActivityContext(activityQuestion, state);
+    return { activityContext: built.safe, activityRevealing: built.revealing };
+  }, [currentIndex, questions, activityAnswer, isSubmittedOrRevealed, currentIsCorrect, showHint, mock]);
+
   useEffect(() => {
     const q = questions[currentIndex];
     onSessionRef.current?.({
@@ -695,6 +750,9 @@ export default function QuizViewer({
       prev,
       retry: retryCurrent,
       finish,
+      activityContext,
+      activityRevealing,
+      isSubmittedOrRevealed,
       ...(mock
         ? {
             isMock: true,
@@ -722,6 +780,9 @@ export default function QuizViewer({
     prev,
     retryCurrent,
     finish,
+    activityContext,
+    activityRevealing,
+    isSubmittedOrRevealed,
   ]);
 
   if (questions.length === 0) {

@@ -781,6 +781,7 @@ export const ANNOTATE_ANSWER_TOOL: Anthropic.Messages.Tool = {
     "Set `sourceMode`: 'material' if the answer came entirely from the numbered sources, 'mixed' if it combined them with general knowledge, 'general' if the sources did not cover it.",
     'Set `usedSources` to the list of source numbers you actually cited (the N in each `[SN]` marker you wrote). Use only numbers that exist in the provided sources.',
     'Set `notFoundInMaterial` to true when the answer is not supported by the provided material.',
+    "Set `materialCoverage`: 'covered' if the numbered sources fully covered the answer, 'partial' if they covered part of it, 'not_covered' if they did not cover it.",
   ].join('\n'),
   input_schema: {
     type: 'object' as const,
@@ -810,6 +811,15 @@ export const ANNOTATE_ANSWER_TOOL: Anthropic.Messages.Tool = {
         type: 'string',
         enum: ['open', 'hint_only', 'sealed'],
         description: 'Reserved: how much of an answer the learner should see. The server sets the real gate.',
+      },
+      // P4b — drives consent chips (general-knowledge / web fallback). Adding
+      // this property is a ONE-TIME tool-def change → a one-time prompt-cache
+      // rewrite at deploy (accepted per plan). Not `required` — the server has a
+      // deterministic zero-citation fallback when the model omits it.
+      materialCoverage: {
+        type: 'string',
+        enum: ['covered', 'partial', 'not_covered'],
+        description: 'How much of the answer the provided numbered sources covered.',
       },
     },
     required: ['sourceMode'],
@@ -1658,6 +1668,9 @@ export interface AnnotateAnswerToolInput {
   notFoundInMaterial?: boolean;
   actions?: string[];
   revealGate?: 'open' | 'hint_only' | 'sealed';
+  // P4b — the model's coverage claim; drives consent chips. Server has a
+  // deterministic zero-citation fallback and never trusts a bare claim.
+  materialCoverage?: 'covered' | 'partial' | 'not_covered';
 }
 
 export function extractToolUses(content: Anthropic.Messages.ContentBlock[]) {

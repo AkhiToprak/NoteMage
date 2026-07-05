@@ -11,7 +11,7 @@ import { trackEvent } from '@/lib/telemetry';
 import QuizPlayerShell from '@/components/quiz/player/QuizPlayerShell';
 import GradedResultPanel, { type GradedResultAction } from '@/components/quiz/player/GradedResultPanel';
 import { useOptionalMage } from '@/components/mage/MageProvider';
-import { buildQuizQuestionContext } from '@/lib/mage-types';
+import { useRegisterMageContext } from '@/components/mage';
 import type { MageQuickAction, MissionStep, QuizSession, QuizSource } from '@/components/quiz/player/types';
 
 // Map a path activity kind → the Mission rail label. Mirrors the Figma rail
@@ -301,16 +301,32 @@ export default function CheckpointQuizViewer({
     return pathTitle ? [{ id: pathId ?? slot.id, title: pathTitle, kind: 'path', detail: 'Learning path' }] : [];
   }, [questionSource, pathTitle, pathId, slot.id]);
 
+  // Net-new — register the surface so the floating Mage button grounds on the
+  // on-screen question (checkpoint quizzes had no registration before P1);
+  // flips quiz-question → quiz-result once the current question is committed.
+  const checkpointMageType = session?.isSubmittedOrRevealed ? 'quiz-result' : 'quiz-question';
+  useRegisterMageContext(
+    quizSet
+      ? {
+          type: checkpointMageType,
+          ids: { pathId, slotId: slot.id, quizSetId: quizSet.id },
+          title: slot.title,
+          activityContext: session?.activityContext,
+          activityRevealing: session?.activityRevealing,
+        }
+      : null,
+  );
+
   const openMage = useCallback(() => {
-    const q = session && quizSet ? quizSet.questions[session.index] : undefined;
     mage?.open({
-      type: 'quiz-question',
+      type: checkpointMageType,
       ids: { pathId, slotId: slot.id, quizSetId: quizSet?.id },
       title: slot.title,
       activeQuestionId: session?.questionId ?? undefined,
-      questionContext: buildQuizQuestionContext(q),
+      activityContext: session?.activityContext,
+      activityRevealing: session?.activityRevealing,
     });
-  }, [mage, pathId, slot.id, slot.title, quizSet, session]);
+  }, [mage, checkpointMageType, pathId, slot.id, slot.title, quizSet, session]);
 
   const mageActions = useMemo<MageQuickAction[]>(
     () => [

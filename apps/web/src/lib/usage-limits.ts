@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { cacheDel, cacheGetOrSet } from '@/lib/redis-cache';
-import { TIERS, getMonthStart, isLifetimeLimit } from '@/lib/tiers';
+import { TIERS, getPeriodStart, isLifetimeLimit, limitFor } from '@/lib/tiers';
 import type { FeatureType, TierKey } from '@/lib/tiers';
 
 interface UsageLimitResult {
@@ -21,13 +21,24 @@ export async function invalidateUserUsageSummaryCache(userId: string): Promise<v
   await cacheDel(userUsageSummaryCacheKey(userId));
 }
 
+/** The UsageRecord `month` key for this user's current period — week-start for
+ *  weekly plans, month-start otherwise. Used by increment/refund, which (unlike
+ *  the check functions) don't already have the user's interval in hand. */
+async function currentPeriodStart(userId: string): Promise<Date> {
+  const { billingInterval } = await db.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { billingInterval: true },
+  });
+  return getPeriodStart(billingInterval);
+}
+
 export async function checkUsageLimit(
   userId: string,
   featureType: FeatureType
 ): Promise<UsageLimitResult> {
   const user = await db.user.findUniqueOrThrow({
     where: { id: userId },
-    select: { tier: true, role: true },
+    select: { tier: true, role: true, billingInterval: true },
   });
 
   // Admins have unlimited everything
@@ -36,7 +47,7 @@ export async function checkUsageLimit(
   }
 
   const tier = user.tier as TierKey;
-  const limit = TIERS[tier].limits[featureType];
+  const limit = limitFor(tier, user.billingInterval, featureType);
 
   // Unlimited
   if (limit === -1) {
@@ -55,7 +66,7 @@ export async function checkUsageLimit(
   } else {
     const record = await db.usageRecord.findUnique({
       where: {
-        userId_featureType_month: { userId, featureType, month: getMonthStart() },
+        userId_featureType_month: { userId, featureType, month: getPeriodStart(user.billingInterval) },
       },
     });
     used = record?.count ?? 0;
@@ -97,7 +108,7 @@ export async function reserveUsage(
 ): Promise<UsageLimitResult> {
   const user = await db.user.findUniqueOrThrow({
     where: { id: userId },
-    select: { tier: true, role: true },
+    select: { tier: true, role: true, billingInterval: true },
   });
 
   // Admins have unlimited everything — never charge the meter.
@@ -106,7 +117,7 @@ export async function reserveUsage(
   }
 
   const tier = user.tier as TierKey;
-  const limit = TIERS[tier].limits[featureType];
+  const limit = limitFor(tier, user.billingInterval, featureType);
 
   // Unlimited — never charge the meter.
   if (limit === -1) {
@@ -114,6 +125,7 @@ export async function reserveUsage(
   }
 
   const lifetime = isLifetimeLimit(tier, featureType);
+  const periodStart = getPeriodStart(user.billingInterval);
 
   const result = await db.$transaction(async (tx) => {
     // Serialize concurrent reservations for this exact (user, feature). The
@@ -133,7 +145,7 @@ export async function reserveUsage(
     } else {
       const record = await tx.usageRecord.findUnique({
         where: {
-          userId_featureType_month: { userId, featureType, month: getMonthStart() },
+          userId_featureType_month: { userId, featureType, month: periodStart },
         },
       });
       used = record?.count ?? 0;
@@ -144,8 +156,8 @@ export async function reserveUsage(
       return { allowed: false, used, limit, lifetime };
     }
 
-    // Commit the reservation by incrementing the current month's row.
-    const month = getMonthStart();
+    // Commit the reservation by incrementing the current period's row.
+    const month = periodStart;
     await tx.usageRecord.upsert({
       where: {
         userId_featureType_month: { userId, featureType, month },
@@ -172,7 +184,7 @@ export async function incrementUsage(
   featureType: FeatureType,
   amount = 1,
 ): Promise<void> {
-  const month = getMonthStart();
+  const month = await currentPeriodStart(userId);
   await db.usageRecord.upsert({
     where: {
       userId_featureType_month: { userId, featureType, month },
@@ -195,7 +207,7 @@ export async function refundUsage(
   featureType: FeatureType,
   amount = 1,
 ): Promise<void> {
-  const month = getMonthStart();
+  const month = await currentPeriodStart(userId);
   const record = await db.usageRecord.findUnique({
     where: { userId_featureType_month: { userId, featureType, month } },
   });
@@ -210,17 +222,18 @@ export async function refundUsage(
 export async function getUserUsageSummary(userId: string) {
   const user = await db.user.findUniqueOrThrow({
     where: { id: userId },
-    select: { tier: true },
+    select: { tier: true, billingInterval: true },
   });
   const tier = user.tier as TierKey;
+  const interval = user.billingInterval;
   const limits = TIERS[tier].limits;
 
-  // Two flat queries cover every feature: the current month's per-feature rows
-  // (for monthly limits) and one grouped lifetime sum across all months (for
+  // Two flat queries cover every feature: the current period's per-feature rows
+  // (for periodic limits) and one grouped lifetime sum across all months (for
   // lifetime limits). Replaces the previous per-lifetime-feature aggregate.
   const [monthRecords, lifetimeSums] = await Promise.all([
     db.usageRecord.findMany({
-      where: { userId, month: getMonthStart() },
+      where: { userId, month: getPeriodStart(interval) },
     }),
     db.usageRecord.groupBy({
       by: ['featureType'],
@@ -233,7 +246,8 @@ export async function getUserUsageSummary(userId: string) {
     lifetimeSums.map((g) => [g.featureType, g._sum.count ?? 0]),
   );
 
-  return (Object.entries(limits) as [FeatureType, number][]).map(([feature, limit]) => {
+  return (Object.keys(limits) as FeatureType[]).map((feature) => {
+    const limit = limitFor(tier, interval, feature);
     const lifetime = isLifetimeLimit(tier, feature);
     let used: number;
     if (lifetime) {

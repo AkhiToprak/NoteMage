@@ -1,7 +1,13 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { internalErrorResponse, successResponse, unauthorizedResponse } from '@/lib/api-response';
+import {
+  badRequestResponse,
+  internalErrorResponse,
+  notFoundResponse,
+  successResponse,
+  unauthorizedResponse,
+} from '@/lib/api-response';
 
 /**
  * GET /api/mage/chats — list the signed-in user's recent Mage conversations for
@@ -18,7 +24,14 @@ export async function GET(request: NextRequest) {
       where: { userId, messages: { some: {} } },
       orderBy: { updatedAt: 'desc' },
       take: 40,
-      select: { id: true, title: true, contextKey: true, updatedAt: true },
+      select: {
+        id: true,
+        title: true,
+        contextKey: true,
+        updatedAt: true,
+        allowWebSearch: true,
+        allowGeneralKnowledge: true,
+      },
     });
     return successResponse({ chats });
   } catch (error) {
@@ -45,11 +58,71 @@ export async function POST(request: NextRequest) {
 
     const chat = await db.notebookChat.create({
       data: { userId, notebookId: null, contextKey, title: 'New Chat' },
-      select: { id: true, contextKey: true },
+      select: { id: true, contextKey: true, allowWebSearch: true, allowGeneralKnowledge: true },
     });
     return successResponse(chat);
   } catch (error) {
     console.error('[mage/chats POST]', error);
+    return internalErrorResponse();
+  }
+}
+
+/**
+ * PATCH /api/mage/chats — set this thread's consent grants (sticky per
+ * conversation). Body `{ chatId, allowWebSearch?, allowGeneralKnowledge? }`;
+ * only the provided booleans are updated. Ownership is re-authorized by
+ * (id, userId), so a forged chatId 404s. Manual validation (no zod), mirroring
+ * app/api/user/settings/route.ts. Returns the updated grant values so the
+ * client store can never go stale. (Web *execution* is P5 — a web grant here is
+ * flag-only.)
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const userId = await getAuthUserId(request);
+    if (!userId) return unauthorizedResponse();
+
+    const body = (await request.json().catch(() => ({}))) as {
+      chatId?: unknown;
+      allowWebSearch?: unknown;
+      allowGeneralKnowledge?: unknown;
+    };
+
+    const { chatId } = body;
+    if (typeof chatId !== 'string' || chatId.length === 0) {
+      return badRequestResponse('chatId must be a non-empty string');
+    }
+
+    const data: { allowWebSearch?: boolean; allowGeneralKnowledge?: boolean } = {};
+    if (body.allowWebSearch !== undefined) {
+      if (typeof body.allowWebSearch !== 'boolean') {
+        return badRequestResponse('allowWebSearch must be a boolean');
+      }
+      data.allowWebSearch = body.allowWebSearch;
+    }
+    if (body.allowGeneralKnowledge !== undefined) {
+      if (typeof body.allowGeneralKnowledge !== 'boolean') {
+        return badRequestResponse('allowGeneralKnowledge must be a boolean');
+      }
+      data.allowGeneralKnowledge = body.allowGeneralKnowledge;
+    }
+    if (Object.keys(data).length === 0) {
+      return badRequestResponse('No grant changes provided');
+    }
+
+    const owned = await db.notebookChat.findFirst({
+      where: { id: chatId, userId },
+      select: { id: true },
+    });
+    if (!owned) return notFoundResponse('Chat not found');
+
+    const updated = await db.notebookChat.update({
+      where: { id: chatId },
+      data,
+      select: { id: true, allowWebSearch: true, allowGeneralKnowledge: true },
+    });
+    return successResponse(updated);
+  } catch (error) {
+    console.error('[mage/chats PATCH]', error);
     return internalErrorResponse();
   }
 }

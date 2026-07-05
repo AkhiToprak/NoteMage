@@ -1,6 +1,10 @@
-import type { Tier } from '@prisma/client';
+import type { Tier, BillingInterval } from '@prisma/client';
 
 export type TierKey = Tier;
+
+// Re-export so existing `@/lib/tiers` importers (lemonsqueezy-client, pricing UI)
+// keep their import path; the DB enum is now the single source of truth.
+export type { BillingInterval };
 
 export type FeatureType =
   | 'ai_flashcards'
@@ -24,10 +28,10 @@ export type FeatureType =
   // full AI generation, so a monthly anti-abuse cap is mandatory (never -1).
   | 'path_regenerate'
   // Sandboxed code execution — counts code-run invocations. Monthly anti-abuse cap.
-  | 'code_execute';
-
-/** The three billing cadences a paid tier can be purchased on. */
-export type BillingInterval = 'weekly' | 'monthly' | 'yearly';
+  | 'code_execute'
+  // Mage web search (P5) — counts OpenRouter web-plugin searched turns. FREE
+  // gets none (Pro upsell); PRO is monthly-capped (~$0.012/searched turn).
+  | 'web_search';
 
 /** CHF charged per billing period, one figure per interval. FREE is all-zero. */
 export interface TierPricing {
@@ -78,6 +82,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       video_ingest: 15, // MINUTES — one-time lifetime trial of native video notes (see LIFETIME_LIMITS.FREE)
       path_regenerate: 5, // monthly anti-abuse cap on path re-generations
       code_execute: 300, // monthly anti-abuse cap on sandboxed code runs
+      web_search: 0, // Pro-only — the web-search chip is an upsell, FREE gets none
     },
     badge: {
       label: 'Free',
@@ -113,6 +118,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       // each regen is a FULL path generation (~$0.5–1.2), so 50 was a bigger
       // exposure than the ultra cap itself; 10 covers real recovery use.
       code_execute: 3000, // monthly anti-abuse cap on sandboxed code runs
+      web_search: 500, // monthly cap on OpenRouter web-plugin searched turns (~$0.012/turn)
     },
     badge: {
       label: 'Pro',
@@ -121,6 +127,43 @@ export const TIERS: Record<TierKey, TierConfig> = {
     },
   },
 };
+
+/**
+ * Weekly-plan overrides for PRO. The weekly cadence resets every week (see
+ * getPeriodStart), so its allowance is ~1/4 of the monthly plan — enough that
+ * four weeks ≈ a month's value, but a single week's payment can never unlock a
+ * full month of COGS. Only the COGS-heavy caps scale; anything not listed here
+ * inherits the monthly PRO limit (so unlimited `-1` features stay unlimited).
+ * monthly + yearly subscribers use TIERS.PRO.limits unchanged.
+ */
+export const PRO_WEEKLY_TOKEN_LIMIT = 1_000_000; // ÷4 of the 4M monthly ceiling
+export const PRO_WEEKLY_LIMITS: Partial<Record<FeatureType, number>> = {
+  ultra_path: 1, // ÷3 — one ultra/wk ≈ $0.48–1.20 COGS, under the 3.20 CHF weekly price
+  video_ingest: 250, // ÷4 minutes
+  pdf_import: 120, // ~÷4 pages
+  path_regenerate: 3, // ~÷3
+  web_search: 125, // ÷4 searched turns
+  code_execute: 750, // ÷4 runs
+};
+
+/** Effective limit for a feature given the user's tier AND quota cadence.
+ *  Weekly PRO uses PRO_WEEKLY_LIMITS where defined; everyone else uses the
+ *  tier's monthly limits. -1 = unlimited. */
+export function limitFor(
+  tier: TierKey,
+  interval: BillingInterval | null | undefined,
+  feature: FeatureType,
+): number {
+  if (tier === 'PRO' && interval === 'weekly' && feature in PRO_WEEKLY_LIMITS) {
+    return PRO_WEEKLY_LIMITS[feature]!;
+  }
+  return TIERS[tier].limits[feature];
+}
+
+/** Effective monthly-token ceiling for a tier + cadence (weekly PRO is smaller). */
+export function tokenLimitFor(tier: TierKey, interval: BillingInterval | null | undefined): number {
+  return tier === 'PRO' && interval === 'weekly' ? PRO_WEEKLY_TOKEN_LIMIT : TIERS[tier].tokenLimit;
+}
 
 /**
  * Feature limits that accumulate over the account's lifetime instead of
@@ -140,6 +183,21 @@ export function isLifetimeLimit(tier: TierKey, feature: FeatureType): boolean {
 export function getMonthStart(): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+}
+
+/** Monday 00:00 UTC of the week containing `now`. `now` is injectable for tests. */
+export function getWeekStart(now: Date = new Date()): Date {
+  const daysSinceMonday = (now.getUTCDay() + 6) % 7; // getUTCDay: 0=Sun..6=Sat
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysSinceMonday),
+  );
+}
+
+/** Start of the current usage period for a quota cadence. This is both the
+ *  `month` key written to UsageRecord and the `gte` cutoff for the token budget,
+ *  so weekly plans reset every Monday while everyone else resets on the 1st. */
+export function getPeriodStart(interval?: BillingInterval | null): Date {
+  return interval === 'weekly' ? getWeekStart() : getMonthStart();
 }
 
 /** Short price suffix per interval, e.g. "/mo". */

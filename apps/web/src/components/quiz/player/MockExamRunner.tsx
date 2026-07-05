@@ -24,7 +24,6 @@ import QuizViewer from '@/components/notebook/QuizViewer';
 import QuizPlayerShell from '@/components/quiz/player/QuizPlayerShell';
 import { useOptionalMage } from '@/components/mage/MageProvider';
 import { useRegisterMageContext } from '@/components/mage';
-import { buildQuizQuestionContext } from '@/lib/mage-types';
 import { trackEvent } from '@/lib/telemetry';
 import type { MageQuickAction, MissionStep, QuizSession, QuizSource } from '@/components/quiz/player/types';
 import type { QuestionNavigatorItem } from '@/components/exam';
@@ -155,7 +154,15 @@ export default function MockExamRunner({
 
   // Mage grounds on the exam context (sealed reveal gate — no answer leaks).
   useRegisterMageContext(
-    set ? { type: 'exam', ids: { notebookId, quizSetId: setId, examId }, title } : null,
+    set
+      ? {
+          type: 'exam',
+          ids: { notebookId, quizSetId: setId, examId },
+          title,
+          activityContext: session?.activityContext,
+          activityRevealing: session?.activityRevealing,
+        }
+      : null,
   );
 
   // Finalize: link the graded attempt to the mock + route to results. The
@@ -238,15 +245,15 @@ export default function MockExamRunner({
   }, [total, session?.index, answered, flags]);
 
   const openMage = useCallback(() => {
-    const q = session && set ? set.questions[session.index] : undefined;
     mage?.open({
       type: 'exam',
       ids: { notebookId, quizSetId: setId, examId },
       title,
       activeQuestionId: session?.questionId ?? undefined,
-      questionContext: buildQuizQuestionContext(q),
+      activityContext: session?.activityContext,
+      activityRevealing: session?.activityRevealing,
     });
-  }, [mage, notebookId, setId, examId, title, session, set]);
+  }, [mage, notebookId, setId, examId, title, session]);
 
   const mageActions = useMemo<MageQuickAction[]>(
     () => [

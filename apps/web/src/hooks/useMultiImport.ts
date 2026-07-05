@@ -122,9 +122,10 @@ export function useMultiImport(options: UseMultiImportOptions = {}) {
   const [result, setResult] = useState<CommitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   // P6 — fast/rich engine selection. Per-import scope only; no user-pref
-  // persistence yet. Default 'rich' preserves the pre-P6 behaviour for users
-  // who never touch the toggle.
-  const [mode, setMode] = useState<ImportMode>('rich');
+  // persistence yet. Default 'fast' (cost cut): digital PDFs skip the per-page
+  // vision call and run the free text-layer path; scanned pages still promote
+  // to vision server-side. Users who need figures/diagrams toggle to full.
+  const [mode, setMode] = useState<ImportMode>('fast');
 
   const preparedRef = useRef<PreparedFile[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);

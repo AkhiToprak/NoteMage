@@ -23,6 +23,8 @@ import {
 import { resolveMageActionCards, type MageActionCard } from '@/lib/mage-actions';
 import { formatExamStudyState, loadExamReadiness } from '@/lib/exam-scope';
 import { mageGenerationActionsEnabled } from '@/lib/feature-flags';
+import { isLegacyComposition } from '@/lib/model-routing';
+import { detectExplicitWebIntent } from '@/lib/mage-web-intent';
 
 /**
  * POST /api/mage/messages — the global Mage panel's send endpoint.
@@ -74,6 +76,10 @@ export async function POST(request: NextRequest) {
       return badRequestResponse('Message is too long (max 10,000 characters)');
     }
     const userMessage = message.trim();
+    // P4b — explicit web-intent heuristic (EN+DE, negation-first). Drives the
+    // PRO grant-flip below and shapes the consent chips (request forces the web
+    // offer, negation suppresses it). Web execution is P5.
+    const webIntent = detectExplicitWebIntent(userMessage);
 
     // Authorize the client context (drops unauthorized ids) + derive the
     // server-authoritative policy/action menu. Never fatal — on failure we
@@ -95,6 +101,11 @@ export async function POST(request: NextRequest) {
     // weakest topics). UNCACHED and placed AFTER the cached corpus block by
     // chat-stream so a changing readiness never busts the 1h corpus cache (R2).
     let studyState: string | undefined;
+    // Mage Real Context P1 — the on-screen activity block. Its own UNCACHED,
+    // fenced system block (never rides the cached corpus). Composed per the
+    // policy matrix: `safe` snapshot always; the revealing block ONLY when the
+    // post-modeGate reveal gate is `open`.
+    let mageActivity: string | undefined;
     if (resolved) {
       const sources = await resolveMageGrounding(resolved.ids, dbGroundingLoader(userId)).catch(
         (err) => {
@@ -118,16 +129,29 @@ export async function POST(request: NextRequest) {
         if (readiness) studyState = formatExamStudyState(readiness);
       }
 
-      // The on-screen question the learner is looking at — for code_write, its
-      // language + prompt + the learner's current code — so Mage answers about
-      // THIS question instead of free-associating (e.g. JS advice on a Python
-      // task). Appended to the corpus so it grounds the turn even when no other
-      // source resolved; carries the visible prompt + learner code, no answer key.
-      if (resolved.questionContext) {
-        groundingParts = [
-          ...(groundingParts ?? []),
-          `THE LEARNER IS CURRENTLY ON THIS QUESTION:\n${resolved.questionContext}`,
-        ];
+      // The on-screen activity the learner is looking at (options, their own
+      // typed input, code + test output, post-submit verdict…). Its own fenced
+      // UNCACHED block in chat-stream — NOT the cached corpus — so it never
+      // busts the 1h corpus cache. Start with the `safe` snapshot; append the
+      // revealing block ONLY when the reveal gate is `open` (matrix): a pre-submit
+      // hint_only, a sealed exam, and strict mode all get safe-only. v1 composes
+      // correctAnswer + pickedFeedback + fullExplanation; allOptionFeedback is
+      // withheld. Fail-soft — never throws.
+      if (resolved.activityContext) {
+        let activity = resolved.activityContext;
+        const rev = resolved.activityRevealing;
+        if (resolved.revealGate === 'open' && rev) {
+          const revealLines: string[] = [];
+          if (rev.correctAnswer) revealLines.push(`Correct answer: ${rev.correctAnswer}`);
+          if (rev.pickedFeedback) revealLines.push(`Why the picked answer is wrong: ${rev.pickedFeedback}`);
+          if (rev.fullExplanation) revealLines.push(`Explanation: ${rev.fullExplanation}`);
+          if (revealLines.length > 0) {
+            activity +=
+              '\n\nREVEALED ANSWER DATA (the learner has submitted; you MAY discuss it):\n' +
+              revealLines.join('\n');
+          }
+        }
+        mageActivity = activity;
       }
     }
 
@@ -178,10 +202,35 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // P4b — an explicit "search the web" request flips the thread web grant
+    // immediately (PRO + non-legacy only), so the header + prompt already reflect
+    // it THIS turn without a chip round-trip. FREE / legacy do NOT grant (the
+    // consent chip / upsell handles them). Goes through the (id, userId)-scoped
+    // row (INVARIANT 4). Negation never grants — detectExplicitWebIntent already
+    // returns 'negated' for it. Fail-soft: a write error just leaves the grant off.
+    if (webIntent === 'request' && tier !== 'FREE' && !isLegacyComposition() && !chat.allowWebSearch) {
+      await db.notebookChat
+        .update({ where: { id: chat.id }, data: { allowWebSearch: true } })
+        .catch(() => {});
+      chat.allowWebSearch = true;
+    }
+
+    // P4a — this thread's sticky consent grants (default false on a fresh row).
+    // Passed to the stream for the ask-first prompt policy, and re-asserted as
+    // response headers below so the client store can never go stale.
+    const mageGrants = {
+      allowWebSearch: chat.allowWebSearch,
+      allowGeneralKnowledge: chat.allowGeneralKnowledge,
+    };
+
     const response = await startChatStream({
       request,
       userId,
       messageNotebookId: chat.notebookId,
+      mageGrants,
+      // P4b — shapes the consent chips after the stream (request forces the web
+      // offer, negation suppresses it).
+      mageWebIntent: webIntent,
       chat: {
         id: chat.id,
         title: chat.title,
@@ -195,6 +244,10 @@ export async function POST(request: NextRequest) {
       tokenLimit,
       tier,
       groundingParts,
+      // Mage Real Context P1 — the on-screen activity block (safe snapshot +,
+      // when the gate is open, the composed revealing block). Injected as a
+      // fenced UNCACHED system block in chat-stream, adjacent to studyState.
+      mageActivity,
       // Phase 8 — the server-authoritative reveal gate for this surface (exam →
       // sealed, practice / live question → hint_only). Streamed to the client so
       // the answer renders behind the gate, independent of the model path.
@@ -219,6 +272,13 @@ export async function POST(request: NextRequest) {
     // a summary of the resolved context for observability (action cards render
     // in Phase 6 — here the menu is only derived + exposed).
     response.headers.set('X-Mage-Chat-Id', chat.id);
+    // P4a — re-assert grant state on EVERY POST so the panel header can never go
+    // stale. `X-Mage-Web-Available` mirrors `!isLegacyComposition()`: in legacy
+    // model mode the web path is unavailable, so the panel shows "web unavailable"
+    // even when the grant is on. (Web execution itself is P5.)
+    response.headers.set('X-Mage-Allow-Web', chat.allowWebSearch ? '1' : '0');
+    response.headers.set('X-Mage-Allow-Gk', chat.allowGeneralKnowledge ? '1' : '0');
+    response.headers.set('X-Mage-Web-Available', isLegacyComposition() ? '0' : '1');
     if (resolved) {
       response.headers.set('X-Mage-Context-Type', resolved.type);
       response.headers.set('X-Mage-Assistance-Policy', resolved.assistancePolicy);
@@ -262,14 +322,20 @@ export async function GET(request: NextRequest) {
     const chat = explicitChatId
       ? await db.notebookChat.findFirst({
           where: { id: explicitChatId, userId },
-          select: { id: true },
+          select: { id: true, allowWebSearch: true, allowGeneralKnowledge: true },
         })
       : await db.notebookChat.findFirst({
           where: { userId, contextKey },
           orderBy: { updatedAt: 'desc' },
-          select: { id: true },
+          select: { id: true, allowWebSearch: true, allowGeneralKnowledge: true },
         });
-    if (!chat) return successResponse({ chatId: null, messages: [] });
+    if (!chat)
+      return successResponse({
+        chatId: null,
+        messages: [],
+        grants: { allowWebSearch: false, allowGeneralKnowledge: false },
+        webAvailable: !isLegacyComposition(),
+      });
 
     // Cap the resume payload to the most recent turns, then restore chronological
     // order for the transcript.
@@ -279,7 +345,15 @@ export async function GET(request: NextRequest) {
       take: 50,
       select: { id: true, role: true, content: true, metadata: true },
     });
-    return successResponse({ chatId: chat.id, messages: recent.reverse() });
+    return successResponse({
+      chatId: chat.id,
+      messages: recent.reverse(),
+      grants: {
+        allowWebSearch: chat.allowWebSearch,
+        allowGeneralKnowledge: chat.allowGeneralKnowledge,
+      },
+      webAvailable: !isLegacyComposition(),
+    });
   } catch (error) {
     console.error('[mage/messages GET]', error);
     return internalErrorResponse();

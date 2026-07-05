@@ -1,4 +1,5 @@
 import type { QuestionKind } from '@notemage/shared';
+import type { MageRevealingParts } from '@/lib/mage-types';
 
 /**
  * Live session state QuizViewer reports up to QuizPlayerShell in external-chrome
@@ -44,6 +45,17 @@ export interface QuizSession {
   jumpTo?: (index: number) => void;
   /** Grade every staged answer into one sealed attempt and finish. */
   submitAll?: () => void;
+
+  // ── Mage Real Context (P1) ──
+  // Built by `buildQuizActivityContext` for the CURRENT on-screen question so
+  // the runners can forward the identical serializer output to both
+  // `useRegisterMageContext` and `mage?.open` — never diverging.
+  /** The serializer's `safe` block for the current question. */
+  activityContext?: string;
+  /** The serializer's structured `revealing` block for the current question. */
+  activityRevealing?: MageRevealingParts;
+  /** Semantic submission flag — drives the `quiz-question` → `quiz-result` type flip. */
+  isSubmittedOrRevealed?: boolean;
 }
 
 /** One grounding source — Sources sidebar rows + the per-question source chip. */

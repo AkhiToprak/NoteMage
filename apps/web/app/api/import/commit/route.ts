@@ -48,7 +48,10 @@ export async function POST(request: NextRequest) {
     if (rawMode !== undefined && rawMode !== 'fast' && rawMode !== 'rich') {
       return badRequestResponse('mode must be "rich" or "fast"');
     }
-    const mode: ImportJobMode = rawMode === 'fast' ? 'fast' : 'rich';
+    // Default 'fast' (cost cut): digital PDFs skip the per-page vision call.
+    // Scanned pages still promote to vision per-page in the worker, so this is
+    // safe for image-only PDFs; callers wanting figures pass mode: 'rich'.
+    const mode: ImportJobMode = rawMode === 'rich' ? 'rich' : 'fast';
 
     if (!Array.isArray(rawGroups) || rawGroups.length === 0) {
       return badRequestResponse('No study packs to create.');

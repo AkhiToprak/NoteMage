@@ -373,11 +373,13 @@ export function resolveModel(
     case 'video-ingest': {
       // Gemini-ONLY (D3): Anthropic has no native video ingestion, so this is
       // forced to a Gemini token regardless of MODEL_COMPOSITION_LEGACY or any
-      // providerOverride. VIDEO_INGEST_MODEL may pin flash/flash-lite; an
-      // Anthropic token (haiku/sonnet) is rejected and falls back to flash.
+      // providerOverride. Default is Flash-Lite — lane 2's output is path
+      // source-text (never shown as the final product), so the ~4-5× cheaper
+      // tier is the right cost/quality trade; VIDEO_INGEST_MODEL=flash pins it
+      // back for quality-sensitive cases. An Anthropic token is rejected.
       const override = parseToken(process.env.VIDEO_INGEST_MODEL);
       if (override === 'flash' || override === 'flash-lite') return fromToken(override);
-      return fromToken('flash');
+      return fromToken('flash-lite');
     }
 
     case 'path-preview':

@@ -32,9 +32,10 @@ export interface OrchestratorInput {
   /** Remaining `pdf_import` page budget; Infinity for an unlimited tier. */
   pageBudget: number;
   /**
-   * "rich" (default, vision engine) | "fast" (text-layer engine, P5 of the
-   * cost-reduction plan). Applied to every job this run; per-PDF mode
-   * selection is not part of this contract.
+   * "fast" (default, text-layer engine — digital PDFs skip vision, P5 of the
+   * cost-reduction plan) | "rich" (vision engine, keeps figures/diagrams).
+   * Applied to every job this run; per-PDF mode selection is not part of this
+   * contract. Scanned pages promote to vision per-page regardless.
    */
   mode?: ImportJobMode;
 }
@@ -58,7 +59,7 @@ export async function runImportOrchestration(
   input: OrchestratorInput
 ): Promise<OrchestratorResult> {
   const { userId, groups, engineName } = input;
-  const mode: ImportJobMode = input.mode === 'fast' ? 'fast' : 'rich';
+  const mode: ImportJobMode = input.mode === 'rich' ? 'rich' : 'fast';
   let budget = input.pageBudget;
 
   const notebookIds: string[] = [];

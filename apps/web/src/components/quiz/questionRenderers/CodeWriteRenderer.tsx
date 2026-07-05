@@ -18,7 +18,7 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import CodeMirrorEditor from '@/components/quiz/CodeMirrorEditor';
 import HintButton from './HintButton';
 import type { CodeWritePayload, ExecutableCodeLanguage } from '@notemage/shared';
-import type { QuestionProps } from './types';
+import type { QuestionProps, CodeWriteRun } from './types';
 
 interface RunResult {
   name?: string;
@@ -115,6 +115,7 @@ export default function CodeWriteRenderer({
           language: payload.language,
           code,
           passed: data.data.allPassed,
+          runs: compactRuns(data.data.runs),
         });
       }
     } catch {
@@ -313,6 +314,29 @@ export default function CodeWriteRenderer({
       )}
     </div>
   );
+}
+
+// Compact the full RunResult[] into the small shape the Mage serializer needs.
+// For a GRADED test, "passed" is whether the output matched expected
+// (`isCorrect`), NOT whether it merely ran (`ok`) — the serializer prints
+// PASS/FAIL from `ok`, so it must carry the test verdict. Caps keep the answer
+// small while it lives in the in-memory answers Map (runs are stripped before
+// the answer is POSTed, so this never hits the DB); the serializer caps again.
+const FIELD_CAP = 400;
+const MAX_RUNS = 12;
+const capField = (s: string | undefined) =>
+  s === undefined ? undefined : s.length > FIELD_CAP ? s.slice(0, FIELD_CAP) : s;
+
+export function compactRuns(runs: RunResult[]): CodeWriteRun[] {
+  return runs.slice(0, MAX_RUNS).map((r) => ({
+    name: r.name,
+    stdin: capField(r.stdin),
+    expectedStdout: capField(r.expectedStdout),
+    stdout: capField(r.stdout),
+    stderr: capField(r.stderr),
+    exitCode: r.exitCode,
+    ok: r.isCorrect ?? r.ok,
+  }));
 }
 
 function runButtonStyle(coarsePointer: boolean, disabled: boolean): React.CSSProperties {

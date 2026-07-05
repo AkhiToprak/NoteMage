@@ -27,14 +27,17 @@ import {
   gateVisibility,
   mageContextKey,
   mageSourceLabel,
+  type MageConsentChip,
   type MageContextType,
   type MageMessageMetadata,
   type MageMode,
   type MageRevealGate,
   type MageSource,
   type MageSourceMode,
+  type MageThreadGrants,
 } from '@/lib/mage-types';
 import type { MageActionCard } from '@/lib/mage-actions';
+import type { MageWebLink } from '@/lib/mage-web-search';
 import { useMage } from './MageProvider';
 import { presentMageContext } from './mage-presentation';
 
@@ -80,6 +83,15 @@ interface PanelMessage {
   /** Phase 9 — the user question this answer responded to, so a mode switch can
    *  re-ask it. Absent for action-card / aborted turns (no switch row). */
   question?: string;
+  /** P4b — consent chips offered under this answer (live-turn only; never
+   *  hydrated on resume). `consentChatId` / `consentMessageId` bind a chip click
+   *  to its thread + turn so double-fires and stale threads no-op. */
+  consent?: MageConsentChip[];
+  consentChatId?: string;
+  consentMessageId?: string;
+  /** P5 — web citations + optional exhausted notice for this turn (live-turn
+   *  only; never hydrated on resume). */
+  web?: { links: MageWebLink[]; notice?: string };
 }
 
 /**
@@ -146,6 +158,15 @@ interface ServerMessageRow {
   metadata: unknown;
 }
 
+/** The `data` payload of a resume/openChat `GET /api/mage/messages`. P4a adds
+ *  `grants` + `webAvailable` so the panel restores the thread's consent scope. */
+interface ResumePayload {
+  chatId: string | null;
+  messages: ServerMessageRow[];
+  grants?: MageThreadGrants;
+  webAvailable?: boolean;
+}
+
 /**
  * Phase 10 — rebuild the transcript from a resumed thread. A row's `metadata`
  * sidecar (Mage turns) restores its chips / cards / gate / mode; a null sidecar
@@ -181,7 +202,8 @@ function hydrateMessages(rows: ServerMessageRow[]): PanelMessage[] {
 }
 
 export function MagePanel() {
-  const { isOpen, close, context, setContext } = useMage();
+  const { isOpen, close, context, setContext, grants, setGrants, webAvailable, setWebAvailable } =
+    useMage();
   const { isPhone } = useBreakpoint();
   const router = useRouter();
   const { data: session } = useSession();
@@ -207,6 +229,17 @@ export function MagePanel() {
   const showContextCard = (context.type ?? 'global') !== 'global' || Boolean(contextTitle);
   const headerSubtitle = subtitleFor(context.type);
 
+  // P4a — compact scope indicator from the thread grants. "Materials only" is the
+  // default; each active grant appends a segment. A granted web scope reads "web
+  // unavailable" in legacy model mode (the web path is off there).
+  const anyGrant = grants.allowWebSearch || grants.allowGeneralKnowledge;
+  const scopeLabel = (() => {
+    let label = 'Materials only';
+    if (grants.allowGeneralKnowledge) label += " · + Mage's knowledge";
+    if (grants.allowWebSearch) label += webAvailable ? ' · + web' : ' · web unavailable';
+    return label;
+  })();
+
   // Source-highlighting — the citation chip currently open in the source viewer.
   const [viewerSource, setViewerSource] = useState<MageSource | null>(null);
 
@@ -229,10 +262,59 @@ export function MagePanel() {
   // of clobbering the live turn.
   const turnSeqRef = useRef(0);
 
-  const handleResponse = useCallback((res: Response) => {
-    const id = res.headers.get('X-Mage-Chat-Id');
-    if (id) chatIdRef.current = id;
-  }, []);
+  const handleResponse = useCallback(
+    (res: Response) => {
+      const id = res.headers.get('X-Mage-Chat-Id');
+      if (id) chatIdRef.current = id;
+      // P4a — every POST re-asserts grant state, so the header can never go stale.
+      const web = res.headers.get('X-Mage-Allow-Web');
+      const gk = res.headers.get('X-Mage-Allow-Gk');
+      if (web !== null || gk !== null) {
+        setGrants({ allowWebSearch: web === '1', allowGeneralKnowledge: gk === '1' });
+      }
+      const avail = res.headers.get('X-Mage-Web-Available');
+      if (avail !== null) setWebAvailable(avail === '1');
+    },
+    [setGrants, setWebAvailable]
+  );
+
+  // P4a — apply the grants/webAvailable a resume (or openChat) payload carries.
+  // Resets grants to none when the payload omits them (a null-thread response).
+  const applyResumeGrants = useCallback(
+    (data: ResumePayload) => {
+      setGrants(data.grants ?? { allowWebSearch: false, allowGeneralKnowledge: false });
+      if (typeof data.webAvailable === 'boolean') setWebAvailable(data.webAvailable);
+    },
+    [setGrants, setWebAvailable]
+  );
+
+  // P4a — one-tap revoke: PATCH both grants to false for the active thread, then
+  // adopt the server's returned values (so the store never drifts). No-op with no
+  // thread yet (nothing to revoke). Web execution is P5 — this only clears flags.
+  const revokeGrants = useCallback(async () => {
+    const chatId = chatIdRef.current;
+    if (!chatId) return;
+    try {
+      const res = await fetch('/api/mage/chats', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, allowWebSearch: false, allowGeneralKnowledge: false }),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { success?: boolean; data?: { allowWebSearch: boolean; allowGeneralKnowledge: boolean } }
+        | null;
+      if (res.ok && json?.success && json.data) {
+        setGrants({
+          allowWebSearch: json.data.allowWebSearch,
+          allowGeneralKnowledge: json.data.allowGeneralKnowledge,
+        });
+      } else {
+        setGrants({ allowWebSearch: false, allowGeneralKnowledge: false });
+      }
+    } catch {
+      setGrants({ allowWebSearch: false, allowGeneralKnowledge: false });
+    }
+  }, [setGrants]);
 
   const { streamingText, status, error, send, abort, revealGate } = useStreamingChat({
     endpoint: '/api/mage/messages',
@@ -264,7 +346,7 @@ export function MagePanel() {
       try {
         const res = await fetch(`/api/mage/messages?contextKey=${encodeURIComponent(contextKey)}`);
         const json = (await res.json().catch(() => null)) as
-          | { success?: boolean; data?: { chatId: string | null; messages: ServerMessageRow[] } }
+          | { success?: boolean; data?: ResumePayload }
           | null;
         // Drop a stale resume: the panel was navigated away, or the learner
         // already started a turn while this was in flight.
@@ -272,20 +354,24 @@ export function MagePanel() {
         if (res.ok && json?.success && json.data) {
           setMessages(hydrateMessages(json.data.messages ?? []));
           chatIdRef.current = json.data.chatId ?? null;
+          applyResumeGrants(json.data);
         } else {
           setMessages([]);
           chatIdRef.current = null;
+          setGrants({ allowWebSearch: false, allowGeneralKnowledge: false });
         }
       } catch {
         if (!cancelled) {
           setMessages([]);
           chatIdRef.current = null;
+          setGrants({ allowWebSearch: false, allowGeneralKnowledge: false });
         }
       }
     })();
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, contextKey, isStreaming, building]);
 
   // Focus the composer when the panel opens.
@@ -360,6 +446,13 @@ export function MagePanel() {
           revealGate: done.revealGate,
           mode: effectiveMode,
           question: text,
+          // P4b — consent chips, live-turn only. The message binding lets a chip
+          // click verify it's still the active thread + last message before it
+          // auto-resends (race safety).
+          consent: done.consent?.chips,
+          consentChatId: done.consent?.chatId,
+          consentMessageId: done.consent?.messageId,
+          web: done.web,
         },
       ]);
     } else if (done?.aborted && done.partialText) {
@@ -369,6 +462,72 @@ export function MagePanel() {
         ...m,
         { id: nextId(), role: 'assistant', content: done.partialText!, revealGate: done.revealGate },
       ]);
+    }
+  };
+
+  // P4b — a consent chip click. Race protections (all required):
+  //  - guard while streaming/building;
+  //  - remove ALL chips from the message IMMEDIATELY (optimistic) so a second
+  //    click finds none (double-fire → no-op);
+  //  - a WORKING chip PATCHes the grant (server re-auths ownership, INVARIANT 4)
+  //    then adopts the returned merged grants (header updates, no refetch);
+  //  - auto-resend the question ONLY if this is still the active thread AND the
+  //    answer is still the last message (else stale → no-op);
+  //  - an UPSELL chip (FREE web) never PATCHes — it appends a terse Pro note.
+  const handleConsentChip = async (msg: PanelMessage, chip: MageConsentChip) => {
+    if (isStreaming || building) return;
+    // Optimistic: strip every consent chip off this message right away.
+    setMessages((m) =>
+      m.map((x) => (x.id === msg.id ? { ...x, consent: undefined } : x)),
+    );
+
+    // Upsell (FREE web): no grant — show the Pro note and stop.
+    if (chip.upsell) {
+      setMessages((m) => [
+        ...m,
+        {
+          id: nextId(),
+          role: 'assistant',
+          content: 'Web search is a Pro feature — Pro includes 500 web searches per month. [See plans](/pricing)',
+        },
+      ]);
+      return;
+    }
+
+    // Working chip — PATCH the matching grant for the bound thread.
+    const chatId = msg.consentChatId;
+    if (!chatId) return;
+    const patch =
+      chip.id === 'ALLOW_WEB_SEARCH'
+        ? { chatId, allowWebSearch: true }
+        : { chatId, allowGeneralKnowledge: true };
+    try {
+      const res = await fetch('/api/mage/chats', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { success?: boolean; data?: { allowWebSearch: boolean; allowGeneralKnowledge: boolean } }
+        | null;
+      if (!res.ok || !json?.success || !json.data) return;
+      setGrants({
+        allowWebSearch: json.data.allowWebSearch,
+        allowGeneralKnowledge: json.data.allowGeneralKnowledge,
+      });
+    } catch {
+      return;
+    }
+
+    // Auto-resend ONLY if the thread + turn are still current: same active
+    // thread AND this answer is still the last message. Otherwise skip (a newer
+    // turn or a switched thread → stale, no-op).
+    if (
+      msg.question &&
+      chatIdRef.current === chatId &&
+      messages[messages.length - 1]?.id === msg.consentMessageId
+    ) {
+      void handleSend(msg.question);
     }
   };
 
@@ -427,12 +586,13 @@ export function MagePanel() {
     try {
       const res = await fetch(`/api/mage/messages?chatId=${encodeURIComponent(id)}`);
       const json = (await res.json().catch(() => null)) as
-        | { success?: boolean; data?: { chatId: string | null; messages: ServerMessageRow[] } }
+        | { success?: boolean; data?: ResumePayload }
         | null;
       if (res.ok && json?.success && json.data) {
         setMessages(hydrateMessages(json.data.messages ?? []));
         chatIdRef.current = json.data.chatId ?? id;
         loadedKeyRef.current = contextKey; // don't let the resume effect clobber it
+        applyResumeGrants(json.data);
       }
     } catch {
       /* leave the current transcript as-is on failure */
@@ -603,18 +763,58 @@ export function MagePanel() {
             >
               {mageDisplayName}
             </span>
-            {headerSubtitle && (
+            {anyGrant ? (
+              // P4a — scope indicator + one-tap revoke. Supersedes the surface
+              // subtitle while a grant is active (the widened scope is the more
+              // relevant status).
               <span
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
                   fontSize: '11.5px',
                   color: 'var(--on-surface-variant)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
+                  minWidth: 0,
                 }}
               >
-                {headerSubtitle}
+                <span
+                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
+                  {scopeLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={revokeGrants}
+                  aria-label="Reset to materials only"
+                  title="Reset to materials only"
+                  style={{
+                    flexShrink: 0,
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    color: 'var(--primary)',
+                  }}
+                >
+                  Reset
+                </button>
               </span>
+            ) : (
+              headerSubtitle && (
+                <span
+                  style={{
+                    fontSize: '11.5px',
+                    color: 'var(--on-surface-variant)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {headerSubtitle}
+                </span>
+              )
             )}
           </div>
           <button
@@ -782,8 +982,22 @@ export function MagePanel() {
                         notFoundInMaterial={m.notFoundInMaterial}
                         onNavigate={navigateTo}
                       />
+                      {/* P5 — web citations + the exhausted notice. */}
+                      {m.web && (m.web.links.length > 0 || m.web.notice) && (
+                        <WebLinkList links={m.web.links} notice={m.web.notice} />
+                      )}
                       {m.actions && m.actions.length > 0 && (
                         <ActionCardList actions={m.actions} onRun={handleAction} />
+                      )}
+                      {/* P4b — consent chips (general-knowledge / web fallback).
+                          Disabled while a turn is in flight so a click can't race
+                          a resend. */}
+                      {m.consent && m.consent.length > 0 && (
+                        <ConsentChipRow
+                          chips={m.consent}
+                          disabled={isStreaming || building}
+                          onPick={(chip) => handleConsentChip(m, chip)}
+                        />
                       )}
                       {/* Phase 9 — re-ask the same question in a different mode. Only
                           under the latest answer, and only for answers born of a
@@ -1596,6 +1810,74 @@ function SourceFooter({
   );
 }
 
+/**
+ * P5 — web citations under an assistant answer. `notice` (quota exhausted) is a
+ * muted single line; `links` render as chips that open in a new tab. Reuses the
+ * `.mage-source-chip` styling (hover / focus-visible / active already defined)
+ * so web links carry the same visual weight as source chips.
+ */
+function WebLinkList({ links, notice }: { links: MageWebLink[]; notice?: string }) {
+  if (links.length === 0 && !notice) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '88%' }}>
+      {notice && (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '12px',
+            color: 'var(--on-surface-variant)',
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            aria-hidden
+            style={{ fontSize: '14px', flexShrink: 0 }}
+          >
+            travel_explore
+          </span>
+          {notice}
+        </span>
+      )}
+      {links.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+          <span
+            style={{ fontSize: '11px', fontWeight: 600, color: 'var(--on-surface-variant)' }}
+          >
+            Web sources
+          </span>
+          {links.map((link) => (
+            <a
+              key={link.url}
+              className="mage-source-chip"
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={link.title ?? link.url}
+              style={{ textDecoration: 'none' }}
+            >
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '14px', flexShrink: 0 }}>
+                public
+              </span>
+              <span
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '170px',
+                }}
+              >
+                {link.hostname}
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Trailing glyph per action kind — open vs. edit vs. generate. */
 const ACTION_TRAILING: Record<MageActionCard['kind'], string> = {
   navigate: 'arrow_outward',
@@ -1676,6 +1958,51 @@ function ModeSwitchRow({
             {MODE_SWITCHES[m].icon}
           </span>
           {MODE_SWITCHES[m].label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * P4b — the consent chip row under an answer that needed more than the material.
+ * A working chip grants the fallback for the thread; an `upsell` chip (FREE web)
+ * renders visibly distinct (outline + Pro tag) but is still clickable to the
+ * upsell note. Uses the shared `.mage-chip` styling; no gradients.
+ */
+function ConsentChipRow({
+  chips,
+  disabled,
+  onPick,
+}: {
+  chips: MageConsentChip[];
+  disabled: boolean;
+  onPick: (chip: MageConsentChip) => void;
+}) {
+  return (
+    <div className="mage-mode-row" role="group" aria-label="Let Mage look beyond your material">
+      {chips.map((chip) => (
+        <button
+          key={chip.id}
+          type="button"
+          className="mage-chip"
+          disabled={disabled}
+          onClick={() => onPick(chip)}
+          style={
+            chip.upsell
+              ? {
+                  background: 'transparent',
+                  border: '1px solid var(--mage-lilac)',
+                  color: 'var(--mage-accent)',
+                  opacity: disabled ? 0.5 : 1,
+                }
+              : { opacity: disabled ? 0.5 : 1 }
+          }
+        >
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '15px' }}>
+            {chip.id === 'ALLOW_WEB_SEARCH' ? 'travel_explore' : 'auto_awesome'}
+          </span>
+          {chip.label}
         </button>
       ))}
     </div>

@@ -218,9 +218,10 @@ export default function ImportSourceStep({
       )}
 
       {/*
-        P6 — engine toggle. Default off ("rich" / vision engine). Turning it
-        on routes digital pages through the text-layer engine for $0/page;
-        scanned pages still fall back to the vision engine server-side. Per
+        P6 — engine toggle. Default ON ("fast" / text-layer engine) as the cost
+        cut: digital pages skip the per-page vision call for $0/page; scanned
+        pages still fall back to the vision engine server-side. Toggling it off
+        ("rich") runs vision on every page to keep figures/diagrams. Per
         plans/token-cost-reduction.md the copy is fixed; tier-aware copy is
         out of scope here.
       */}

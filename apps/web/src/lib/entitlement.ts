@@ -1,4 +1,4 @@
-import { Prisma, type EntitlementSource, type User } from '@prisma/client';
+import { Prisma, type BillingInterval, type EntitlementSource, type User } from '@prisma/client';
 import type { Entitlement } from '@notemage/shared';
 
 /**
@@ -44,6 +44,9 @@ export function resolveActiveEntitlement(user: BillingFields): Entitlement {
 export function activeGrant(opts: {
   source: BillingProvider;
   periodEnd: Date | null;
+  /** Quota cadence for this subscription. Omitted (RevenueCat/iOS) → column left
+   *  as-is → monthly semantics. Only the LS weekly variant passes 'weekly'. */
+  interval?: BillingInterval;
 }): Prisma.UserUpdateInput {
   return {
     tier: 'PRO',
@@ -51,6 +54,7 @@ export function activeGrant(opts: {
     subscriptionPeriodEnd: opts.periodEnd,
     inGracePeriod: false,
     pendingTier: null,
+    ...(opts.interval ? { billingInterval: opts.interval } : {}),
   };
 }
 
@@ -90,5 +94,6 @@ export function endSubscription(
     pendingTier: null,
     subscriptionPeriodEnd: null,
     inGracePeriod: false,
+    billingInterval: null,
   };
 }

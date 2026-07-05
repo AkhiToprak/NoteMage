@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { cacheDel, cacheGetOrSet } from '@/lib/redis-cache';
-import { TIERS, getMonthStart } from '@/lib/tiers';
+import { getPeriodStart, tokenLimitFor } from '@/lib/tiers';
 import type { TierKey } from '@/lib/tiers';
 
 const TOKEN_BUDGET_CACHE_TTL_SECONDS = 20;
@@ -32,7 +32,7 @@ export async function checkTokenBudget(userId: string): Promise<{
 }> {
   const user = await db.user.findUniqueOrThrow({
     where: { id: userId },
-    select: { tier: true, role: true },
+    select: { tier: true, role: true, billingInterval: true },
   });
 
   // Admins bypass token limits and route as Pro (best chat model).
@@ -40,19 +40,20 @@ export async function checkTokenBudget(userId: string): Promise<{
     return { allowed: true, usedTokens: 0, tokenLimit: -1, tier: 'PRO' };
   }
 
-  const tierConfig = TIERS[user.tier as TierKey];
-  const tokenLimit = tierConfig.tokenLimit;
+  const tier = user.tier as TierKey;
+  const tokenLimit = tokenLimitFor(tier, user.billingInterval);
 
-  const startOfMonth = getMonthStart();
+  // Weekly plans reset every week; everyone else on the 1st.
+  const periodStart = getPeriodStart(user.billingInterval);
 
   const tokenUsage = await db.aiUsageEvent.aggregate({
-    where: { userId, createdAt: { gte: startOfMonth } },
+    where: { userId, createdAt: { gte: periodStart } },
     _sum: { inputTokens: true, outputTokens: true },
   });
 
   const usedTokens =
     (tokenUsage._sum.inputTokens ?? 0) + (tokenUsage._sum.outputTokens ?? 0);
-  return { allowed: usedTokens < tokenLimit, usedTokens, tokenLimit, tier: user.tier as TierKey };
+  return { allowed: usedTokens < tokenLimit, usedTokens, tokenLimit, tier };
 }
 
 export async function getCachedTokenBudget(userId: string): Promise<Awaited<ReturnType<typeof checkTokenBudget>>> {

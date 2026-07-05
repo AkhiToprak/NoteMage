@@ -7,6 +7,8 @@ import QuizPlayerShell, { type ShellSecondaryAction } from '@/components/quiz/pl
 import FlashcardActivityCard from '@/components/quiz/player/FlashcardActivityCard';
 import GradeButtonRow, { type ReviewQuality } from '@/components/quiz/player/GradeButtonRow';
 import { useOptionalMage } from '@/components/mage/MageProvider';
+import { useRegisterMageContext } from '@/components/mage';
+import { buildFlashcardActivityContext } from '@/lib/mage-types';
 import type { MageQuickAction, QuizSource } from '@/components/quiz/player/types';
 import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
@@ -351,13 +353,49 @@ export default function CheckpointFlashcardViewer({
     return [];
   }, [cardSource, pathTitle, planId, slot?.id]);
 
+  // Net-new (P3): ground Mage on the current card. Pre-flip the back rides in
+  // `revealing` (server strips it under the practice/hint_only gate); post-flip
+  // it moves into `safe`. Built inline so registration re-keys as cards flip.
+  const flashcardContext = useMemo(
+    () =>
+      card
+        ? buildFlashcardActivityContext(
+            { front: card.question, back: card.answer, imageCaptions: card.images?.map((i) => i.caption ?? null) },
+            {
+              deckTitle: titleText,
+              position: currentIndex + 1,
+              total,
+              isFlipped,
+              lastGrade: grades.get(card.id) != null ? String(grades.get(card.id)) : null,
+            },
+          )
+        : null,
+    [card, titleText, currentIndex, total, isFlipped, grades],
+  );
+
+  useRegisterMageContext(
+    cards && card && flashcardContext
+      ? {
+          type: 'practice',
+          ids: { pathId: planId, slotId: slot?.id },
+          title: slot?.title ?? titleText,
+          activeQuestionId: card.id,
+          activityContext: flashcardContext.safe,
+          activityRevealing: flashcardContext.revealing,
+        }
+      : null,
+  );
+
   const openMage = useCallback(() => {
     mage?.open({
       type: 'practice',
       ids: { pathId: planId, slotId: slot?.id },
       title: slot?.title ?? titleText,
+      activeQuestionId: card?.id,
+      activityContext: flashcardContext?.safe,
+      activityRevealing: flashcardContext?.revealing,
     });
-  }, [mage, planId, slot?.id, slot?.title, titleText]);
+  }, [mage, planId, slot?.id, slot?.title, titleText, card?.id, flashcardContext]);
 
   const mageActions = useMemo<MageQuickAction[]>(
     () => [

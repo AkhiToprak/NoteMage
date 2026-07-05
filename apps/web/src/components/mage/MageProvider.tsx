@@ -7,7 +7,7 @@
  */
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import type { MageClientContext } from '@/lib/mage-types';
+import type { MageClientContext, MageThreadGrants } from '@/lib/mage-types';
 
 interface MageContextValue {
   isOpen: boolean;
@@ -19,15 +19,26 @@ interface MageContextValue {
   context: MageClientContext;
   /** Replace the current context (used by `useRegisterMageContext` in Phase 2). */
   setContext: (context: MageClientContext) => void;
+  /** P4a — the active thread's consent grants (re-asserted by every POST /
+   *  resume, so never stale). */
+  grants: MageThreadGrants;
+  setGrants: (g: MageThreadGrants) => void;
+  /** P4a — whether the web path is available (`!isLegacyComposition()` server-
+   *  side); when false the header shows "web unavailable" even if granted. */
+  webAvailable: boolean;
+  setWebAvailable: (v: boolean) => void;
 }
 
 const DEFAULT_CONTEXT: MageClientContext = { type: 'global' };
+const DEFAULT_GRANTS: MageThreadGrants = { allowWebSearch: false, allowGeneralKnowledge: false };
 
 const MageCtx = createContext<MageContextValue | null>(null);
 
 export function MageProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [context, setContextState] = useState<MageClientContext>(DEFAULT_CONTEXT);
+  const [grants, setGrants] = useState<MageThreadGrants>(DEFAULT_GRANTS);
+  const [webAvailable, setWebAvailable] = useState(true);
 
   const open = useCallback((next?: MageClientContext) => {
     if (next) setContextState(next);
@@ -39,8 +50,19 @@ export function MageProvider({ children }: { children: React.ReactNode }) {
   const setContext = useCallback((next: MageClientContext) => setContextState(next), []);
 
   const value = useMemo<MageContextValue>(
-    () => ({ isOpen, open, close, toggle, context, setContext }),
-    [isOpen, open, close, toggle, context, setContext]
+    () => ({
+      isOpen,
+      open,
+      close,
+      toggle,
+      context,
+      setContext,
+      grants,
+      setGrants,
+      webAvailable,
+      setWebAvailable,
+    }),
+    [isOpen, open, close, toggle, context, setContext, grants, webAvailable]
   );
 
   return <MageCtx.Provider value={value}>{children}</MageCtx.Provider>;

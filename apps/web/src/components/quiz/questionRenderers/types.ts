@@ -1,5 +1,21 @@
 import type { QuestionKind } from '@notemage/shared';
 
+// One code_write test's compact execution result, carried on the answer so the
+// Mage serializer can render actual-vs-expected. Structurally identical to
+// `QuizActivityRun` in mage-types.ts — kept as a local copy on purpose:
+// mage-types.ts imports UserAnswer from here, so importing the type back would
+// create a circular import. Structural typing lets QuizViewer pass
+// `answer.runs` straight into `state.runs` with no import.
+export interface CodeWriteRun {
+  name?: string;
+  stdin?: string;
+  expectedStdout?: string;
+  stdout?: string;
+  stderr?: string;
+  exitCode?: number;
+  ok?: boolean;
+}
+
 // Display mode for the question surface.
 // 'quiz'   = live attempt, taking input
 // 'review' = post-attempt walkthrough; renderer shows the user's saved answer + correctness
@@ -59,6 +75,14 @@ export type UserAnswer =
        * is a future hardening pass.
        */
       passed: boolean;
+      /**
+       * Compact per-test execution results, for Mage's live activity context
+       * (actual-vs-expected). Client-only — kept in the in-memory answers Map so
+       * post-submit Mage help sees them, but stripped from the answer before it's
+       * POSTed to save/grade (see QuizViewer.submitAttempt), so runs never hit
+       * the DB. Capped in CodeWriteRenderer so it stays small.
+       */
+      runs?: CodeWriteRun[];
     };
 
 // Shared props every renderer receives from the QuizViewer dispatcher.

@@ -17,6 +17,17 @@ enum Tier {
   PRO
 }
 
+// Quota reset cadence for a paid tier. Only `weekly` changes behaviour: it
+// resets usage every week with a ~1/4 allowance (see tiers.ts PRO_WEEKLY_*),
+// so a weekly subscriber can't drain a full month's COGS for one week's price.
+// monthly + yearly are quota-identical (both reset monthly) — yearly is
+// recorded as `monthly`. Null = no weekly plan → monthly semantics.
+enum BillingInterval {
+  weekly
+  monthly
+  yearly
+}
+
 // Which payment provider currently backs a user's tier. Mirrors the
 // Entitlement.source union in packages/shared/src/bridge.ts exactly, so
 // /api/me/entitlement maps the DB column straight onto the shared shape.
@@ -112,6 +123,7 @@ model User {
   everHadComeback            Boolean            @default(false) // Has the user ever, in one session, hit ≥3 wrong then ≥5 right?
   tier                       Tier               @default(FREE)
   pendingTier                Tier? // Tier to switch to at end of current period (null = no change)
+  billingInterval            BillingInterval? // Quota reset cadence (null = monthly). Only `weekly` diverges — see tiers.ts
   subscriptionPeriodEnd      DateTime? // When the current billing period ends (null = free / no active period)
   // Which provider currently backs `tier`. Null when FREE. Drives the
   // `source` field of /api/me/entitlement (see src/lib/entitlement.ts).
@@ -378,6 +390,10 @@ model NotebookChat {
   // 'path:{id}' > 'notebook:{id}' > 'global' (see `mageContextKey`). Null on
   // legacy notebook chats until backfilled ('notebook:{id}' / 'global').
   contextKey         String?
+  // Mage consent grants (thread-level, sticky per conversation). Default false =
+  // ask-first: Mage answers from materials only until the learner grants more.
+  allowWebSearch        Boolean  @default(false)
+  allowGeneralKnowledge Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

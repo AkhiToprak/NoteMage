@@ -78,6 +78,9 @@ export interface OpenRouterResult {
    *  cut off at `max_tokens` — any tool-call `arguments` are truncated JSON. */
   finishReason: string | null;
   usage: OpenRouterUsage;
+  /** Raw provider annotation objects (web-plugin citations etc.) — UNTRUSTED,
+   *  no strict schema; the caller must sanitize before use. `[]` when none. */
+  annotations: unknown[];
 }
 
 /** OpenAI-compatible chat message (role + plain-text content). */
@@ -100,6 +103,9 @@ export interface CallOpenRouterOptions {
   /** OpenAI-style `tools` array. */
   tools?: Array<Record<string, unknown>>;
   toolChoice?: 'auto' | 'none' | 'required' | Record<string, unknown>;
+  /** OpenRouter `plugins` array, e.g. `[{ id: 'web', max_results: 3 }]`. Only
+   *  forwarded when set (no plugins by default). */
+  plugins?: Array<Record<string, unknown>>;
   maxTokens?: number;
   temperature?: number;
   /**
@@ -148,6 +154,7 @@ interface OpenRouterResponse {
     message?: {
       content?: string;
       tool_calls?: Array<{ function?: { name?: string; arguments?: string } }>;
+      annotations?: unknown[];
     };
     /** `'stop'` (complete), `'tool_calls'`, or `'length'` (hit max_tokens). */
     finish_reason?: string | null;
@@ -194,6 +201,7 @@ function buildOpenRouterBody(opts: CallOpenRouterOptions, stream: boolean): Reco
   if (opts.responseFormat) body.response_format = opts.responseFormat;
   if (opts.tools) body.tools = opts.tools;
   if (opts.toolChoice) body.tool_choice = opts.toolChoice;
+  if (opts.plugins) body.plugins = opts.plugins;
   if (opts.reasoningEffort) body.reasoning = { effort: opts.reasoningEffort };
   else if (opts.disableReasoning) body.reasoning = { enabled: false };
   // Optional upstream preference. OpenRouter load-balances `z-ai/*` across
@@ -283,6 +291,7 @@ export async function callOpenRouter(opts: CallOpenRouterOptions): Promise<OpenR
     toolCalls,
     finishReason: choice?.finish_reason ?? null,
     usage: normalizeUsage(json.usage),
+    annotations: Array.isArray(message.annotations) ? message.annotations : [],
   };
 }
 
@@ -299,7 +308,12 @@ interface OpenRouterStreamFrame {
         id?: string;
         function?: { name?: string; arguments?: string };
       }>;
+      // Web-plugin citations usually ride the delta near the stream's end.
+      annotations?: unknown[];
     };
+    // Defensively also accept annotations on the choice's message (some
+    // providers place the final citation list here instead of on the delta).
+    message?: { annotations?: unknown[] };
     finish_reason?: string | null;
   }>;
   usage?: OpenRouterUsageRaw;
@@ -310,6 +324,7 @@ export type OpenRouterStreamEvent =
   | { type: 'text'; delta: string }
   | { type: 'reasoning'; delta: string }
   | { type: 'tool_call_delta'; index: number; id?: string; name?: string; argumentsDelta: string }
+  | { type: 'annotations'; annotations: unknown[] }
   | { type: 'finish'; reason: string | null }
   | { type: 'usage'; usage: OpenRouterUsage };
 
@@ -318,6 +333,8 @@ export interface OpenRouterStreamHandlers {
   onText?: (delta: string) => void;
   /** GLM thinking deltas (reasoning models with reasoning ON) — usually dropped. */
   onReasoning?: (delta: string) => void;
+  /** Raw (UNTRUSTED) provider annotation batches — web-plugin citations etc. */
+  onAnnotations?: (annotations: unknown[]) => void;
 }
 
 const EMPTY_USAGE: OpenRouterUsage = {
@@ -405,6 +422,15 @@ export async function* streamOpenRouter(
               };
             }
           }
+          if (Array.isArray(delta.annotations) && delta.annotations.length > 0) {
+            yield { type: 'annotations', annotations: delta.annotations };
+          }
+        }
+        // Some providers attach the final citation list to the choice's message
+        // rather than the delta — surface it too.
+        const msgAnnotations = frame.choices?.[0]?.message?.annotations;
+        if (Array.isArray(msgAnnotations) && msgAnnotations.length > 0) {
+          yield { type: 'annotations', annotations: msgAnnotations };
         }
         // `finish_reason` rides on the choice (sibling to `delta`), not the delta.
         // Surface it so collectors can detect a `'length'` truncation.
@@ -437,6 +463,7 @@ export async function streamOpenRouterText(
   const toolAcc = new Map<number, { name: string; arguments: string }>();
   let usage: OpenRouterUsage = EMPTY_USAGE;
   let finishReason: string | null = null;
+  const annotations: unknown[] = [];
 
   for await (const ev of streamOpenRouter(opts)) {
     switch (ev.type) {
@@ -454,6 +481,10 @@ export async function streamOpenRouterText(
         toolAcc.set(ev.index, cur);
         break;
       }
+      case 'annotations':
+        annotations.push(...ev.annotations);
+        handlers.onAnnotations?.(ev.annotations);
+        break;
       case 'finish':
         finishReason = ev.reason;
         break;
@@ -467,5 +498,5 @@ export async function streamOpenRouterText(
     .sort((a, b) => a[0] - b[0])
     .map(([, v]) => ({ name: v.name, arguments: v.arguments }));
 
-  return { text, toolCalls, finishReason, usage };
+  return { text, toolCalls, finishReason, usage, annotations };
 }

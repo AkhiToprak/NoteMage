@@ -25,7 +25,7 @@ import { useOptionalMage } from '@/components/mage/MageProvider';
 import { useRegisterMageContext } from '@/components/mage';
 import { gradeForPercentage } from '@/lib/path-gating';
 import { trackEvent } from '@/lib/telemetry';
-import { buildQuizQuestionContext, type MageContextType } from '@/lib/mage-types';
+import type { MageContextType } from '@/lib/mage-types';
 import type { MageQuickAction, MissionStep, QuizSession, QuizSource } from '@/components/quiz/player/types';
 
 interface RunnerQuestion {
@@ -111,7 +111,14 @@ export default function QuizSessionRunner({
   const isRemediation = context === 'remediation';
   const title =
     titleOverride || set?.title || (isExam ? 'Mock exam' : isRemediation ? 'Weak-spot training' : 'Practice');
-  const mageType: MageContextType = isExam ? 'exam' : 'quiz-question';
+  // Exam surface stays sealed regardless of per-question submission; the
+  // non-exam quiz flips quiz-question → quiz-result once the current
+  // question is committed (semantic flag, not answers-Map presence).
+  const effectiveMageType: MageContextType = isExam
+    ? 'exam'
+    : session?.isSubmittedOrRevealed
+      ? 'quiz-result'
+      : 'quiz-question';
 
   // Close target: back to the exam overview for a mock exam, back to Weak
   // Spots for remediation, else the paths home.
@@ -163,7 +170,13 @@ export default function QuizSessionRunner({
   // gate, practice → hints-first). Ids are re-authorized server-side.
   useRegisterMageContext(
     set
-      ? { type: mageType, ids: { notebookId, quizSetId: setId, examId }, title }
+      ? {
+          type: effectiveMageType,
+          ids: { notebookId, quizSetId: setId, examId },
+          title,
+          activityContext: session?.activityContext,
+          activityRevealing: session?.activityRevealing,
+        }
       : null,
   );
 
@@ -216,15 +229,15 @@ export default function QuizSessionRunner({
   }, [session?.mode, examResult, isExam, isRemediation]);
 
   const openMage = useCallback(() => {
-    const q = session && set ? set.questions[session.index] : undefined;
     mage?.open({
-      type: mageType,
+      type: effectiveMageType,
       ids: { notebookId, quizSetId: setId, examId },
       title,
       activeQuestionId: session?.questionId ?? undefined,
-      questionContext: buildQuizQuestionContext(q),
+      activityContext: session?.activityContext,
+      activityRevealing: session?.activityRevealing,
     });
-  }, [mage, mageType, notebookId, setId, examId, title, session, set]);
+  }, [mage, effectiveMageType, notebookId, setId, examId, title, session]);
 
   const mageActions = useMemo<MageQuickAction[]>(
     () => [

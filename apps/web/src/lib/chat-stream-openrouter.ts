@@ -45,6 +45,10 @@ export interface StreamChatGLMOptions {
   signal?: AbortSignal;
   /** Defaults to true (parity with the non-reasoning slots GLM replaces). */
   enableReasoning?: boolean;
+  /** P5 — OpenRouter `plugins` array (e.g. the web plugin). Only forwarded when set. */
+  plugins?: Array<Record<string, unknown>>;
+  /** P5 — raw (UNTRUSTED) provider annotations (web citations), mirroring `onText`. */
+  onAnnotations?: (annotations: unknown[]) => void;
 }
 
 /**
@@ -61,7 +65,10 @@ export async function streamChatGLM(opts: StreamChatGLMOptions): Promise<Anthrop
     content: flattenContent(m.content),
   }));
 
-  const handlers: OpenRouterStreamHandlers = { onText: opts.onText };
+  const handlers: OpenRouterStreamHandlers = {
+    onText: opts.onText,
+    onAnnotations: opts.onAnnotations,
+  };
   const result = await streamOpenRouterText(
     {
       model: opts.model,
@@ -70,6 +77,7 @@ export async function streamChatGLM(opts: StreamChatGLMOptions): Promise<Anthrop
       tools: anthropicToolsToOpenAI(opts.tools),
       toolChoice: toolChoiceToOpenAI(opts.toolChoice),
       disableReasoning: opts.enableReasoning !== true,
+      plugins: opts.plugins,
       signal: opts.signal,
     },
     handlers,

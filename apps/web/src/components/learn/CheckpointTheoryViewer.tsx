@@ -10,6 +10,7 @@ import QuizPlayerShell from '@/components/quiz/player/QuizPlayerShell';
 import TheoryActivityCard from '@/components/quiz/player/TheoryActivityCard';
 import QuickRecall from '@/components/quiz/player/QuickRecall';
 import { useOptionalMage } from '@/components/mage/MageProvider';
+import { useRegisterMageContext } from '@/components/mage';
 import type { MageQuickAction, MissionStep, QuizSource } from '@/components/quiz/player/types';
 
 // Full-screen viewer for checkpoint theory activities. Phase C of the "Quiz
@@ -258,6 +259,15 @@ export default function CheckpointTheoryViewer({
       ? [{ id: planId ?? slot.id, title: pathTitle, kind: 'path', detail: 'Learning path' }]
       : [];
   }, [theory, pathTitle, planId, slot.id]);
+
+  // Net-new — register the surface so the floating Mage button grounds on the
+  // on-screen lesson (mirrors CheckpointQuizViewer; `slot` is a required prop
+  // so it's always available, no null-gating needed).
+  useRegisterMageContext({
+    type: 'lesson',
+    ids: { pathId: planId, slotId: slot.id },
+    title: slot.title,
+  });
 
   const openMage = useCallback(() => {
     mage?.open({

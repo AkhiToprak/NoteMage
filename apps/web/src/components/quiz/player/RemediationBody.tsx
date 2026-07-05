@@ -22,6 +22,7 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { RENDERERS } from '@/components/quiz/questionRenderers';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
 import { grade } from '@/lib/quiz-grading';
+import { buildQuizActivityContext, type QuizActivityQuestion, type QuizActivityState } from '@/lib/mage-types';
 import { trackEvent } from '@/lib/telemetry';
 import GradedResultPanel, { type GradedResultAction } from './GradedResultPanel';
 import type { QuizSession } from './types';
@@ -199,6 +200,36 @@ export default function RemediationBody({
     void submitCollected(collected);
   }, [collected, submitCollected]);
 
+  // Serialize the on-screen activity for Mage — ONLY the graded re-test rows
+  // (stepType === null). Teaching steps (reteach/discriminate) stay ungrounded
+  // here; Mage still has the notebook material for those. Revealing composes
+  // once the re-test is graded (surface !== 'mock-exam'), which is what we want.
+  const { activityContext, activityRevealing } = useMemo(() => {
+    if (!current || stepType !== null) {
+      return { activityContext: undefined, activityRevealing: undefined };
+    }
+    const activityQuestion: QuizActivityQuestion = {
+      id: current.id,
+      kind: (current.kind ?? 'mc') as QuizActivityQuestion['kind'],
+      payload: current.payload,
+      question: current.question,
+      options: current.options,
+      correctIndex: current.correctIndex,
+      hint: current.hint,
+      correctExplanation: current.correctExplanation,
+      wrongExplanation: current.wrongExplanation,
+    };
+    const state: QuizActivityState = {
+      surface: 'remediation',
+      isSubmittedOrRevealed: testAnswered,
+      answer: stagedAnswer,
+      isCorrect: testCorrect ?? undefined,
+      hintShown: false,
+    };
+    const built = buildQuizActivityContext(activityQuestion, state);
+    return { activityContext: built.safe, activityRevealing: built.revealing };
+  }, [current, stepType, testAnswered, stagedAnswer, testCorrect]);
+
   // Report a session shape up so the shell header progress + CTA can drive
   // this flow like any other quiz run. The shell's ctaFor() reads
   // isAnswered/canSubmit/isLast — teaching steps report isAnswered=true so
@@ -245,6 +276,11 @@ export default function RemediationBody({
       questionKind: (current.kind ?? 'mc') as QuestionKind,
       isAnswered,
       isCorrect: stepType === null ? testCorrect : null,
+      // Only the graded re-test row carries serializer context; the memo above
+      // returns undefined for teaching steps (§ pedagogy boundary).
+      activityContext,
+      activityRevealing,
+      isSubmittedOrRevealed: stepType === null ? testAnswered : false,
       isLast: isLastStep,
       canSubmit,
       submit,
@@ -272,6 +308,8 @@ export default function RemediationBody({
     total,
     isLastStep,
     testCorrect,
+    activityContext,
+    activityRevealing,
     handleCheckAnswer,
     handleTestContinue,
     advance,

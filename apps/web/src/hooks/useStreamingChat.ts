@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type { MageRevealGate, MageRevealGatePayload, MageSourcesPayload } from '@/lib/mage-types';
+import type { MageConsentPayload, MageRevealGate, MageRevealGatePayload, MageSourcesPayload } from '@/lib/mage-types';
 import type { MageActionsPayload, MageActionCard } from '@/lib/mage-actions';
+import type { MageWebLink } from '@/lib/mage-web-search';
 
 interface ChatMessage {
   id: string;
@@ -21,6 +22,12 @@ export interface DonePayload {
   /** Mage Revolution Phase 6 — recommended action cards (Mage panel turns only;
    * arrives on the `actions` SSE event after `done`). */
   actions?: MageActionCard[];
+  /** P4b — consent chips + their message binding (Mage panel turns only; arrives
+   * on the `consent` SSE event after `done`). Live-turn only, never persisted. */
+  consent?: MageConsentPayload;
+  /** P5 — web citations + optional exhausted notice (arrives on the `web` SSE
+   * event after `done`; GLM path only). Live-turn only, never persisted. */
+  web?: { links: MageWebLink[]; notice?: string };
   /** Mage Revolution Phase 8 — server-set reveal gate for this turn (arrives on
    * the `reveal_gate` SSE event BEFORE `done`; absent → `open`). */
   revealGate?: MageRevealGate;
@@ -240,6 +247,20 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
                 const parsed = JSON.parse(sse.data) as MageActionsPayload;
                 if (donePayload) {
                   donePayload.actions = parsed.actions;
+                }
+                break;
+              }
+              case 'consent': {
+                const parsed = JSON.parse(sse.data) as MageConsentPayload;
+                if (donePayload) {
+                  donePayload.consent = parsed;
+                }
+                break;
+              }
+              case 'web': {
+                const parsed = JSON.parse(sse.data) as { links: MageWebLink[]; notice?: string };
+                if (donePayload) {
+                  donePayload.web = parsed;
                 }
                 break;
               }

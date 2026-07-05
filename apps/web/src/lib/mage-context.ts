@@ -27,6 +27,7 @@ import {
   type MageContextType,
   type MageGroundingSource,
   type MageMode,
+  type MageRevealingParts,
   type ResolvedMageContext,
 } from './mage-types';
 
@@ -310,6 +311,29 @@ function cap(value: unknown, max: number): string | undefined {
 }
 
 /**
+ * Defensively re-cap the client-built revealing parts at the trust boundary.
+ * Keeps only plain-object string fields; drops non-strings; caps the TOTAL
+ * revealing text at ~2000 chars (the last field over budget is truncated to
+ * fit). Returns undefined when nothing survives.
+ */
+function capRevealingParts(value: unknown): MageRevealingParts | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
+  const src = value as Record<string, unknown>;
+  const out: MageRevealingParts = {};
+  let budget = 2000;
+  for (const key of ['correctAnswer', 'pickedFeedback', 'fullExplanation', 'allOptionFeedback'] as const) {
+    if (budget <= 0) break;
+    const v = src[key];
+    if (typeof v !== 'string') continue;
+    const trimmed = v.trim();
+    if (trimmed.length === 0) continue;
+    out[key] = trimmed.length > budget ? trimmed.slice(0, budget) : trimmed;
+    budget -= out[key]!.length;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
  * Resolve + authorize a client context. Never throws on a bad id — an
  * unauthorized or failing lookup simply drops that id. The returned `ids`
  * contain ONLY ids the user owns.
@@ -356,7 +380,12 @@ export async function expandMageContext(
     title: cap(raw?.title, 200),
     selectedText: cap(raw?.selectedText, 4000),
     activeQuestionId: typeof raw?.activeQuestionId === 'string' ? raw.activeQuestionId : undefined,
-    questionContext: cap(raw?.questionContext, 2000),
+    // Trust-boundary re-cap: the client already caps the `safe` snapshot at
+    // 6000, but this is untrusted input, so we cap again server-side.
+    activityContext: cap(raw?.activityContext, 6000),
+    // Defensively cap each revealing string; the server only ever composes
+    // these into the prompt when revealGate === 'open' (route.ts).
+    activityRevealing: capRevealingParts(raw?.activityRevealing),
     mode,
     assistancePolicy,
     // Phase 8 — structural gate, derived from the policy (never client-claimed).

@@ -1,4 +1,4 @@
-import type { Tier } from '@prisma/client';
+import type { BillingInterval, Tier } from '@prisma/client';
 import { db } from '@/lib/db';
 import { activeGrant } from '@/lib/entitlement';
 
@@ -55,6 +55,29 @@ export function tierFromLemonSqueezyVariantId(
 ): Tier | null {
   if (variantId == null) return null;
   return proVariantIds().has(String(variantId)) ? 'PRO' : null;
+}
+
+/** Weekly Pro variant ids (base + PPP both bill weekly) from
+ *  LEMONSQUEEZY_PRO_WEEKLY_VARIANT_IDS. Unset → empty → nothing maps to weekly. */
+function weeklyVariantIds(): Set<string> {
+  return new Set(
+    (process.env.LEMONSQUEEZY_PRO_WEEKLY_VARIANT_IDS ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  );
+}
+
+/**
+ * Quota cadence for a Pro variant. Only the weekly variants need distinguishing
+ * (their quota resets weekly — see tiers.ts); monthly and yearly are quota-
+ * identical, so both map to 'monthly'. Unset weekly ids (weekly not sold yet) →
+ * everyone is 'monthly' → zero behaviour change.
+ */
+export function intervalFromLemonSqueezyVariantId(
+  variantId: string | number | null | undefined
+): BillingInterval {
+  return variantId != null && weeklyVariantIds().has(String(variantId)) ? 'weekly' : 'monthly';
 }
 
 /**
@@ -135,7 +158,11 @@ export async function provisionFromLemonSqueezySubscription(
   await db.user.update({
     where: { id: userId },
     data: {
-      ...activeGrant({ source: 'LEMON_SQUEEZY', periodEnd }),
+      ...activeGrant({
+        source: 'LEMON_SQUEEZY',
+        periodEnd,
+        interval: intervalFromLemonSqueezyVariantId(sub.variantId),
+      }),
       lemonSqueezyCustomerId: sub.customerId,
       lemonSqueezySubscriptionId: sub.id,
       ...(scheduledCancel ? { pendingTier: 'FREE' } : {}),
