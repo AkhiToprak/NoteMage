@@ -41,6 +41,11 @@ const EMBEDDING_MODEL = process.env.CONCEPT_EMBEDDING_MODEL?.trim() || 'text-emb
 const EMBEDDING_OUTPUT_DIMENSIONALITY = 256;
 const EMBEDDING_INPUT_MAX_CHARS = 200;
 
+/** Inputs per batched embedContent call in the backfill sweep (M2b). One
+ *  round trip embeds up to this many concept strings; kept well under the
+ *  BACKFILL_RUN_CAP so a 500-row sweep is ≤5 calls instead of 500. */
+const EMBEDDING_CHUNK_SIZE = 100;
+
 // ─── Cosine similarity ──────────────────────────────────────────────────
 
 /**
@@ -115,6 +120,60 @@ export async function getConceptEmbedding(
   });
 
   return values;
+}
+
+/**
+ * Batched sibling to {@link getConceptEmbedding} (M2b): embed N concept
+ * strings in ONE `embedContent` round trip instead of N calls. The installed
+ * `@google/genai` (v2.3.0) accepts an array `contents` (`EmbedContentParameters.contents:
+ * ContentListUnion` = `… | PartUnion[]`) and returns `embeddings[]` "in the
+ * same order as provided" — so response index i aligns with `inputs[i]`.
+ *
+ * Asserts the returned count matches the input count and every row has values;
+ * a mismatch or an empty row throws (the caller — the backfill sweep — wraps
+ * this so a bad chunk is logged and skipped, never a half-aligned write-back).
+ * Emits ONE per-chunk cost line (summed input chars), replacing the former
+ * per-row logs. Throws on failure — callers decide fatality.
+ */
+export async function getConceptEmbeddings(inputs: string[]): Promise<number[][]> {
+  if (inputs.length === 0) return [];
+  const clamped = inputs.map((s) => s.slice(0, EMBEDDING_INPUT_MAX_CHARS));
+  const client = getGeminiClient();
+
+  const response = await client.models.embedContent({
+    model: EMBEDDING_MODEL,
+    contents: clamped,
+    config: { outputDimensionality: EMBEDDING_OUTPUT_DIMENSIONALITY },
+  });
+
+  const embeddings = response.embeddings ?? [];
+  if (embeddings.length !== clamped.length) {
+    throw new Error(
+      `embedContent returned ${embeddings.length} embeddings for ${clamped.length} inputs (index misalignment)`,
+    );
+  }
+
+  const out: number[][] = [];
+  for (let i = 0; i < embeddings.length; i++) {
+    const values = embeddings[i]?.values;
+    if (!values || values.length === 0) {
+      throw new Error(`embedContent returned no values for input index ${i}`);
+    }
+    out.push(values);
+  }
+
+  const inputChars = clamped.reduce((sum, s) => sum + s.length, 0);
+  const estimatedTokens = Math.ceil(inputChars / 4);
+  const estUsd = costForCall(EMBEDDING_MODEL, { inputTokens: estimatedTokens, outputTokens: 0 });
+  console.info('[concept-dedup] cost', {
+    model: EMBEDDING_MODEL,
+    rows: clamped.length,
+    inputChars,
+    estimatedTokens,
+    estUsd: Number(estUsd.toFixed(6)),
+  });
+
+  return out;
 }
 
 // ─── Candidate pool ─────────────────────────────────────────────────────
@@ -312,12 +371,18 @@ export async function runConceptDedup(conceptId: string): Promise<void> {
 }
 
 /**
- * Lazy per-user dedup backfill (plan §11.7). Processes the user's canonical
- * concepts with no embedding one row at a time (embed → persist → tier-2
- * compare → maybe merge), capped at {@link BACKFILL_RUN_CAP} per run.
+ * Lazy per-user dedup backfill (plan §11.7). Loads the user's canonical
+ * concepts with no embedding (cap {@link BACKFILL_RUN_CAP}), embeds them in
+ * batched chunks of {@link EMBEDDING_CHUNK_SIZE} (M2b — one round trip per
+ * chunk instead of one per row), writes each embedding + `embeddedAt` back,
+ * THEN runs the existing per-row cosine/merge pass unchanged.
+ *
  * `embeddedAt: null` rows are the resume checkpoint — a killed-and-replayed
- * run picks up exactly where it left off, never re-processing already-
- * embedded rows. Never throws.
+ * run picks up exactly where it left off. A row already carrying an embedding
+ * (from a prior partial run) is fed straight to the compare pass without
+ * re-embedding, so the batched write-back is itself resume-safe. A failed
+ * chunk is logged and skipped (its rows stay `embeddedAt: null` → retried next
+ * run), never a half-aligned write. Never throws.
  */
 export async function runConceptDedupBackfill(userId: string): Promise<void> {
   if (!weaknessConceptDedupEnabled()) return;
@@ -342,9 +407,44 @@ export async function runConceptDedupBackfill(userId: string): Promise<void> {
       take: BACKFILL_RUN_CAP,
     });
 
+    // Phase 1 — batched embed + write-back, chunk by chunk. `embeddingByRowId`
+    // carries the freshly-computed vectors into phase 2's compare pass so a
+    // successful chunk needs no re-read.
+    const embeddingByRowId = new Map<string, number[]>();
+    for (let i = 0; i < rows.length; i += EMBEDDING_CHUNK_SIZE) {
+      const chunk = rows.slice(i, i + EMBEDDING_CHUNK_SIZE);
+      try {
+        const embeddings = await getConceptEmbeddings(
+          chunk.map((row) => buildEmbeddingInput(row.label, row.description)),
+        );
+        const now = new Date();
+        for (let j = 0; j < chunk.length; j++) {
+          const row = chunk[j];
+          const embedding = embeddings[j];
+          await db.concept.update({
+            where: { id: row.id },
+            data: { embedding, embeddedAt: now },
+          });
+          embeddingByRowId.set(row.id, embedding);
+        }
+      } catch (error) {
+        // Whole chunk failed (embed call error, or index-misalignment throw) —
+        // leave every row's `embeddedAt: null` so the next run retries it.
+        console.error('[concept-dedup] backfill chunk embed failed (non-fatal)', {
+          userId,
+          chunkStart: i,
+          chunkSize: chunk.length,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // Phase 2 — per-row cosine/merge pass (unchanged). A row whose chunk failed
+    // has no embedding this run and is skipped; a row that arrived already
+    // embedded (partial prior run) falls back to its stored vector.
     for (const row of rows) {
-      const embedding = await ensureEmbedding(row);
-      if (!embedding) continue; // this row's embed call failed; stays the resume point
+      const embedding = embeddingByRowId.get(row.id) ?? (row.embedding.length > 0 ? row.embedding : null);
+      if (!embedding) continue; // chunk failed this run — stays the resume point
 
       await compareAndMaybeMerge(row, embedding);
     }

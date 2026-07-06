@@ -54,6 +54,8 @@ import { classifyBand, type MasteryInputs } from '@/lib/concept-mastery';
 import { deriveConceptMisconception } from '@/lib/concept-misconception';
 import { forcedStructuredCallGemini } from '@/lib/path-generator-gemini';
 import { forcedStructuredCallOpenRouter } from '@/lib/path-generator-openrouter';
+import { enqueueJob } from '@/lib/background-jobs';
+import { logAiUsage } from '@/lib/ai-usage';
 
 // ─── Tunable constants (plan §9 Q#6 — retune here, not inline) ─────────────
 
@@ -73,6 +75,11 @@ export const WRONG_EXAMPLE_LOOKBACK_DAYS = 90;
  *  longer than this is rejected outright (falls back to tier-1 or no-write)
  *  rather than truncated, since a truncated sentence can read as broken. */
 export const MAX_MISCONCEPTION_LINE_CHARS = 240;
+
+/** Max eligible concepts tagged in ONE batch call (M2a). More than this and
+ *  the handler re-enqueues itself (immediate runAt) to drain the remainder,
+ *  keeping each LLM call's grounding block bounded. */
+export const MISCONCEPTION_BATCH_LIMIT = 20;
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -401,6 +408,323 @@ export async function runMisconceptionTag(conceptId: string, userId: string): Pr
   } catch (error) {
     console.error('[concept-misconception-tag] failed', {
       conceptId,
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+// ─── Batch handler (Phase 5 / audit M2a) ────────────────────────────────
+//
+// Replaces the per-concept fan-out: ONE debounced job per user, ONE forced-tool
+// LLM call for up to MISCONCEPTION_BATCH_LIMIT eligible concepts, ONE logAiUsage
+// per batch. The per-concept gates (weak-band, 7-day cooldown, hysteresis
+// re-check, de-personalisation guard) are the SAME ones runMisconceptionTag
+// applies — MOVED into a shared eligibility query + the shared isDepersonalised
+// guard, not rewritten.
+
+/** Index-addressed forced-tool output (mirrors concept-backfill.ts's `items`
+ *  shape): the model addresses each concept by its 1-based number in the
+ *  numbered grounding list, so it never echoes CUIDs. */
+export interface MisconceptionBatchToolInput {
+  lines: { index: number; line: string }[];
+}
+
+/** One eligible concept with its grounding, positioned by 1-based `index`. */
+interface EligibleConcept {
+  conceptId: string;
+  label: string;
+  description: string | null;
+  neighborOptionText: string | null;
+  wrongExamples: WrongAnswerExample[];
+  /** Tier-1 line to fall back to when the LLM line fails the guard. */
+  tier1Line: string | null;
+}
+
+/**
+ * Load the user's misconception-eligible concepts, applying the SAME gates the
+ * single handler applies, at run time (§2.3): a `status: 'weak'` denormalised
+ * pre-filter (the `@@index([userId, status])`), a 7-day cooldown filter
+ * (`misconceptionAt` null OR expired), then the authoritative in-JS
+ * `classifyBand` re-check (the denormalised `status` MUST be re-decayed on read
+ * — same hysteresis re-check the single path does). Returns at most `limit`
+ * concepts (most-stale first) plus whether MORE remained past the cap.
+ */
+async function loadEligibleConcepts(
+  userId: string,
+  now: Date,
+  limit: number,
+): Promise<{ eligible: EligibleConcept[]; hasMore: boolean }> {
+  const cooldownCutoff = new Date(now.getTime() - MISCONCEPTION_COOLDOWN_DAYS * 24 * 60 * 60 * 1000);
+
+  // Pre-filter in SQL: weak (denormalised cache) + cooldown-expired. Ordered
+  // most-stale first so a re-enqueue drains oldest concepts first. Over-fetch a
+  // little headroom so hysteresis drops don't starve a full batch — but keep it
+  // bounded (limit*3) so a user with thousands of weak rows can't blow memory.
+  const rows = await db.conceptMastery.findMany({
+    where: {
+      userId,
+      status: 'weak',
+      OR: [{ misconceptionAt: null }, { misconceptionAt: { lt: cooldownCutoff } }],
+    },
+    include: { concept: true },
+    orderBy: [{ misconceptionAt: { sort: 'asc', nulls: 'first' } }, { updatedAt: 'asc' }],
+    take: limit * 3,
+  });
+
+  const eligible: EligibleConcept[] = [];
+  let considered = 0;
+
+  for (const mastery of rows) {
+    // Authoritative hysteresis re-check — the denormalised `status` is a coarse
+    // cache; re-decay before spending a token (§2.1.1 / §2.3).
+    const inputs: MasteryInputs = {
+      weightedCorrect: mastery.weightedCorrect,
+      weightedTotal: mastery.weightedTotal,
+      attemptCount: mastery.attemptCount,
+      lastAttemptAt: mastery.lastAttemptAt,
+      lastCorrectAt: mastery.lastCorrectAt,
+      peakLcb: mastery.peakLcb,
+    };
+    if (classifyBand(inputs, now) !== 'weak') continue;
+    // Cooldown re-check in JS too (defensive — SQL already filtered, but the
+    // exact boundary semantics live in isWithinMisconceptionCooldown).
+    if (isWithinMisconceptionCooldown(mastery.misconceptionAt, now)) continue;
+
+    considered += 1;
+    if (eligible.length >= limit) {
+      // One more genuinely-eligible concept exists beyond the cap → re-enqueue.
+      return { eligible, hasMore: true };
+    }
+
+    const [tier1, wrongExamples] = await Promise.all([
+      deriveConceptMisconception(mastery.conceptId),
+      loadWrongAnswerExamples(mastery.conceptId),
+    ]);
+
+    eligible.push({
+      conceptId: mastery.conceptId,
+      label: mastery.concept.label,
+      description: mastery.concept.description,
+      neighborOptionText: tier1?.neighborOptionText ?? null,
+      wrongExamples,
+      tier1Line: tier1?.line ?? null,
+    });
+  }
+
+  void considered;
+  return { eligible, hasMore: false };
+}
+
+/** Build the index-addressed forced tool for the batch call. The tool returns
+ *  one line per concept, each addressed by its 1-based `index`. */
+function buildMisconceptionBatchTool(): ToolDef {
+  return {
+    name: 'tag_misconceptions',
+    description: [
+      'For EACH numbered concept below, write ONE short, de-personalised,',
+      'material-framed sentence about a common confusion learners have around it,',
+      'grounded in the wrong-answer examples and/or confusable neighbor given for',
+      'that concept. Address each concept by its `index` — the 1-based number',
+      'shown before it in the list.',
+      '',
+      'STRICT VOICE RULES (per concept):',
+      '- Frame it about the QUESTION TYPE or MATERIAL, never about the learner.',
+      '- NEVER use second-person psychological claims like "you might be',
+      '  confusing X and Y" or "you keep mixing up X and Y".',
+      '- PREFERRED shape: "This kind of question is often mixed up with',
+      '  {neighbor}. Let\'s compare them."',
+      '- One sentence each. Terse. No filler.',
+    ].join('\n'),
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        lines: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              index: {
+                type: 'integer',
+                description: 'The 1-based number of the concept from the numbered list.',
+              },
+              line: {
+                type: 'string',
+                description:
+                  'One de-personalised, material-framed sentence, <=240 characters, no second-person blame.',
+              },
+            },
+            required: ['index', 'line'],
+          },
+        },
+      },
+      required: ['lines'],
+    },
+  };
+}
+
+/** Gemini JSON-mode instruction for the batch shape (Gemini has no forced tool). */
+function buildGeminiBatchJsonInstruction(): string {
+  return [
+    'Respond with ONLY a single JSON object (no markdown fences, no prose), matching exactly:',
+    '{',
+    '  "lines": [ { "index": number, "line": string } ] // index = the 1-based concept number; one de-personalised, material-framed sentence <=240 chars each, no second-person blame',
+    '}',
+  ].join('\n');
+}
+
+/** Build the ONE numbered grounding block for the whole batch. */
+function buildBatchPrompt(eligible: EligibleConcept[]): string {
+  const blocks = eligible.map((c, i) => {
+    const per = buildMisconceptionPrompt({
+      conceptLabel: c.label,
+      conceptDescription: c.description,
+      neighborOptionText: c.neighborOptionText,
+      wrongExamples: c.wrongExamples,
+    });
+    return `### Concept ${i + 1}\n${per}`;
+  });
+  return [
+    'Tag a common misconception for EACH of the following concepts.',
+    'Return one entry per concept, addressed by its 1-based number.',
+    '',
+    ...blocks,
+  ].join('\n\n');
+}
+
+/** Dispatch the batch call to whichever provider `resolveModel` picked, wiring
+ *  `onUsage` so the caller can emit ONE aggregated logAiUsage. */
+async function callMisconceptionBatch(
+  system: string,
+  usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number },
+): Promise<{ lines: { index: number; line: string }[]; provider: 'gemini' | 'openrouter'; model: string }> {
+  const resolved = resolveModel('weakness-misconception-tag');
+  const tool = buildMisconceptionBatchTool();
+
+  if (resolved.provider === 'openrouter') {
+    const result = await forcedStructuredCallOpenRouter<MisconceptionBatchToolInput>({
+      system,
+      tool,
+      model: resolved.model,
+      onUsage: (u) => {
+        usage.inputTokens += u.inputTokens;
+        usage.outputTokens += u.outputTokens;
+        usage.cacheReadTokens += u.cachedTokens;
+      },
+    });
+    return { lines: result.lines ?? [], provider: 'openrouter', model: resolved.model };
+  }
+
+  const systemInstruction = [system, buildGeminiBatchJsonInstruction()].join('\n\n');
+  const result = await forcedStructuredCallGemini<Partial<MisconceptionBatchToolInput>>({
+    systemInstruction,
+    model: resolved.model,
+    onUsage: (u) => {
+      usage.inputTokens += u.promptTokens;
+      usage.outputTokens += u.candidatesTokens;
+      usage.cacheReadTokens += u.cachedTokens;
+    },
+  });
+  return { lines: result.lines ?? [], provider: 'gemini', model: resolved.model };
+}
+
+/**
+ * Handler for `concept.misconception.batch` (Phase 5 / audit M2a). One
+ * debounced job per user tags up to MISCONCEPTION_BATCH_LIMIT eligible concepts
+ * in ONE LLM call, persists each de-personalised line through the SAME guard +
+ * cooldown stamp the single path uses, meters ONE logAiUsage, and re-enqueues
+ * itself (immediate) if more eligible concepts remain. Never throws.
+ */
+export async function runMisconceptionTagBatch(userId: string): Promise<void> {
+  try {
+    if (!weaknessConceptsEnabled()) return;
+
+    const now = new Date();
+    const { eligible, hasMore } = await loadEligibleConcepts(userId, now, MISCONCEPTION_BATCH_LIMIT);
+    if (eligible.length === 0) return;
+
+    const system = buildBatchPrompt(eligible);
+
+    const usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
+    let lines: { index: number; line: string }[];
+    let provider: 'gemini' | 'openrouter';
+    let model: string;
+    try {
+      ({ lines, provider, model } = await callMisconceptionBatch(system, usage));
+    } catch (error) {
+      console.error('[concept-misconception-tag] batch LLM call failed', {
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+
+    // ONE aggregated ledger entry for the whole batch (M2a meter).
+    if (usage.inputTokens + usage.outputTokens > 0) {
+      logAiUsage({
+        userId,
+        feature: 'weakness-misconception-tag',
+        provider,
+        model,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        cacheReadTokens: usage.cacheReadTokens,
+      });
+    }
+
+    // Map each returned line back to its concept by 1-based index (mirrors
+    // concept-backfill.ts: Number.isInteger + range guard, out-of-range dropped).
+    const lineByIndex = new Map<number, string>();
+    for (const entry of lines) {
+      const idx = entry?.index;
+      if (!Number.isInteger(idx) || typeof idx !== 'number' || idx < 1 || idx > eligible.length) {
+        console.error('[concept-misconception-tag] batch returned out-of-range index, skipping', {
+          userId,
+          index: idx,
+          conceptCount: eligible.length,
+        });
+        continue;
+      }
+      lineByIndex.set(idx, (entry.line ?? '').trim());
+    }
+
+    // Persist each through the SAME de-personalisation guard + cooldown stamp
+    // the single path uses. A failing/empty line falls back to that concept's
+    // tier-1 line if one exists; otherwise nothing is persisted for it.
+    for (let i = 0; i < eligible.length; i++) {
+      const concept = eligible[i];
+      const candidate = lineByIndex.get(i + 1) ?? '';
+      const finalLine = isDepersonalised(candidate) ? candidate : concept.tier1Line;
+      if (!finalLine) continue;
+      try {
+        await db.conceptMastery.update({
+          where: { userId_conceptId: { userId, conceptId: concept.conceptId } },
+          data: { misconceptionLabel: finalLine, misconceptionAt: now },
+        });
+      } catch (error) {
+        console.error('[concept-misconception-tag] batch persist failed', {
+          userId,
+          conceptId: concept.conceptId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // Drain the remainder in a follow-up run (same dedupeKey pattern, immediate).
+    if (hasMore) {
+      await enqueueJob(
+        'concept.misconception.batch',
+        { userId },
+        { dedupeKey: `concept.misconception.batch:${userId}`, runAt: new Date() },
+      ).catch((error) => {
+        console.error('[concept-misconception-tag] batch re-enqueue failed', {
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+    }
+  } catch (error) {
+    console.error('[concept-misconception-tag] batch failed', {
       userId,
       error: error instanceof Error ? error.message : String(error),
     });

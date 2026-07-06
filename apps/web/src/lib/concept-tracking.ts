@@ -158,33 +158,58 @@ async function enqueueBackfillForUntaggedQuestions(
 }
 
 /**
- * Enqueue one `concept.misconception` job per concept that transitioned
- * into the `weak` band during this call (plan §2.3 / §4). Deduped both
- * within this call (the `Set` the caller built) and across calls via
- * `dedupeKey: concept.misconception:<conceptId>` — same `enqueueJob`
- * dedupe-key pattern as `concept.backfill` above. The 7-day cooldown is
- * enforced by the (sibling-owned) handler, not here; this function only
- * fires on the transition. Each enqueue is individually guarded so one
- * failure doesn't stop the rest or abort tracking of the remaining answers.
+ * Enqueue misconception tagging for the concepts that transitioned into the
+ * `weak` band during this call (plan §2.3 / §4).
+ *
+ * Phase 5 / audit M2a: ONE per-user debounced batch job replaces the old
+ * per-concept fan-out. A 2-minute `runAt` debounce coalesces every concept
+ * from a single grading session into one job, and the per-user `dedupeKey`
+ * collapses repeats (a still-queued batch owns the key, so a second transition
+ * within the window is a no-op — the batch re-queries eligibility at run time
+ * and picks it up anyway). The batch handler applies the weak-band, cooldown
+ * and hysteresis gates at run time, so this function only needs to KNOW a
+ * transition happened, not which concept.
+ *
+ * Kill switch `MISCONCEPTION_BATCH_DISABLED=1` reverts to the old per-concept
+ * enqueues (one job per conceptId, deduped on `concept.misconception:<id>`).
  */
 async function enqueueMisconceptionForNewlyWeakConcepts(
   userId: string,
   conceptIds: Set<string>
 ): Promise<void> {
-  for (const conceptId of conceptIds) {
-    try {
-      await enqueueJob(
-        'concept.misconception',
-        { conceptId, userId },
-        { dedupeKey: `concept.misconception:${conceptId}` }
-      );
-    } catch (error) {
-      console.error('[concept-tracking] failed to enqueue concept.misconception', {
-        conceptId,
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+  if (process.env.MISCONCEPTION_BATCH_DISABLED === '1') {
+    for (const conceptId of conceptIds) {
+      try {
+        await enqueueJob(
+          'concept.misconception',
+          { conceptId, userId },
+          { dedupeKey: `concept.misconception:${conceptId}` }
+        );
+      } catch (error) {
+        console.error('[concept-tracking] failed to enqueue concept.misconception', {
+          conceptId,
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
+    return;
+  }
+
+  try {
+    await enqueueJob(
+      'concept.misconception.batch',
+      { userId },
+      {
+        dedupeKey: `concept.misconception.batch:${userId}`,
+        runAt: new Date(Date.now() + 2 * 60_000),
+      }
+    );
+  } catch (error) {
+    console.error('[concept-tracking] failed to enqueue concept.misconception.batch', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 

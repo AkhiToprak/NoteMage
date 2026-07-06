@@ -15,10 +15,13 @@ const mocks = vi.hoisted(() => ({
   forcedStructuredCallGemini: vi.fn(),
   deriveConceptMisconception: vi.fn(),
   conceptMasteryFindUnique: vi.fn(),
+  conceptMasteryFindMany: vi.fn(),
   conceptMasteryUpdate: vi.fn(),
   conceptTagFindMany: vi.fn(),
   quizQuestionFindMany: vi.fn(),
   quizAnswerFindMany: vi.fn(),
+  enqueueJob: vi.fn(),
+  logAiUsage: vi.fn(),
 }));
 
 vi.mock('@/lib/feature-flags', () => ({
@@ -41,10 +44,19 @@ vi.mock('@/lib/concept-misconception', () => ({
   deriveConceptMisconception: mocks.deriveConceptMisconception,
 }));
 
+vi.mock('@/lib/background-jobs', () => ({
+  enqueueJob: mocks.enqueueJob,
+}));
+
+vi.mock('@/lib/ai-usage', () => ({
+  logAiUsage: mocks.logAiUsage,
+}));
+
 vi.mock('@/lib/db', () => ({
   db: {
     conceptMastery: {
       findUnique: mocks.conceptMasteryFindUnique,
+      findMany: mocks.conceptMasteryFindMany,
       update: mocks.conceptMasteryUpdate,
     },
     conceptTag: { findMany: mocks.conceptTagFindMany },
@@ -56,8 +68,10 @@ vi.mock('@/lib/db', () => ({
 import {
   isDepersonalised,
   isWithinMisconceptionCooldown,
+  MISCONCEPTION_BATCH_LIMIT,
   MISCONCEPTION_COOLDOWN_DAYS,
   runMisconceptionTag,
+  runMisconceptionTagBatch,
 } from './concept-misconception-tag';
 
 // ─── fixtures ───────────────────────────────────────────────────────────
@@ -118,7 +132,9 @@ beforeEach(() => {
   mocks.conceptTagFindMany.mockResolvedValue([]);
   mocks.quizQuestionFindMany.mockResolvedValue([]);
   mocks.quizAnswerFindMany.mockResolvedValue([]);
+  mocks.conceptMasteryFindMany.mockResolvedValue([]);
   mocks.conceptMasteryUpdate.mockResolvedValue(undefined);
+  mocks.enqueueJob.mockResolvedValue(undefined);
 });
 
 // ─── pure: isWithinMisconceptionCooldown ────────────────────────────────
@@ -553,3 +569,170 @@ describe('provider dispatch', () => {
     expect(updateArgs.data.misconceptionLabel).toContain('habla');
   });
 });
+
+// ─── batch handler: runMisconceptionTagBatch (Phase 5 / audit M2a) ──────────
+
+/** A weak-band ConceptMastery row (as returned by findMany with concept
+ *  included) for the batch eligibility loader. Fields mirror weakMasteryRow. */
+function weakBatchRow(conceptId: string, label: string, now: Date = new Date()) {
+  return {
+    userId: USER_ID,
+    conceptId,
+    status: 'weak',
+    weightedCorrect: 1,
+    weightedTotal: 10,
+    attemptCount: 10,
+    lastAttemptAt: now,
+    lastCorrectAt: now,
+    peakLcb: 0.2,
+    misconceptionLabel: null,
+    misconceptionAt: null,
+    updatedAt: now,
+    concept: { id: conceptId, label, description: `About ${label}` },
+  };
+}
+
+describe('runMisconceptionTagBatch', () => {
+  it('flag off → no DB/LLM calls', async () => {
+    mocks.weaknessConceptsEnabled.mockReturnValue(false);
+
+    await runMisconceptionTagBatch(USER_ID);
+
+    expect(mocks.conceptMasteryFindMany).not.toHaveBeenCalled();
+    expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
+  });
+
+  it('no eligible concepts → returns with no LLM call', async () => {
+    mocks.conceptMasteryFindMany.mockResolvedValue([]);
+
+    await runMisconceptionTagBatch(USER_ID);
+
+    expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
+    expect(mocks.conceptMasteryUpdate).not.toHaveBeenCalled();
+  });
+
+  it('happy path: 2 eligible concepts → 1 LLM call → 2 lines persisted (index-addressed), 1 usage log', async () => {
+    mocks.conceptMasteryFindMany.mockResolvedValue([
+      weakBatchRow('c-1', 'Regular -ar verbs'),
+      weakBatchRow('c-2', 'Ser vs estar'),
+    ]);
+    // The real forced caller invokes onUsage; the mock must too, so the batch
+    // handler's aggregated logAiUsage fires.
+    mocks.forcedStructuredCallOpenRouter.mockImplementation(async (opts: { onUsage?: (u: unknown) => void }) => {
+      opts.onUsage?.({ inputTokens: 500, outputTokens: 80, cachedTokens: 0, costUsd: 0, upstreamCostUsd: 0 });
+      return {
+        lines: [
+          { index: 1, line: "This kind of question is often mixed up with -er verbs. Let's compare them." },
+          { index: 2, line: "This kind of question is often mixed up with the other copula. Let's compare them." },
+        ],
+      };
+    });
+
+    await runMisconceptionTagBatch(USER_ID);
+
+    // ONE LLM call for the whole batch.
+    expect(mocks.forcedStructuredCallOpenRouter).toHaveBeenCalledTimes(1);
+    expect(mocks.forcedStructuredCallGemini).not.toHaveBeenCalled();
+    // Two lines persisted, each to the right concept by 1-based index.
+    expect(mocks.conceptMasteryUpdate).toHaveBeenCalledTimes(2);
+    const persisted = mocks.conceptMasteryUpdate.mock.calls.map(
+      (call) => (call[0] as { where: { userId_conceptId: { conceptId: string } }; data: { misconceptionLabel: string } }),
+    );
+    const byConcept = new Map(persisted.map((p) => [p.where.userId_conceptId.conceptId, p.data.misconceptionLabel]));
+    expect(byConcept.get('c-1')).toContain('-er verbs');
+    expect(byConcept.get('c-2')).toContain('copula');
+    for (const label of byConcept.values()) expect(isDepersonalised(label)).toBe(true);
+    // ONE aggregated usage log for the batch.
+    expect(mocks.logAiUsage).toHaveBeenCalledTimes(1);
+    const [usageArgs] = mocks.logAiUsage.mock.calls[0] as [{ feature: string }];
+    expect(usageArgs.feature).toBe('weakness-misconception-tag');
+    // No re-enqueue when everything fit in one batch.
+    expect(mocks.enqueueJob).not.toHaveBeenCalled();
+  });
+
+  it('index out of range is dropped: only the valid line persists', async () => {
+    mocks.conceptMasteryFindMany.mockResolvedValue([
+      weakBatchRow('c-1', 'Regular -ar verbs'),
+      weakBatchRow('c-2', 'Ser vs estar'),
+    ]);
+    mocks.forcedStructuredCallOpenRouter.mockResolvedValue({
+      lines: [
+        { index: 1, line: "This kind of question is often mixed up with -er verbs. Let's compare them." },
+        { index: 99, line: "Out-of-range index — must be dropped." }, // no concept #99
+      ],
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await runMisconceptionTagBatch(USER_ID);
+
+    // Only concept #1 persisted; #2 got no line (index 99 dropped), and has no
+    // tier-1 fallback so nothing is written for it.
+    expect(mocks.conceptMasteryUpdate).toHaveBeenCalledTimes(1);
+    const [updateArgs] = mocks.conceptMasteryUpdate.mock.calls[0] as [
+      { where: { userId_conceptId: { conceptId: string } } },
+    ];
+    expect(updateArgs.where.userId_conceptId.conceptId).toBe('c-1');
+    expect(
+      errorSpy.mock.calls.some((c) => c[0] === '[concept-misconception-tag] batch returned out-of-range index, skipping'),
+    ).toBe(true);
+    errorSpy.mockRestore();
+  });
+
+  it('re-enqueues itself when more than the batch limit are eligible', async () => {
+    // Return limit*3 rows (the loader over-fetches) so >limit are genuinely
+    // eligible and hasMore is set. All classify weak, none in cooldown.
+    const rows = Array.from({ length: MISCONCEPTION_BATCH_LIMIT * 3 }, (_, i) =>
+      weakBatchRow(`c-${i}`, `Concept ${i}`),
+    );
+    mocks.conceptMasteryFindMany.mockResolvedValue(rows);
+    mocks.forcedStructuredCallOpenRouter.mockResolvedValue({
+      lines: Array.from({ length: MISCONCEPTION_BATCH_LIMIT }, (_, i) => ({
+        index: i + 1,
+        line: `This kind of question is often mixed up with a similar rule ${i}. Let's compare them.`,
+      })),
+    });
+
+    await runMisconceptionTagBatch(USER_ID);
+
+    // Exactly the limit's worth of concepts tagged this run.
+    expect(mocks.conceptMasteryUpdate).toHaveBeenCalledTimes(MISCONCEPTION_BATCH_LIMIT);
+    // And a follow-up batch job enqueued (immediate, same per-user dedupeKey).
+    expect(mocks.enqueueJob).toHaveBeenCalledTimes(1);
+    const [kind, payload, options] = mocks.enqueueJob.mock.calls[0] as [
+      string,
+      { userId: string },
+      { dedupeKey: string; runAt: Date },
+    ];
+    expect(kind).toBe('concept.misconception.batch');
+    expect(payload).toEqual({ userId: USER_ID });
+    expect(options.dedupeKey).toBe(`concept.misconception.batch:${USER_ID}`);
+    expect(options.runAt).toBeInstanceOf(Date);
+  });
+
+  it('skips concepts that recovered out of weak band before the run (hysteresis)', async () => {
+    // A row whose denormalised status is stale 'weak' but whose live inputs
+    // classify solid must be dropped, spending no token on it.
+    mocks.conceptMasteryFindMany.mockResolvedValue([
+      { ...weakBatchRow('c-1', 'Recovered'), weightedCorrect: 9.5, weightedTotal: 10, peakLcb: 0.9 },
+    ]);
+
+    await runMisconceptionTagBatch(USER_ID);
+
+    expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
+    expect(mocks.conceptMasteryUpdate).not.toHaveBeenCalled();
+  });
+
+  it('never throws when the DB query fails', async () => {
+    mocks.conceptMasteryFindMany.mockRejectedValue(new Error('db down'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(runMisconceptionTagBatch(USER_ID)).resolves.toBeUndefined();
+    errorSpy.mockRestore();
+  });
+});
+
+// ─── kill-switch fallback in concept-tracking (M2a) ─────────────────────────
+// The fallback to per-concept enqueues lives in concept-tracking.ts; that
+// module's own test file covers the enqueue wiring. Here we only assert the
+// batch handler itself is the new path — the enqueue-side switch is verified
+// where enqueueMisconceptionForNewlyWeakConcepts is unit-tested.

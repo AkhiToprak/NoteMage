@@ -32,7 +32,16 @@ export type JobKind =
   // concept-tracking.ts), with a 7-day cooldown per concept enforced by the
   // handler (owned separately). This type only makes the enqueue call
   // typecheck.
+  // DEPRECATED (Phase 5 / audit M2a) — superseded by
+  // 'concept.misconception.batch'. Kept REGISTERED for one release so
+  // in-flight per-concept jobs drain; REMOVE next release.
   | 'concept.misconception'
+  // Phase 5 (audit M2a) — per-user debounced batch of the tier-2 misconception
+  // tag. Replaces the per-concept fan-out: one 2-min-debounced job per user
+  // coalesces all concepts from a grading session into ONE forced-tool LLM call
+  // (see concept-misconception-tag.ts runMisconceptionTagBatch). Self-re-enqueues
+  // when >20 eligible concepts remain.
+  | 'concept.misconception.batch'
   // Weakness Training Phase 4.1 (phase4 §11.2) — tier-2 embedding dedup for
   // one freshly-created canonical concept (dedupeKey `concept.dedup:<id>`).
   | 'concept.dedup'
@@ -49,7 +58,13 @@ export type JobKind =
   // Trial rework — daily sweep that hard-deletes paused accounts past the 3-month
   // retention window (see src/lib/account-deletion.ts). Self-rescheduling like
   // reminders.sweep; single attempt per run, re-seeded at worker start.
-  | 'accounts.deletion_sweep';
+  | 'accounts.deletion_sweep'
+  // Phase 5 (audit M1) — poll a submitted Gemini Batch API job. Self-reschedules
+  // at now+5min while the batch is RUNNING; on success dispatches results to a
+  // per-domain completion handler; on failure falls back to the domain's inline
+  // path. `maxAttempts` is high (batches can run for hours). See gemini-batch.ts
+  // + background-job-runner.ts.
+  | 'ai.batch.poll';
 
 export interface JobPayloadByKind {
   'import.pdf': { jobId: string };
@@ -60,11 +75,19 @@ export interface JobPayloadByKind {
   'reminders.sweep': Record<string, never>;
   'concept.backfill': { slotId: string };
   'concept.misconception': { conceptId: string; userId: string };
+  'concept.misconception.batch': { userId: string };
   'concept.dedup': { conceptId: string };
   'concept.dedup.backfill': { userId: string };
   'concept.edges.derive': { planId: string };
   'weakness.nudge_sweep': Record<string, never>;
   'accounts.deletion_sweep': Record<string, never>;
+  'ai.batch.poll': {
+    batchName: string;
+    /** Which completion handler dispatches results. Only 'captions' today. */
+    domain: 'captions';
+    /** Domain-specific context the completion handler needs (e.g. userId). */
+    context: { userId: string | null };
+  };
 }
 
 export type TypedBackgroundJob<K extends JobKind = JobKind> = K extends JobKind

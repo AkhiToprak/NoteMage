@@ -9,8 +9,11 @@ import { runVideoImportJob } from '@/lib/video-import/run-job';
 import { runOneNoteImportJob } from '@/lib/onenote-import/run-job';
 import { generatePath } from '@/lib/path-generator';
 import { runConceptBackfill } from '@/lib/concept-backfill';
-import { runMisconceptionTag } from '@/lib/concept-misconception-tag';
+import { runMisconceptionTag, runMisconceptionTagBatch } from '@/lib/concept-misconception-tag';
 import { runConceptDedup, runConceptDedupBackfill } from '@/lib/concept-dedup';
+import { enqueueJob } from '@/lib/background-jobs';
+import { pollGeminiBatch } from '@/lib/gemini-batch';
+import { captionBatchComplete } from '@/lib/image-captions';
 import { deriveStructuralEdgesForPlan } from '@/lib/concept-edges';
 import { runWeaknessNudgeSweepPage, scheduleNextNudgeSweep } from '@/lib/weakness-nudges';
 import { checkAiSpendAlarm } from '@/lib/ai-spend-alarm';
@@ -52,12 +55,50 @@ export async function runJob(job: TypedBackgroundJob): Promise<void> {
       await runConceptBackfill(job.payload.slotId);
       return;
     case 'concept.misconception':
-      // Weakness Training Phase 3 (§2.3 tier 2) — best-effort, cooldown +
-      // hysteresis-gated. The handler itself swallows its own failures
-      // (never throws), but the catch-all below stays as a backstop
-      // consistent with every other case.
+      // DEPRECATED (Phase 5 / audit M2a) — superseded by
+      // 'concept.misconception.batch'. Kept registered for ONE release so
+      // in-flight per-concept jobs drain; REMOVE next release along with the
+      // kind + payload in background-jobs.ts and runMisconceptionTag.
       await runMisconceptionTag(job.payload.conceptId, job.payload.userId);
       return;
+    case 'concept.misconception.batch':
+      // Phase 5 (audit M2a) — per-user debounced batch. Re-queries eligibility
+      // at run time, tags up to 20 concepts in ONE LLM call, re-enqueues itself
+      // when more remain. Best-effort; never throws.
+      await runMisconceptionTagBatch(job.payload.userId);
+      return;
+    case 'ai.batch.poll': {
+      // Phase 5 (audit M1) — poll a submitted Gemini batch. RUNNING → enqueue
+      // the next poll one interval out and return (chain perpetuates like the
+      // sweeps). SUCCEEDED → dispatch results to the domain handler. FAILED →
+      // fall back to the domain's inline path.
+      const { batchName, domain, context } = job.payload;
+      const poll = await pollGeminiBatch(batchName);
+      if (poll.state === 'running') {
+        await enqueueJob(
+          'ai.batch.poll',
+          { batchName, domain, context },
+          {
+            dedupeKey: `ai.batch.poll:${batchName}`,
+            runAt: new Date(Date.now() + 5 * 60_000),
+            maxAttempts: job.maxAttempts,
+          },
+        );
+        return;
+      }
+      if (domain === 'captions') {
+        if (poll.state === 'succeeded') {
+          await captionBatchComplete(poll.results ?? [], context);
+        } else {
+          // FAILED — heal via the inline sweep path is not re-triggerable here
+          // (the source page isn't in the payload); the layer-3 lazy
+          // captioning pass still fills these at first generation. Log for
+          // visibility.
+          console.error('[ai.batch.poll] captions batch failed', { batchName });
+        }
+      }
+      return;
+    }
     case 'concept.dedup':
       // Weakness Training Phase 4.1b (phase4 §11.2 tier 2) — best-effort,
       // flag-gated, idempotent (only writes rows where canonicalId IS NULL).

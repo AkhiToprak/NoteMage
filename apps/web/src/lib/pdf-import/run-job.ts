@@ -181,6 +181,19 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     : [];
 
   let succeeded = false;
+  // L7: aggregate per-page vision usage into ONE ledger entry per import job
+  // instead of ~40 inserts + Redis invalidations. A single model runs the whole
+  // job (GEMINI_PDF_MODEL), so a per-model split buys nothing — sum flat and
+  // keep the last-seen model id. Emitted once in `finally` so a job that fails
+  // mid-way still records the partial spend it already incurred.
+  const usageMeter = {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    model: '' as string,
+    provider: 'gemini' as const,
+  };
   try {
     await db.importJob.update({
       where: { id: jobId },
@@ -335,18 +348,15 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
           // Land each vision round trip (initial + repair, plus a second
           // engine on table escalation) in the admin AI-usage ledger. The
           // text-layer engine makes no model call, so it never fires this.
-          onUsage: (u) =>
-            logAiUsage({
-              userId: job.userId,
-              feature: 'pdf-import',
-              tier: job.user.tier,
-              provider: u.provider,
-              model: u.model,
-              inputTokens: u.inputTokens,
-              outputTokens: u.outputTokens,
-              cacheReadTokens: u.cacheReadTokens,
-              cacheWriteTokens: u.cacheWriteTokens,
-            }),
+          onUsage: (u) => {
+            // L7: accumulate rather than log-per-page; the ONE ledger entry is
+            // emitted in `finally` (covers partial usage on a failed job too).
+            usageMeter.inputTokens += u.inputTokens;
+            usageMeter.outputTokens += u.outputTokens;
+            usageMeter.cacheReadTokens += u.cacheReadTokens;
+            usageMeter.cacheWriteTokens += u.cacheWriteTokens;
+            usageMeter.model = u.model;
+          },
         };
 
         // PA-40e: track whether the engine returned a result at all.
@@ -591,6 +601,29 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
         console.error(`[pdf-import] could not mark job ${jobId} failed`, updateErr);
       });
   } finally {
+    // L7: one ledger entry for the whole import (success OR partial-on-failure),
+    // replacing the former ~40 per-page inserts + Redis invalidations. Skipped
+    // when no vision round trip fired (a pure text-layer job makes no model call).
+    if (
+      usageMeter.inputTokens +
+        usageMeter.outputTokens +
+        usageMeter.cacheReadTokens +
+        usageMeter.cacheWriteTokens >
+      0
+    ) {
+      logAiUsage({
+        userId: job.userId,
+        feature: 'pdf-import',
+        tier: job.user.tier,
+        provider: usageMeter.provider,
+        model: usageMeter.model || GEMINI_PDF_MODEL,
+        inputTokens: usageMeter.inputTokens,
+        outputTokens: usageMeter.outputTokens,
+        cacheReadTokens: usageMeter.cacheReadTokens,
+        cacheWriteTokens: usageMeter.cacheWriteTokens,
+      });
+    }
+
     // Temp uploads are kept on failure so "Try again" can re-run without a
     // re-upload; on success they are no longer needed.
     if (succeeded) {

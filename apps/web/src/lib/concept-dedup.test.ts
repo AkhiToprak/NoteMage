@@ -142,9 +142,14 @@ const mocks = vi.hoisted(() => {
 
   const weaknessConceptDedupEnabled = vi.fn(() => true);
 
-  const embedContent = vi.fn(async () => ({
-    embeddings: [{ values: [1, 0, 0] }],
-  }));
+  // Input-aware default: return ONE embedding per `contents` entry so both the
+  // single-input path (getConceptEmbedding) and the batched path
+  // (getConceptEmbeddings, which asserts length alignment) resolve. Individual
+  // tests override with `.mockResolvedValueOnce`/`.mockImplementation` as needed.
+  const embedContent = vi.fn(async (params: { contents: unknown }) => {
+    const n = Array.isArray(params?.contents) ? params.contents.length : 1;
+    return { embeddings: Array.from({ length: n }, () => ({ values: [1, 0, 0] })) };
+  });
 
   const getGeminiClient = vi.fn(() => ({
     models: { embedContent: mocks_embedContentRef() },
@@ -230,7 +235,11 @@ beforeEach(() => {
   mocks.state.plans = [{ id: PLAN_ID, userId: USER_ID }];
   mocks.weaknessConceptDedupEnabled.mockReturnValue(true);
   mocks.embedContent.mockReset();
-  mocks.embedContent.mockResolvedValue({ embeddings: [{ values: [1, 0, 0] }] });
+  // Restore the input-aware default after reset (see mock definition).
+  mocks.embedContent.mockImplementation(async (params: { contents: unknown }) => {
+    const n = Array.isArray(params?.contents) ? params.contents.length : 1;
+    return { embeddings: Array.from({ length: n }, () => ({ values: [1, 0, 0] })) };
+  });
   mocks.conceptFindUnique.mockClear();
   mocks.conceptFindMany.mockClear();
   mocks.conceptCount.mockClear();
@@ -429,10 +438,12 @@ describe('runConceptDedupBackfill', () => {
     });
     const needsEmbedding = makeConcept({ id: 'c2', createdAt: new Date('2026-01-02') });
     mocks.state.concepts = [alreadyEmbedded, needsEmbedding];
+    // Chunk of 1 input → return 1 aligned embedding.
     mocks.embedContent.mockResolvedValue({ embeddings: [{ values: [0, 1, 0] }] });
 
     await runConceptDedupBackfill(USER_ID);
 
+    // ONE batched call for the single unembedded row.
     expect(mocks.embedContent).toHaveBeenCalledTimes(1);
     const updated = mocks.state.concepts.find((c) => c.id === 'c2')!;
     expect(updated.embedding).toEqual([0, 1, 0]);
@@ -443,10 +454,11 @@ describe('runConceptDedupBackfill', () => {
     const row1 = makeConcept({ id: 'c1', createdAt: new Date('2026-01-01') });
     const row2 = makeConcept({ id: 'c2', createdAt: new Date('2026-01-02') });
     mocks.state.concepts = [row1, row2];
-    mocks.embedContent.mockResolvedValue({ embeddings: [{ values: [1, 0, 0] }] });
+    // Input-aware default returns one embedding per input.
 
     await runConceptDedupBackfill(USER_ID);
-    expect(mocks.embedContent).toHaveBeenCalledTimes(2);
+    // Both rows fit in ONE chunk → ONE batched call.
+    expect(mocks.embedContent).toHaveBeenCalledTimes(1);
 
     mocks.embedContent.mockClear();
     // Second run: both rows now have embeddedAt set, so nothing left to process.
@@ -454,38 +466,81 @@ describe('runConceptDedupBackfill', () => {
     expect(mocks.embedContent).not.toHaveBeenCalled();
   });
 
-  it('stops at the per-run cap', async () => {
-    // Cap is 500 — verify the query passes take:500 by seeding more than the
-    // cap would allow and asserting no more than the cap's worth of calls
-    // fire. A full 501-row fixture is unnecessary; the loader passes `take`
-    // to the mocked findMany which already applies it, so this just proves
-    // the wiring is exercised.
-    const rows = Array.from({ length: 5 }, (_, i) =>
-      makeConcept({ id: `c${i}`, createdAt: new Date(2026, 0, i + 1) })
+  it('batches embeddings in chunks of 100: 250 rows → 3 calls, index-aligned write-back', async () => {
+    // Distinct vectors per row so we can prove index alignment survives chunking.
+    const rows = Array.from({ length: 250 }, (_, i) =>
+      makeConcept({ id: `c${i}`, label: `Concept ${i}`, createdAt: new Date(2026, 0, 1, 0, i) })
     );
     mocks.state.concepts = rows;
-    mocks.embedContent.mockResolvedValue({ embeddings: [{ values: [1, 0, 0] }] });
+    // Return a unique vector per input, tagged by the input's ordinal so a
+    // misaligned write-back would be detectable. `contents` is the array of
+    // built input strings; we key the vector off the trailing index in the row
+    // label via the call's contents order.
+    let callVectorBase = 0;
+    mocks.embedContent.mockImplementation(async (params: { contents: unknown }) => {
+      const contents = params.contents as string[];
+      const base = callVectorBase;
+      callVectorBase += contents.length;
+      return {
+        embeddings: contents.map((_, j) => ({ values: [base + j, 1, 0] })),
+      };
+    });
 
     await runConceptDedupBackfill(USER_ID);
 
-    expect(mocks.embedContent).toHaveBeenCalledTimes(5);
-    expect(mocks.conceptFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ take: 500 })
-    );
+    // 250 rows / 100 per chunk = 3 calls (100, 100, 50).
+    expect(mocks.embedContent).toHaveBeenCalledTimes(3);
+    // Every row got an embedding + embeddedAt; alignment held (each row's first
+    // component equals its global ordinal, proving no cross-row shuffling).
+    rows.forEach((_, i) => {
+      const updated = mocks.state.concepts.find((c) => c.id === `c${i}`)!;
+      expect(updated.embeddedAt).toBeInstanceOf(Date);
+      expect(updated.embedding[0]).toBe(i);
+    });
   });
 
-  it('never throws when an embedding call fails mid-run', async () => {
+  it('a chunk whose embedding count mismatches the input count throws → that chunk is skipped, rows stay unembedded', async () => {
+    const rows = Array.from({ length: 3 }, (_, i) =>
+      makeConcept({ id: `c${i}`, createdAt: new Date(2026, 0, i + 1) })
+    );
+    mocks.state.concepts = rows;
+    // Return FEWER embeddings than inputs → getConceptEmbeddings throws → the
+    // whole chunk is caught + skipped, leaving every row's embeddedAt null.
+    mocks.embedContent.mockResolvedValue({ embeddings: [{ values: [1, 0, 0] }] });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(runConceptDedupBackfill(USER_ID)).resolves.toBeUndefined();
+
+    for (const row of rows) {
+      expect(mocks.state.concepts.find((c) => c.id === row.id)!.embeddedAt).toBeNull();
+    }
+    expect(
+      errorSpy.mock.calls.some((call) => call[0] === '[concept-dedup] backfill chunk embed failed (non-fatal)')
+    ).toBe(true);
+    errorSpy.mockRestore();
+  });
+
+  it('passes take:500 (per-run cap) to the loader', async () => {
+    mocks.state.concepts = [makeConcept({ id: 'c0', createdAt: new Date('2026-01-01') })];
+
+    await runConceptDedupBackfill(USER_ID);
+
+    expect(mocks.conceptFindMany).toHaveBeenCalledWith(expect.objectContaining({ take: 500 }));
+  });
+
+  it('never throws when a chunk embedding call fails; the compare pass skips those rows', async () => {
     const row1 = makeConcept({ id: 'c1', createdAt: new Date('2026-01-01') });
     const row2 = makeConcept({ id: 'c2', createdAt: new Date('2026-01-02') });
     mocks.state.concepts = [row1, row2];
-    mocks.embedContent
-      .mockRejectedValueOnce(new Error('fail'))
-      .mockResolvedValueOnce({ embeddings: [{ values: [1, 0, 0] }] });
+    // Both rows share one chunk; the single call rejects → whole chunk skipped.
+    mocks.embedContent.mockRejectedValue(new Error('network down'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(runConceptDedupBackfill(USER_ID)).resolves.toBeUndefined();
-    // Row 1 failed and stays unembedded; row 2 succeeded.
     expect(mocks.state.concepts.find((c) => c.id === 'c1')!.embeddedAt).toBeNull();
-    expect(mocks.state.concepts.find((c) => c.id === 'c2')!.embeddedAt).toBeInstanceOf(Date);
+    expect(mocks.state.concepts.find((c) => c.id === 'c2')!.embeddedAt).toBeNull();
+    expect(mocks.conceptUpdateMany).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 });
 
