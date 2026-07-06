@@ -145,14 +145,23 @@ async function handleEvent(event: RcEvent) {
     return;
   }
 
-  if (type === 'CANCELLATION' || type === 'SUBSCRIPTION_PAUSED') {
-    // Auto-renew turned off / paused — keep PRO until expiry, flag the downgrade.
-    await db.user.update({ where: { id: userId }, data: { pendingTier: 'FREE' } });
-    return;
-  }
+  if (type === 'CANCELLATION' || type === 'SUBSCRIPTION_PAUSED' || type === 'BILLING_ISSUE') {
+    // Cross-provider safety (same rule as EXPIRATION / endSubscription): a stale
+    // RC event must only mutate the account when Apple is the backing source.
+    // A user who once dabbled on iOS keeps revenueCatAppUserId set, so RC can
+    // still fire these for a Lemon Squeezy subscriber — never flag that LS
+    // subscription pending-cancel / in-grace. Non-Apple-backed → ack, no write.
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { entitlementSource: true },
+    });
+    if (user?.entitlementSource !== 'APPLE_IAP') return;
 
-  if (type === 'BILLING_ISSUE') {
-    await db.user.update({ where: { id: userId }, data: { inGracePeriod: true } });
+    // Auto-renew off / paused → keep PRO until expiry, flag the downgrade.
+    // Billing issue → dunning window (advisory, tier stays PRO).
+    const data =
+      type === 'BILLING_ISSUE' ? { inGracePeriod: true } : { pendingTier: 'FREE' as const };
+    await db.user.update({ where: { id: userId }, data });
     return;
   }
 

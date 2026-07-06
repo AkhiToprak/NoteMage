@@ -72,10 +72,20 @@ export async function AccountGateServerGate() {
     if (state === 'expired') {
       // Trial lapsed while tier still shows PRO → drop to FREE so the tier-gated
       // feature APIs (which read tier fresh from the DB every call) start denying.
-      // Guarded + atomic: only an unpaid, un-paused PRO row flips, at most once.
+      // Guarded + atomic: only an unpaid, un-paused, non-trialing PRO row flips, at
+      // most once. The trialEndsAt clause makes the WHERE self-defending — it mirrors
+      // deriveAccountState's 'expired' criteria for every field SQL can express, so a
+      // still-trialing row (trialEndsAt in the future) can never match even if a
+      // future refactor calls this update outside the `state === 'expired'` check.
       if (user.tier === 'PRO') {
         await db.user.updateMany({
-          where: { id: userId, tier: 'PRO', entitlementSource: null, pausedAt: null },
+          where: {
+            id: userId,
+            tier: 'PRO',
+            entitlementSource: null,
+            pausedAt: null,
+            OR: [{ trialEndsAt: null }, { trialEndsAt: { lte: new Date() } }],
+          },
           data: { tier: 'FREE', billingInterval: null },
         });
       }
