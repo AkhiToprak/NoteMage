@@ -4,7 +4,7 @@ import PathLanding from '@/components/landing/PathLanding';
 export const metadata: Metadata = {
   title: 'NoteMage: Your Path to academic success',
   description:
-    'Turn your notes and study material into a guided learning path, with a personal AI tutor, flashcards, quizzes, and graded checkpoints. Free to start.',
+    'Turn your notes and study material into a guided learning path, with a personal AI tutor, flashcards, quizzes, and graded checkpoints. Free for 7 days — no card.',
   openGraph: {
     title: 'NoteMage: Your Path to academic success',
     description:

@@ -45,7 +45,11 @@ export type JobKind =
   // Weakness Training Phase 4.4 (phase4 §14.6) — daily per-user nudge sweep.
   // Self-rescheduling like reminders.sweep, plus a durable watermark cursor
   // (NudgeSweepWatermark) so a redeploy mid-sweep resumes, not restarts.
-  | 'weakness.nudge_sweep';
+  | 'weakness.nudge_sweep'
+  // Trial rework — daily sweep that hard-deletes paused accounts past the 3-month
+  // retention window (see src/lib/account-deletion.ts). Self-rescheduling like
+  // reminders.sweep; single attempt per run, re-seeded at worker start.
+  | 'accounts.deletion_sweep';
 
 export interface JobPayloadByKind {
   'import.pdf': { jobId: string };
@@ -60,6 +64,7 @@ export interface JobPayloadByKind {
   'concept.dedup.backfill': { userId: string };
   'concept.edges.derive': { planId: string };
   'weakness.nudge_sweep': Record<string, never>;
+  'accounts.deletion_sweep': Record<string, never>;
 }
 
 export type TypedBackgroundJob<K extends JobKind = JobKind> = K extends JobKind
@@ -279,5 +284,42 @@ export async function bootstrapReminderSweep(): Promise<void> {
     await enqueueJob('reminders.sweep', {}, { dedupeKey: sweepDedupeKey(now), runAt: now, maxAttempts: 1 });
   } catch (error) {
     console.error('[background-jobs] failed to bootstrap reminder sweep', error);
+  }
+}
+
+// ── Trial rework: daily paused-account deletion sweep ─────────────────────────
+
+/** How often the deletion sweep runs (ms). Daily — retention is measured in
+ *  months, so finer precision buys nothing. */
+export const DELETION_SWEEP_INTERVAL_MS = Number(
+  process.env.DELETION_SWEEP_INTERVAL_MS ?? 24 * 60 * 60_000,
+);
+
+/** Interval-aligned dedupe key — collapses a self-reschedule and a worker-start
+ *  bootstrap targeting the same window into one job (see sweepDedupeKey). */
+function deletionSweepDedupeKey(at: Date): string {
+  return `accounts.deletion_sweep:${Math.floor(at.getTime() / DELETION_SWEEP_INTERVAL_MS)}`;
+}
+
+/** Enqueue the next deletion sweep one interval out, called at the END of each
+ *  run so the chain perpetuates. Bucketed dedupeKey → same-window enqueue is a
+ *  no-op. Never throws. */
+export async function scheduleNextDeletionSweep(after: Date = new Date()): Promise<void> {
+  const next = new Date(after.getTime() + DELETION_SWEEP_INTERVAL_MS);
+  try {
+    await enqueueJob('accounts.deletion_sweep', {}, { dedupeKey: deletionSweepDedupeKey(next), runAt: next, maxAttempts: 1 });
+  } catch (error) {
+    console.error('[background-jobs] failed to schedule next deletion sweep', error);
+  }
+}
+
+/** Seed a deletion sweep for the current interval at worker start. Idempotent via
+ *  the bucketed dedupeKey; re-seeds the chain if it ever breaks. Never throws. */
+export async function bootstrapDeletionSweep(): Promise<void> {
+  const now = new Date();
+  try {
+    await enqueueJob('accounts.deletion_sweep', {}, { dedupeKey: deletionSweepDedupeKey(now), runAt: now, maxAttempts: 1 });
+  } catch (error) {
+    console.error('[background-jobs] failed to bootstrap deletion sweep', error);
   }
 }

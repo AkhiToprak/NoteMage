@@ -36,6 +36,49 @@ export function resolveActiveEntitlement(user: BillingFields): Entitlement {
   };
 }
 
+/** Free-trial length for new signups. */
+const TRIAL_DAYS = 7;
+
+/**
+ * The User fields that put a brand-new account into its 7-day free trial: PRO
+ * access on weekly caps (tiers.ts PRO_WEEKLY_*), no payment provider. Spread into
+ * the `user.create` data at both signup sites (OAuth + credentials). Because
+ * `entitlementSource` stays null, once `trialEndsAt` passes the dashboard
+ * AccountGate flips tier→FREE and shows the trial-ended gate (subscribe or pause).
+ */
+export function trialGrant(): Pick<
+  Prisma.UserCreateInput,
+  'tier' | 'billingInterval' | 'trialEndsAt'
+> {
+  return {
+    tier: 'PRO',
+    billingInterval: 'weekly',
+    trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
+  };
+}
+
+/** Which gate (if any) the dashboard AccountGate shows. Derived, never stored. */
+export type AccountState = 'active' | 'trialing' | 'expired' | 'paused' | 'comped';
+
+type AccountStateFields = Pick<User, 'tier' | 'entitlementSource' | 'trialEndsAt' | 'pausedAt'>;
+
+/**
+ * Resolve the account's gate state from its billing columns. Order is load-bearing:
+ * a pause wins over everything; comped/active/trialing grant access; anything else
+ * (lapsed subscriber, or a trial whose `trialEndsAt` has passed) is `expired` and
+ * must subscribe or pause. `inGracePeriod` (dunning) keeps tier=PRO + a paid source,
+ * so it resolves to `active` and is intentionally NOT gated.
+ */
+export function deriveAccountState(user: AccountStateFields, now: Date = new Date()): AccountState {
+  if (user.pausedAt) return 'paused';
+  if (user.tier === 'PRO') {
+    if (user.entitlementSource === 'MANUAL') return 'comped';
+    if (user.entitlementSource !== null) return 'active'; // LS / Apple / legacy Paddle
+    if (user.trialEndsAt && user.trialEndsAt > now) return 'trialing';
+  }
+  return 'expired';
+}
+
 /**
  * The User update for an *active* subscription from `provider` (purchase,
  * renewal, plan change, uncancellation). Promotes to PRO and records the source.
@@ -47,6 +90,15 @@ export function activeGrant(opts: {
   /** Quota cadence for this subscription. Omitted (RevenueCat/iOS) → column left
    *  as-is → monthly semantics. Only the LS weekly variant passes 'weekly'. */
   interval?: BillingInterval;
+  /**
+   * Whether the user was ALREADY on a paid tier before this grant. `activeGrant`
+   * runs on every renewal too (LS `subscription_updated`, RC `RENEWAL`), so the
+   * one-shot success screen (`pendingWelcome`) must fire ONLY on the transition
+   * into paid — first purchase, trial conversion, or resubscribe-from-lapsed —
+   * never on a renewal, or the "You're in!" screen replays every billing cycle.
+   * Callers compute this from the pre-update row: `tier === 'PRO' && source != null`.
+   */
+  wasActive?: boolean;
 }): Prisma.UserUpdateInput {
   return {
     tier: 'PRO',
@@ -54,7 +106,12 @@ export function activeGrant(opts: {
     subscriptionPeriodEnd: opts.periodEnd,
     inGracePeriod: false,
     pendingTier: null,
+    // Becoming paid ends the trial and lifts any pause (resubscribe), clearing the
+    // 3-month retention clock so a returning subscriber is never swept for deletion.
+    trialEndsAt: null,
+    pausedAt: null,
     ...(opts.interval ? { billingInterval: opts.interval } : {}),
+    ...(opts.wasActive ? {} : { pendingWelcome: true }),
   };
 }
 

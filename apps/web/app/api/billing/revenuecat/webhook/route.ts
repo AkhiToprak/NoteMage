@@ -107,10 +107,17 @@ async function handleEvent(event: RcEvent) {
     if (!periodEnd || periodEnd.getTime() <= Date.now()) {
       return; // expired / non-active grant → do not provision
     }
+    // Renewal (already paid) vs first purchase / trial conversion — gates the
+    // one-shot success screen so it never replays on a RENEWAL event.
+    const prev = await db.user.findUnique({
+      where: { id: userId },
+      select: { tier: true, entitlementSource: true },
+    });
+    const wasActive = prev?.tier === 'PRO' && prev.entitlementSource !== null;
     await db.user.update({
       where: { id: userId },
       data: {
-        ...activeGrant({ source: 'APPLE_IAP', periodEnd }),
+        ...activeGrant({ source: 'APPLE_IAP', periodEnd, wasActive }),
         revenueCatAppUserId: event.app_user_id,
         ...(event.original_transaction_id
           ? { appleOriginalTransactionId: event.original_transaction_id }

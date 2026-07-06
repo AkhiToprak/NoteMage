@@ -155,6 +155,15 @@ export async function provisionFromLemonSqueezySubscription(
   const periodEndIso = scheduledCancel ? sub.endsAt : sub.renewsAt;
   const periodEnd = periodEndIso ? new Date(periodEndIso) : null;
 
+  // Already paying → this is a renewal/plan-change, not a conversion; suppress the
+  // one-shot "You're in!" screen (activeGrant.wasActive). Trialing (source=null) and
+  // lapsed (FREE) users both count as NOT-yet-active, so they get the success screen.
+  const prev = await db.user.findUnique({
+    where: { id: userId },
+    select: { tier: true, entitlementSource: true },
+  });
+  const wasActive = prev?.tier === 'PRO' && prev.entitlementSource !== null;
+
   await db.user.update({
     where: { id: userId },
     data: {
@@ -162,6 +171,7 @@ export async function provisionFromLemonSqueezySubscription(
         source: 'LEMON_SQUEEZY',
         periodEnd,
         interval: intervalFromLemonSqueezyVariantId(sub.variantId),
+        wasActive,
       }),
       lemonSqueezyCustomerId: sub.customerId,
       lemonSqueezySubscriptionId: sub.id,

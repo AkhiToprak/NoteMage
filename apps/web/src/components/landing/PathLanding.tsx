@@ -651,12 +651,12 @@ export default function PathLanding() {
             <span className="pl-hspark pl-hspark--sm pl-hspark-j pl-spk-gold" aria-hidden><Spark variant="gold" /></span>
             <span className="pl-hspark pl-hspark-k pl-spk-purple" aria-hidden><Spark variant="purple" /></span>
             <h2 className="pl-reveal">
-              Try it out for <span className="pl-g-gold">FREE</span>
+              Try it <span className="pl-g-gold">free</span> for 7 days
             </h2>
           </div>
           <div className="pl-cta-row pl-reveal" ref={ctaRef}>
             <Link className="pl-btn-gold pl-lg" href="/start/welcome">
-              Start free <span aria-hidden>→</span>
+              Start free trial <span aria-hidden>→</span>
             </Link>
             <Link className="pl-btn-ghost pl-lg" href="/pricing">See pricing</Link>
           </div>

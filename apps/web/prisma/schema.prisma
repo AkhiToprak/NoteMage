@@ -138,6 +138,19 @@ model User {
   // idempotent restore/transfer handling.
   revenueCatAppUserId        String?            @unique
   appleOriginalTransactionId String?            @unique
+  // 7-day free trial (no card). Set at signup by trialGrant() (src/lib/entitlement.ts):
+  // tier=PRO + billingInterval=weekly + trialEndsAt=now+7d. When trialEndsAt passes with
+  // no paid subscription, the dashboard AccountGate flips tier→FREE and shows the "trial
+  // ended" gate (subscribe or pause). Null = never trialed (comped / legacy grandfathered).
+  trialEndsAt                DateTime?
+  // Set when the user chooses "Pause my account" at trial end. Locks the account into the
+  // paused screen (escapable only by subscribing) and starts the 3-month retention clock —
+  // the deletion sweep hard-deletes at pausedAt + 90d. Cleared on resubscribe by
+  // activeGrant(). Null = not paused.
+  pausedAt                   DateTime?
+  // One-shot flag set true by activeGrant() ONLY on the transition into paid, consumed once
+  // by the AccountGate to show the "You're in!" success screen after payment settles.
+  pendingWelcome             Boolean            @default(false)
   onboardingComplete         Boolean            @default(false) // false until wizard step 4 is done
   // Welcome tour state — { step: TutorialStep, completedAt?: ISO, dismissedAt?: ISO }
   tutorialState              Json               @default("{}")

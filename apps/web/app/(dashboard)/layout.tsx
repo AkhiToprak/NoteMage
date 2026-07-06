@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { DashboardChrome } from './DashboardChrome';
 import { WelcomeBackServerGate } from '@/components/welcome-back/WelcomeBackServerGate';
+import { AccountGateServerGate } from '@/components/account-gate/AccountGateServerGate';
 import { getServerAuthUser } from '@/lib/server-auth';
 
 // Server component so the welcome-back takeover can be decided during SSR and
@@ -19,6 +20,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <>
+      {/* Account gate first — its scrim (z 1100) covers the dashboard and the
+          welcome-back takeover when the trial has ended or the account is paused. */}
+      <AccountGateServerGate />
       <WelcomeBackServerGate />
       <DashboardChrome>{children}</DashboardChrome>
     </>

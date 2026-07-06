@@ -7,6 +7,7 @@ import {
   failOrRetryJob,
   heartbeatJob,
   bootstrapReminderSweep,
+  bootstrapDeletionSweep,
 } from '@/lib/background-jobs';
 import { runJob } from '@/lib/background-job-runner';
 import { recoverStalePaths } from '@/lib/path-sweeper';
@@ -83,6 +84,12 @@ export async function runWorkerLoop(): Promise<void> {
   // not existing yet.
   await bootstrapNudgeSweep().catch((error) => {
     console.warn('[worker] nudge-sweep bootstrap deferred', error);
+  });
+
+  // Trial rework — seed the daily paused-account deletion sweep. Same idempotent
+  // bootstrap discipline; tolerant of the job table not existing yet.
+  await bootstrapDeletionSweep().catch((error) => {
+    console.warn('[worker] deletion-sweep bootstrap deferred', error);
   });
 
   // Revive paths a prior process left wedged in `generating` (redeploy mid-run).

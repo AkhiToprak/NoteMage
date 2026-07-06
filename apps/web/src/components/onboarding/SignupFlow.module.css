@@ -265,6 +265,20 @@
 .planCta :global(.material-symbols-outlined) { font-size: 18px; }
 .planNote { font-size: 12px; color: #8a8f9a; text-align: center; margin: 0; }
 
+/* ─────────── TRIAL START (P1) ─────────── */
+.trialBadge {
+  display: inline-flex; align-items: center; margin: 0 0 14px;
+  padding: 5px 12px; border-radius: 9999px;
+  background: #fcefd9; color: #8a5a12;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.08em;
+}
+.trialCard {
+  padding: 20px 22px; border-radius: 18px;
+  background: #fff; border: 1.6px solid #e7e0d2; box-shadow: 0 10px 24px rgba(58, 46, 102, 0.06);
+  margin: 4px 0 22px;
+}
+.trialFine { margin: 14px 0 0; font-size: 13px; line-height: 1.5; color: #8a8f9a; text-align: center; }
+
 /* ─────────── DOB (native selects, light) ─────────── */
 .dobRow { display: flex; gap: 10px; }
 .dobCol { flex: 1; min-width: 0; position: relative; }

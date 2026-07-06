@@ -7,21 +7,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import VerifyCodeForm from '@/components/auth/VerifyCodeForm';
 import TurnstileWidget, { turnstileEnabled } from '@/components/auth/TurnstileWidget';
-import IosUpgradeSheet from '@/components/settings/IosUpgradeSheet';
 import { computeAge, parseBirthDate, MIN_AGE } from '@/lib/age';
 import { getOnboardingDraft } from '@/lib/onboarding-handoff';
-import { useUpgrade } from '@/hooks/useUpgrade';
-import { getNativePlatform } from '@/lib/native-bridge';
-import {
-  TIERS,
-  monthlyEquivalent,
-  proPriceCHF,
-  yearlySavingsPct,
-  INTERVAL_LABEL,
-  type BillingInterval,
-} from '@/lib/tiers';
-import { useCurrency } from '@/hooks/useCurrency';
-import { PPP_CHECKOUT_CONFIGURED } from '@/lib/lemonsqueezy-client';
 import styles from './SignupFlow.module.css';
 
 /* ─────────── shared SVG glyphs (mirrors Login / start-signup) ─────────── */
@@ -58,7 +45,7 @@ const PANEL_COPY: Record<Exclude<StepId, 'verify'>, { title: string; sub: string
   account: { title: 'Almost there.', sub: 'Create your account to save your path, answers, and progress.' },
   name: { title: 'Nice to meet you.', sub: 'What should I call you, mage?' },
   username: { title: 'Almost done.', sub: 'Pick a name other mages will see.' },
-  plan: { title: 'Last step.', sub: 'Pick a plan and start studying.' },
+  plan: { title: "You're in.", sub: 'Your 7-day free trial starts now — full access, no card.' },
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -123,10 +110,6 @@ export default function SignupFlow() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status: sessionStatus, update: updateSession } = useSession();
-  const { formatPrice, currency } = useCurrency();
-  // PPP price points show only once their checkout variants are wired — never
-  // display a discount the checkout wouldn't charge (matches useUpgrade's gate).
-  const priceCurrency = PPP_CHECKOUT_CONFIGURED ? currency : undefined;
 
   const [step, setStep] = useState<StepId>('account');
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
@@ -138,14 +121,6 @@ export default function SignupFlow() {
   // Username availability.
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Plan step cadence. Seeded from a ?interval= handoff (e.g. the pricing page's
-  // toggle) and carried into the Pro checkout so LS opens that variant directly.
-  const [billingInterval, setBillingInterval] = useState<BillingInterval>(() => {
-    const q = searchParams?.get('interval');
-    return q === 'weekly' || q === 'monthly' || q === 'yearly' ? q : 'yearly';
-  });
-  const [iosSheetOpen, setIosSheetOpen] = useState(false);
 
   // ── DOB parts (light native selects, matching the cream form) ──
   const [dobParts, setDobParts] = useState<{ month: string; day: string; year: string }>({
@@ -304,8 +279,6 @@ export default function SignupFlow() {
     [formData.firstName, formData.lastName, router, updateSession]
   );
 
-  const { startUpgrade, upgrading } = useUpgrade(finalize);
-
   // ── account (credentials): register → verify ──
   const handleAccountNext = async () => {
     setError('');
@@ -447,24 +420,6 @@ export default function SignupFlow() {
       return;
     }
     setLoading(false);
-  };
-
-  // ── plan: FREE proceeds to finalize, PRO takes payment ──
-  const handleGoPro = async () => {
-    setError('');
-    if (session?.user?.tier === 'PRO') {
-      void finalize();
-      return;
-    }
-    if (getNativePlatform() === 'ios') {
-      setIosSheetOpen(true);
-      return;
-    }
-    try {
-      await startUpgrade(billingInterval);
-    } catch {
-      setError("Pro checkout isn't available yet — start on Free and upgrade anytime from Settings.");
-    }
   };
 
   const goBack = (to: StepId) => {
@@ -883,110 +838,38 @@ export default function SignupFlow() {
       );
     }
 
-    /* ── plan ── */
-    const proConf = TIERS.PRO;
-    const freeConf = TIERS.FREE;
-    const proPrice = formatPrice(proPriceCHF(billingInterval, priceCurrency));
-    const proSuffix = billingInterval === 'weekly' ? '/wk' : billingInterval === 'monthly' ? '/mo' : '/yr';
-    const proSubline =
-      billingInterval === 'yearly'
-        ? `≈ ${formatPrice(monthlyEquivalent('PRO', priceCurrency))}/mo · billed yearly`
-        : null;
-    const savePct = yearlySavingsPct('PRO', priceCurrency);
-
-    const freeBullets = [
-      '1 AI flashcard set',
-      `${freeConf.limits.ai_quizzes} AI quizzes / month`,
-      `${freeConf.limits.scholar_chat} Mage chat messages / month`,
-    ];
-    const proBullets = [
-      'Unlimited AI flashcards, quizzes & chat',
-      'Unlimited AI study paths',
-      `${proConf.limits.ultra_path} Ultra paths / month`,
-      `${proConf.limits.pdf_import} PDF pages / month`,
+    /* ── trial start (P1) — the 7-day trial already began at account creation
+       (trialGrant), so this screen only confirms it and finalizes onboarding.
+       No plan picker, no payment here: the user chooses subscribe-or-pause later
+       at the trial-ended gate. Matches Figma 504:3. ── */
+    const trialFeatures = [
+      'Create learning paths',
+      'Practice with AI quizzes',
+      'Ask Mage for help',
+      'Track your progress',
     ];
 
     return (
       <div>
-        <span className={styles.eyebrow}>{STEP_LABEL.plan}</span>
-        <h1 className={styles.formTitle}>Choose your plan</h1>
-        <p className={styles.formSub}>Start free, or unlock everything with Pro.</p>
+        <span className={styles.trialBadge}>7 DAYS FREE</span>
+        <h1 className={styles.formTitle}>Start your 7-day free trial</h1>
+        <p className={styles.formSub}>Full access to everything NoteMage can do.</p>
 
         {error && <div className={`${styles.banner} ${styles.bannerError}`}>{error}</div>}
 
-        <div className={styles.billingToggle} role="tablist" aria-label="Billing interval">
-          {(['weekly', 'monthly', 'yearly'] as BillingInterval[]).map((iv) => (
-            <button
-              key={iv}
-              type="button"
-              role="tab"
-              aria-selected={billingInterval === iv}
-              className={`${styles.billingOpt} ${billingInterval === iv ? styles.billingOptActive : ''}`}
-              onClick={() => setBillingInterval(iv)}
-            >
-              {INTERVAL_LABEL[iv]}
-              {iv === 'yearly' && savePct > 0 && <span className={styles.savePill}>Save {savePct}%</span>}
-            </button>
+        <ul className={`${styles.planList} ${styles.trialCard}`}>
+          {trialFeatures.map((b) => (
+            <li key={b} className={styles.planItem}>
+              <span className={styles.planCheck}><span className="material-symbols-outlined" aria-hidden>check</span></span>
+              {b}
+            </li>
           ))}
-        </div>
+        </ul>
 
-        <div className={styles.planCards}>
-          {/* FREE */}
-          <div className={styles.planCard}>
-            <div>
-              <p className={styles.planName}>Free</p>
-              <div className={styles.planPriceRow}>
-                <span className={styles.planPrice}>{formatPrice(0)}</span>
-              </div>
-              <p className={styles.planSubline}>Free forever — no card needed</p>
-            </div>
-            <ul className={styles.planList}>
-              {freeBullets.map((b) => (
-                <li key={b} className={styles.planItem}>
-                  <span className={styles.planCheck}><span className="material-symbols-outlined" aria-hidden>check</span></span>
-                  {b}
-                </li>
-              ))}
-            </ul>
-            <button type="button" className={`${styles.planCta} ${styles.planCtaFree}`} onClick={() => void finalize()} disabled={loading || upgrading}>
-              {loading ? 'Starting…' : 'Get started'}
-            </button>
-          </div>
-
-          {/* PRO */}
-          <div className={`${styles.planCard} ${styles.planCardPro}`}>
-            <div className={styles.planBadges}>
-              {billingInterval === 'yearly' && savePct > 0 && <span className={styles.planBadge}>Save {savePct}%</span>}
-              <span className={styles.planBadge}>Most popular</span>
-            </div>
-            <div>
-              <p className={styles.planName}>Pro</p>
-              <div className={styles.planPriceRow}>
-                <span className={styles.planPrice}>{proPrice}</span>
-                <span className={styles.planInterval}>{proSuffix}</span>
-              </div>
-              {proSubline && <p className={styles.planSubline}>{proSubline}</p>}
-            </div>
-            <ul className={styles.planList}>
-              {proBullets.map((b) => (
-                <li key={b} className={styles.planItem}>
-                  <span className={styles.planCheck}><span className="material-symbols-outlined" aria-hidden>check</span></span>
-                  {b}
-                </li>
-              ))}
-            </ul>
-            <button type="button" className={`${styles.planCta} ${styles.planCtaPro}`} onClick={() => void handleGoPro()} disabled={upgrading || loading}>
-              {upgrading ? 'Opening checkout…' : (
-                <>
-                  Go Pro
-                  <span className="material-symbols-outlined" aria-hidden>arrow_forward</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        <p className={styles.planNote} style={{ marginTop: 14 }}>You can change your plan anytime.</p>
+        <button type="button" className={styles.submit} onClick={() => void finalize()} disabled={loading}>
+          {loading ? 'Starting…' : 'Start free trial'}
+        </button>
+        <p className={styles.trialFine}>No card required. You choose what happens after the trial.</p>
 
         <div className={styles.actions} style={{ marginTop: 4 }}>
           <button type="button" className={styles.back} onClick={() => goBack('username')}>
@@ -994,15 +877,6 @@ export default function SignupFlow() {
             Back
           </button>
         </div>
-
-        <IosUpgradeSheet
-          open={iosSheetOpen}
-          onClose={() => setIosSheetOpen(false)}
-          onPurchased={() => {
-            setIosSheetOpen(false);
-            void finalize();
-          }}
-        />
       </div>
     );
   };

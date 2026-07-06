@@ -13,6 +13,7 @@
 import { db } from '@/lib/db';
 import { enforceIpCap, generatePlaceholderUsername, hashIp } from '@/lib/registration';
 import { logSecurityEvent } from '@/lib/security-events';
+import { trialGrant } from '@/lib/entitlement';
 
 export type OAuthProvider = 'google' | 'apple';
 
@@ -106,6 +107,8 @@ export async function findOrCreateOAuthUser(input: OAuthUserInput): Promise<OAut
         avatarUrl,
         password: null,
         username: placeholderUsername,
+        // New accounts start their 7-day free trial (PRO on weekly caps, no card).
+        ...trialGrant(),
         onboardingComplete: false,
         // OAuth providers (Google/Apple) only hand us verified emails, so the
         // account is confirmed at creation — it must never hit the credentials

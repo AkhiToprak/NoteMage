@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import type { TypedBackgroundJob } from '@/lib/background-jobs';
-import { scheduleNextReminderSweep } from '@/lib/background-jobs';
+import { scheduleNextReminderSweep, scheduleNextDeletionSweep } from '@/lib/background-jobs';
+import { sweepPausedAccountsForDeletion } from '@/lib/account-deletion';
 import { runExamReminderSweep } from '@/lib/exam-reminders';
 import { runPdfImportJob } from '@/lib/pdf-import/run-job';
 import { runVideoImportJob } from '@/lib/video-import/run-job';
@@ -75,6 +76,14 @@ export async function runJob(job: TypedBackgroundJob): Promise<void> {
           `[reminders] swept ${summary.examsScanned} exams · created ${summary.created} · emailed ${summary.emailed}`,
         );
       }
+      return;
+    }
+    case 'accounts.deletion_sweep': {
+      // Trial rework — perpetuate the daily chain first (bucketed dedupeKey makes
+      // a retry a no-op), then hard-delete paused accounts past retention.
+      await scheduleNextDeletionSweep();
+      const { deleted } = await sweepPausedAccountsForDeletion();
+      if (deleted > 0) console.info(`[account-deletion] swept ${deleted} paused account(s)`);
       return;
     }
     default:

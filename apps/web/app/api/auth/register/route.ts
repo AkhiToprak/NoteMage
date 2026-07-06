@@ -9,6 +9,7 @@ import { verifyTurnstile } from '@/lib/turnstile';
 import { computeAge, parseBirthDate, MIN_AGE } from '@/lib/age';
 import { issueEmailVerificationCode } from '@/lib/verification';
 import { sendVerificationCode } from '@/lib/verification-email';
+import { trialGrant } from '@/lib/entitlement';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -84,6 +85,8 @@ export async function POST(request: NextRequest) {
           username: generatePlaceholderUsername(),
           birthDate: birth,
           age,
+          // New accounts start their 7-day free trial (PRO on weekly caps, no card).
+          ...trialGrant(),
         },
       }),
       db.ipRegistration.create({

@@ -33,7 +33,7 @@ function Spark({ variant }: { variant: 'gold' | 'purple' }) {
 }
 
 type CompareVal = string | boolean;
-type CompareRow = { label: string; free: CompareVal; pro: CompareVal };
+type CompareRow = { label: string; pro: CompareVal };
 
 function Cell({ value }: { value: CompareVal }) {
   if (value === true) return <span className={styles.tick} aria-hidden>✓</span>;
@@ -43,20 +43,24 @@ function Cell({ value }: { value: CompareVal }) {
 
 const FAQS: { q: string; a: string }[] = [
   {
+    q: 'Do I need a card for the free trial?',
+    a: 'No. The 7-day trial gives you full access with no card. When it ends, you choose to subscribe or pause — pausing keeps your paths, progress and weak points safe for 3 months.',
+  },
+  {
     q: 'Can I switch plans at any time?',
-    a: 'Yes — upgrade or downgrade anytime from Settings. Changes take effect right away.',
+    a: 'Yes — switch between weekly, monthly and yearly anytime from Settings. Changes take effect right away.',
   },
   {
     q: 'Is there a student discount?',
     a: 'Pro is already priced for students — there’s no separate student code, but the yearly plan works out to roughly the price of a coffee a month.',
   },
   {
-    q: 'What happens when I hit my monthly limit?',
-    a: 'Your AI allowance simply pauses until it resets at the start of the next month. Your notes, flashcards, quizzes and saved paths keep working — upgrade to Pro for unlimited AI.',
+    q: 'What happens when I hit my limit?',
+    a: 'Your AI allowance simply pauses until it resets at the start of the next period. Your notes, flashcards, quizzes and saved paths keep working the whole time.',
   },
   {
     q: 'Can I cancel my subscription?',
-    a: 'Anytime, from Settings. You keep Pro until the end of the period you’ve already paid for, then drop back to Free. We also offer a 14-day money-back guarantee.',
+    a: 'Anytime, from Settings — you keep Pro until the end of the period you’ve already paid for. If you don’t resubscribe, your account pauses and we keep your paths and progress safe for 3 months, so you can pick up right where you left off. There’s also a 14-day money-back guarantee.',
   },
   {
     q: 'What payment methods do you accept?',
@@ -76,20 +80,6 @@ export default function PricingPageClient() {
 
   const plans = [
     {
-      key: 'FREE' as const,
-      name: 'Free',
-      pro: false,
-      features: [
-        '1 AI flashcard set',
-        '2 AI quizzes / month',
-        '50 Mage chat messages / month',
-        '50 PDF pages (one-time)',
-        'Flashcards, quizzes & study tools',
-      ],
-      ctaLabel: 'Get started',
-      note: null as string | null,
-    },
-    {
       key: 'PRO' as const,
       name: 'Pro',
       pro: true,
@@ -98,9 +88,9 @@ export default function PricingPageClient() {
         'Unlimited AI study paths',
         `${TIERS.PRO.limits.ultra_path} Ultra paths / month`,
         `${TIERS.PRO.limits.pdf_import} PDF pages / month`,
-        'Everything in Free',
+        'Ask Mage, your AI tutor, anything',
       ],
-      ctaLabel: 'Go Pro  →',
+      ctaLabel: 'Start free trial  →',
       note: '*Fair use ~4M tokens / month',
     },
   ];
@@ -109,23 +99,23 @@ export default function PricingPageClient() {
     {
       group: 'AI FEATURES',
       rows: [
-        { label: 'AI flashcard sets', free: '1 / mo', pro: 'Unlimited*' },
-        { label: 'AI presentations', free: '1 / mo', pro: 'Unlimited*' },
-        { label: 'Study paths', free: '—', pro: 'Unlimited*' },
-        { label: 'Ultra paths', free: '—', pro: `${TIERS.PRO.limits.ultra_path} / mo` },
-        { label: 'AI quizzes', free: '2 / mo', pro: 'Unlimited*' },
-        { label: 'Mage chat messages', free: '50 / mo', pro: 'Unlimited*' },
-        { label: 'PDF pages', free: '50 total', pro: `${TIERS.PRO.limits.pdf_import} / mo` },
+        { label: 'AI flashcard sets', pro: 'Unlimited*' },
+        { label: 'AI presentations', pro: 'Unlimited*' },
+        { label: 'Study paths', pro: 'Unlimited*' },
+        { label: 'Ultra paths', pro: `${TIERS.PRO.limits.ultra_path} / mo` },
+        { label: 'AI quizzes', pro: 'Unlimited*' },
+        { label: 'Mage chat messages', pro: 'Unlimited*' },
+        { label: 'PDF pages', pro: `${TIERS.PRO.limits.pdf_import} / mo` },
       ],
     },
     {
       group: 'STUDY TOOLS',
       rows: [
-        { label: 'Flashcards & quizzes', free: true, pro: true },
-        { label: 'Text & canvas files', free: true, pro: true },
-        { label: 'Mind maps', free: true, pro: true },
-        { label: 'Exam timers & streaks', free: true, pro: true },
-        { label: 'And much more…', free: true, pro: true },
+        { label: 'Flashcards & quizzes', pro: true },
+        { label: 'Text & canvas files', pro: true },
+        { label: 'Mind maps', pro: true },
+        { label: 'Exam timers & streaks', pro: true },
+        { label: 'And much more…', pro: true },
       ],
     },
   ];
@@ -151,7 +141,7 @@ export default function PricingPageClient() {
             <p className={styles.eyebrow}>PRICING</p>
             <h1 className={styles.title}>Simple, student-friendly pricing.</h1>
             <p className={styles.sub}>
-              Start free. Upgrade to Pro for unlimited AI whenever you need it.
+              Try everything free for 7 days — no card required. Then just one simple plan.
             </p>
           </div>
         </header>
@@ -178,18 +168,15 @@ export default function PricingPageClient() {
         {/* ─────────── PLAN CARDS ─────────── */}
         <section className={styles.cards}>
           {plans.map((plan) => {
-            // Free is always "CHF 0" (formatPrice maps 0 → "Free", which would double
-            // the plan name). Pro drops a trailing ".00" so round prices read "CHF 64".
-            const amount = plan.pro
-              ? formatPrice(proPriceCHF(interval, priceCurrency)).replace(/([.,])00\b/, '')
-              : 'CHF 0';
-            const suffix = plan.pro ? INTERVAL_SUFFIX[interval] : '';
-            const sub = plan.pro ? proSub : 'Free forever — no card needed';
+            // Drop a trailing ".00" so round prices read "CHF 64", not "CHF 64.00".
+            const amount = formatPrice(proPriceCHF(interval, priceCurrency)).replace(/([.,])00\b/, '');
+            const suffix = INTERVAL_SUFFIX[interval];
+            const sub = `7-day free trial, then ${proSub}`;
             return (
               <div key={plan.key} className={`${styles.plan} ${plan.pro ? styles.planPro : ''}`}>
                 <div className={styles.planHead}>
                   <span className={styles.planName}>{plan.name}</span>
-                  {plan.pro && <span className={styles.popular}>Most popular</span>}
+                  {plan.pro && <span className={styles.popular}>7 days free</span>}
                 </div>
                 <div className={styles.price}>
                   <span className={styles.priceAmt}>{amount}</span>
@@ -226,13 +213,12 @@ export default function PricingPageClient() {
 
         {/* ─────────── COMPARISON TABLE ─────────── */}
         <section className={styles.compareWrap}>
-          <h2 className={styles.h2}>Compare plans in detail</h2>
+          <h2 className={styles.h2}>Everything included in Pro</h2>
           <div className={styles.tableCard}>
             <table className={styles.table}>
               <thead>
                 <tr>
                   <th className={styles.thFeature}>Feature</th>
-                  <th className={styles.thPlan}>Free</th>
                   <th className={`${styles.thPlan} ${styles.proCol}`}>Pro</th>
                 </tr>
               </thead>
@@ -240,12 +226,11 @@ export default function PricingPageClient() {
                 {compare.map((section) => (
                   <Fragment key={section.group}>
                     <tr className={styles.groupRow}>
-                      <td colSpan={3}>{section.group}</td>
+                      <td colSpan={2}>{section.group}</td>
                     </tr>
                     {section.rows.map((row) => (
                       <tr key={row.label} className={styles.dataRow}>
                         <td className={styles.tdFeature}>{row.label}</td>
-                        <td className={styles.tdPlan}><Cell value={row.free} /></td>
                         <td className={`${styles.tdPlan} ${styles.proCol}`}><Cell value={row.pro} /></td>
                       </tr>
                     ))}
