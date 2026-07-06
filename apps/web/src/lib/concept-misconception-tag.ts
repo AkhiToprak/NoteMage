@@ -46,13 +46,12 @@
  *   8. Persist `ConceptMastery.misconceptionLabel` + `misconceptionAt`.
  */
 
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef } from '@/lib/ai-tool-types';
 import { db } from '@/lib/db';
 import { weaknessConceptsEnabled } from '@/lib/feature-flags';
 import { resolveModel } from '@/lib/model-routing';
 import { classifyBand, type MasteryInputs } from '@/lib/concept-mastery';
 import { deriveConceptMisconception } from '@/lib/concept-misconception';
-import { forcedStructuredCallAnthropic } from '@/lib/path-generator-anthropic';
 import { forcedStructuredCallGemini } from '@/lib/path-generator-gemini';
 import { forcedStructuredCallOpenRouter } from '@/lib/path-generator-openrouter';
 
@@ -167,10 +166,10 @@ export function isDepersonalised(line: string): boolean {
   return !BLAME_FAMILY_PATTERN.test(trimmed);
 }
 
-/** Build the forced tool definition shared by the Anthropic/OpenRouter
- *  dispatch path. Kept as a function (not a module-level const) so the
- *  description can reference the concept label directly. */
-function buildMisconceptionTagTool(conceptLabel: string): Anthropic.Messages.Tool {
+/** Build the forced tool definition for the OpenRouter/GLM dispatch path (the
+ *  Gemini branch uses a JSON instruction instead). Kept as a function (not a
+ *  module-level const) so the description can reference the concept label directly. */
+function buildMisconceptionTagTool(conceptLabel: string): ToolDef {
   return {
     name: 'tag_misconception',
     description: [
@@ -257,14 +256,6 @@ async function callMisconceptionTag(
 ): Promise<MisconceptionTagToolInput> {
   const resolved = resolveModel('weakness-misconception-tag');
   const tool = buildMisconceptionTagTool(conceptLabel);
-
-  if (resolved.provider === 'anthropic') {
-    return forcedStructuredCallAnthropic<MisconceptionTagToolInput>({
-      system,
-      tool,
-      model: resolved.model,
-    });
-  }
 
   if (resolved.provider === 'openrouter') {
     return forcedStructuredCallOpenRouter<MisconceptionTagToolInput>({

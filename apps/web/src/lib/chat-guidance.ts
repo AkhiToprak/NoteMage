@@ -4,7 +4,7 @@
 // per-intent guidance + its single tool load only when the intent gate picks
 // a generation intent. See `chat-intent.ts`.
 
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef } from './ai-tool-types';
 import type { GenerationIntent } from './chat-intent';
 import {
   FLASHCARD_TOOL_WITH_FIGURES,
@@ -56,7 +56,7 @@ export const INTENT_GUIDANCE: Record<GenerationIntent, string> = {
 };
 
 /** The single tool loaded for each generation intent. */
-export const INTENT_TOOL: Record<GenerationIntent, Anthropic.Messages.Tool> = {
+export const INTENT_TOOL: Record<GenerationIntent, ToolDef> = {
   flashcards: FLASHCARD_TOOL_WITH_FIGURES,
   quiz: QUIZ_TOOL_V2_WITH_FIGURES,
   mindmap: MINDMAP_TOOL,

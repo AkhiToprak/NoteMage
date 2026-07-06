@@ -23,7 +23,6 @@ import {
 import { resolveMageActionCards, type MageActionCard } from '@/lib/mage-actions';
 import { formatExamStudyState, loadExamReadiness } from '@/lib/exam-scope';
 import { mageGenerationActionsEnabled } from '@/lib/feature-flags';
-import { isLegacyComposition } from '@/lib/model-routing';
 import { detectExplicitWebIntent } from '@/lib/mage-web-intent';
 
 /**
@@ -94,7 +93,7 @@ export async function POST(request: NextRequest) {
     // source manifest. The server owns this; the client never sends a page
     // list. Fail-soft: a grounding error just yields an ungrounded turn rather
     // than 500-ing the panel. When grounding exists this becomes a "Mage
-    // answer" (Anthropic + citations); with none it stays a bare chat (Gemini).
+    // answer" (GLM + citations); with none it stays a bare chat (Gemini).
     let groundingParts: string[] | undefined;
     let mageSources: MageSource[] | undefined;
     // Phase 5 — volatile study-state block (exam countdown + readiness +
@@ -208,7 +207,7 @@ export async function POST(request: NextRequest) {
     // consent chip / upsell handles them). Goes through the (id, userId)-scoped
     // row (INVARIANT 4). Negation never grants — detectExplicitWebIntent already
     // returns 'negated' for it. Fail-soft: a write error just leaves the grant off.
-    if (webIntent === 'request' && tier !== 'FREE' && !isLegacyComposition() && !chat.allowWebSearch) {
+    if (webIntent === 'request' && tier !== 'FREE' && !chat.allowWebSearch) {
       await db.notebookChat
         .update({ where: { id: chat.id }, data: { allowWebSearch: true } })
         .catch(() => {});
@@ -252,13 +251,13 @@ export async function POST(request: NextRequest) {
       // sealed, practice / live question → hint_only). Streamed to the client so
       // the answer renders behind the gate, independent of the model path.
       revealGate: resolved?.revealGate,
-      // Grounding OR study-state present → a Mage answer (Anthropic, citations,
+      // Grounding OR study-state present → a Mage answer (GLM, citations,
       // annotate, action cards). `studyState` carries the volatile exam
       // readiness block (Phase 5); `actions` the offered menu (Phase 6). A bare
       // chat with neither stays on Gemini and surfaces no cards.
       // Phase 9 — an explicit non-default mode (deep / strict) is itself a
-      // Mage-answer signal: deep needs Sonnet and strict needs material-bound
-      // behaviour, both of which only the Anthropic path provides. So a
+      // Mage-answer signal: deep needs glm-sonnet and strict needs material-bound
+      // behaviour, both of which only the GLM Mage-answer path provides. So a
       // deep/strict turn routes to a Mage answer even with no grounding (it
       // answers from general knowledge, or — in strict — says the material
       // doesn't cover it). Plain `quick` with no grounding stays a Gemini chat.
@@ -273,12 +272,12 @@ export async function POST(request: NextRequest) {
     // in Phase 6 — here the menu is only derived + exposed).
     response.headers.set('X-Mage-Chat-Id', chat.id);
     // P4a — re-assert grant state on EVERY POST so the panel header can never go
-    // stale. `X-Mage-Web-Available` mirrors `!isLegacyComposition()`: in legacy
-    // model mode the web path is unavailable, so the panel shows "web unavailable"
-    // even when the grant is on. (Web execution itself is P5.)
+    // stale. `X-Mage-Web-Available` is always '1' now: the web path rides the GLM
+    // chat composition, which is the only composition (Claude/legacy is gone).
+    // (Web execution itself is P5.)
     response.headers.set('X-Mage-Allow-Web', chat.allowWebSearch ? '1' : '0');
     response.headers.set('X-Mage-Allow-Gk', chat.allowGeneralKnowledge ? '1' : '0');
-    response.headers.set('X-Mage-Web-Available', isLegacyComposition() ? '0' : '1');
+    response.headers.set('X-Mage-Web-Available', '1');
     if (resolved) {
       response.headers.set('X-Mage-Context-Type', resolved.type);
       response.headers.set('X-Mage-Assistance-Policy', resolved.assistancePolicy);
@@ -334,7 +333,7 @@ export async function GET(request: NextRequest) {
         chatId: null,
         messages: [],
         grants: { allowWebSearch: false, allowGeneralKnowledge: false },
-        webAvailable: !isLegacyComposition(),
+        webAvailable: true,
       });
 
     // Cap the resume payload to the most recent turns, then restore chronological
@@ -352,7 +351,7 @@ export async function GET(request: NextRequest) {
         allowWebSearch: chat.allowWebSearch,
         allowGeneralKnowledge: chat.allowGeneralKnowledge,
       },
-      webAvailable: !isLegacyComposition(),
+      webAvailable: true,
     });
   } catch (error) {
     console.error('[mage/messages GET]', error);

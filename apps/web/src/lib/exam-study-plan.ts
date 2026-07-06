@@ -18,8 +18,6 @@ import { loadExamReadiness, loadExamWeakAreas } from './exam-scope';
 import { loadPathForUser, serializePath } from './path-loader';
 import { resolveModel } from './model-routing';
 import { geminiStructured } from './gemini-structured';
-import { anthropic } from './anthropic';
-import { parseJsonLoose } from './json-util';
 import { logAiUsage } from './ai-usage';
 import {
   assemblePlanView,
@@ -178,6 +176,8 @@ async function refinePlanWithMage(
   ctx: { daysUntil: number; dailyMinutesTarget: number; readiness: number; format: string | null },
   userId: string,
 ): Promise<Refinement | null> {
+  // Gemini-structured only (EXAM_STUDY_PLAN_MODEL pins flash/flash-lite; a
+  // non-Gemini pin is warned + coerced to flash-lite in the resolver).
   const resolved = resolveModel('exam-study-plan');
   const userText = JSON.stringify({
     daysUntil: ctx.daysUntil,
@@ -195,49 +195,25 @@ async function refinePlanWithMage(
   });
 
   try {
-    if (resolved.provider === 'gemini') {
-      const res = await geminiStructured({
-        schema: RefineSchema,
-        system: REFINE_SYSTEM,
-        userText,
-        model: resolved.model,
-        maxOutputTokens: 700,
-        temperature: 0.4,
-        onUsage: (u) =>
-          logAiUsage({
-            userId,
-            feature: 'exam-study-plan',
-            provider: 'gemini',
-            model: resolved.model,
-            inputTokens: u.promptTokens,
-            outputTokens: u.candidatesTokens,
-            cacheReadTokens: u.cachedTokens,
-          }),
-      });
-      return normalizeRefinement(res, candidates);
-    }
-
-    // Non-Gemini override (e.g. EXAM_STUDY_PLAN_MODEL=sonnet) — Anthropic JSON.
-    const response = await anthropic.messages.create({
-      model: resolved.model,
-      max_tokens: 700,
+    const res = await geminiStructured({
+      schema: RefineSchema,
       system: REFINE_SYSTEM,
-      messages: [{ role: 'user', content: `${userText}\n\nReturn ONLY the JSON object.` }],
-    });
-    logAiUsage({
-      userId,
-      feature: 'exam-study-plan',
-      provider: 'anthropic',
+      userText,
       model: resolved.model,
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-      cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+      maxOutputTokens: 700,
+      temperature: 0.4,
+      onUsage: (u) =>
+        logAiUsage({
+          userId,
+          feature: 'exam-study-plan',
+          provider: 'gemini',
+          model: resolved.model,
+          inputTokens: u.promptTokens,
+          outputTokens: u.candidatesTokens,
+          cacheReadTokens: u.cachedTokens,
+        }),
     });
-    const block = response.content.find((b) => b.type === 'text');
-    if (!block || block.type !== 'text') return null;
-    const parsed = RefineSchema.safeParse(parseJsonLoose(block.text));
-    if (!parsed.success) return null;
-    return normalizeRefinement(parsed.data, candidates);
+    return normalizeRefinement(res, candidates);
   } catch (err) {
     console.error('[exam-study-plan] refine failed', err);
     return null;

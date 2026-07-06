@@ -24,8 +24,6 @@ import { assembleTiptap } from './assemble';
 import type { DocModelBlock } from './doc-model';
 import type { DescribePageInput, PdfStructureEngine } from './engine';
 import { geminiEngine } from './engine-gemini';
-import { anthropicVisionEngine } from './engine-anthropic';
-import { withTableEscalation } from './pdf-table-escalate';
 import { textLayerEngine } from './engine-text';
 import { cropFigure } from './figure-crop';
 import { extractGroundTruth, type GroundTruth, type GroundTruthPage } from './ground-truth';
@@ -230,9 +228,10 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     }
 
     const pageCount = Math.min(ground.pageCount, job.pageCap, pageImagePaths.length);
-    // Table-dense pages escalate to Sonnet vision when PDF_TABLE_ESCALATE=1;
-    // pure pass-through (the tier's Gemini engine, no extra calls) otherwise.
-    const visionEngine = withTableEscalation(engineForTier(job.user.tier), anthropicVisionEngine);
+    // The tier's Gemini vision engine — the rich-mode engine and the fallback
+    // for fast mode's scanned pages. (The Anthropic table-escalation wrapper was
+    // retired with the rest of the Claude paths; Gemini is the single engine.)
+    const visionEngine = engineForTier(job.user.tier);
     // Fast mode is opt-in (P5). The row's `mode` column gates the per-page
     // branch below; scanned pages and pages whose text-layer classifier
     // produces nothing get promoted to the vision engine silently.

@@ -33,13 +33,13 @@ export interface MaterialCorpusEntry {
 // ── Per-path content caps ────────────────────────────────────────────────
 //
 // Differentiated by path type. Deliberately decoupled from chat's
-// MAX_CONTEXT_CHARS (anthropic.ts) — changing those caps must NOT touch chat.
+// MAX_CONTEXT_CHARS (chat-stream.ts) — changing those caps must NOT touch chat.
 //
 // The corpus is embedded in EVERY generation stage, and the quiz stage runs on
-// Haiku (200k-token window) for both basic AND ultra. So the cap is bounded by
-// Haiku's window minus output + scaffolding, not by the larger structure model.
-// Basic 400k chars ≈ 100k tokens (~half the window). Ultra 600k chars ≈ 150k
-// tokens is the aggressive max within the current model lineup; going higher
+// the GLM quiz slot (203k-token window) for both basic AND ultra. So the cap is
+// bounded by that window minus output + scaffolding, not by the larger structure
+// model. Basic 400k chars ≈ 100k tokens (~half the window). Ultra 600k chars ≈
+// 150k tokens is the aggressive max within the current model lineup; going higher
 // would need an ultra quiz-model upgrade (separate change).
 export const BASIC_PATH_CONTENT_CAP = 400_000;
 export const ULTRA_PATH_CONTENT_CAP = 600_000;

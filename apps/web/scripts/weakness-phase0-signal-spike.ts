@@ -37,7 +37,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef } from '../src/lib/ai-tool-types';
 import { forcedStructuredCallOpenRouter } from '../src/lib/path-generator-openrouter';
 import { GLM_HAIKU_MODEL, GLM_SONNET_MODEL } from '../src/lib/openrouter';
 
@@ -67,7 +67,7 @@ interface ConceptCandidatesToolInput {
   conceptCandidates: string[];
 }
 
-function buildConceptCandidatesTool(slotTitle: string): Anthropic.Messages.Tool {
+function buildConceptCandidatesTool(slotTitle: string): ToolDef {
   return {
     name: 'emit_concept_candidates',
     description: [
@@ -97,7 +97,7 @@ interface ConceptTaggingToolInput {
   items: { itemId: string; conceptKeys: string[] }[];
 }
 
-function buildConceptTaggingTool(conceptCandidates: string[]): Anthropic.Messages.Tool {
+function buildConceptTaggingTool(conceptCandidates: string[]): ToolDef {
   return {
     name: 'tag_items_with_concepts',
     description: [
@@ -143,7 +143,7 @@ interface ReteachDiscriminateToolInput {
   };
 }
 
-const RETEACH_DISCRIMINATE_TOOL: Anthropic.Messages.Tool = {
+const RETEACH_DISCRIMINATE_TOOL: ToolDef = {
   name: 'emit_reteach_and_discriminate',
   description: [
     'Given a quiz question the learner answered WRONG (with the original explanation text',

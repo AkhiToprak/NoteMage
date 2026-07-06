@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // ── Subject classification (Haiku, ~1s) ──────────────────────────
+      // ── Subject classification (Gemini Flash-Lite, ~1s) ───────────────
       const classification = await classifySubjects({
         title,
         brief: body.brief,

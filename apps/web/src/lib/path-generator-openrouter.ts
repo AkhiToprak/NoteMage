@@ -1,12 +1,12 @@
 // OpenRouter/GLM-side wrapper for path-generation calls. Mirrors
-// path-generator-anthropic.ts and path-generator-gemini.ts so the dispatcher
-// (path-generator-routing.ts) can route the Anthropic DEFAULT slots — quiz
-// Haiku and ultra-structure Sonnet — to GLM when GLM_COMPOSITION is on.
+// path-generator-gemini.ts so the dispatcher (path-generator-routing.ts) can
+// route every default path-generation slot — quiz (the former Haiku slot) and
+// ultra-structure (the former Sonnet slot) — through GLM. (Claude is gone.)
 //
 // GLM structured output goes through FORCED TOOL CALLS, not response_format
 // json_schema (intermittently unreliable on GLM-4.7; forced tools are 100%
-// reliable). We reuse the existing Anthropic tool definitions and translate
-// them to the OpenAI/OpenRouter tool shape. Reasoning is disabled: GLM-4.7/5.2
+// reliable). We reuse the existing tool definitions (formerly Anthropic-shaped)
+// and translate them to the OpenAI/OpenRouter tool shape. Reasoning is disabled: GLM-4.7/5.2
 // are reasoning models, and with reasoning ON the thinking tokens consume the
 // output budget so the tool call / content comes back empty.
 //
@@ -14,14 +14,14 @@
 // Stage-A-only experiment (PATH_STRUCTURE_REASONING) that turns reasoning
 // back ON for the structure call — see path-generator-routing.ts.
 
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef } from './ai-tool-types';
 import { callOpenRouter, openRouterMaxCompletionTokens, type OpenRouterUsage } from './openrouter';
 import { anthropicToolToOpenAI } from './openrouter-tools';
 
-// GLM output ceiling — deliberately higher than the shared Anthropic
-// MAX_OUTPUT_TOKENS (16k). Anthropic caps low because its non-streaming SDK
-// rejects long-running requests; the OpenRouter path streams internally, so it
-// has no such limit. The headroom is the truncation fix: with reasoning OFF and
+// GLM output ceiling — deliberately higher than the shared 16k
+// MAX_OUTPUT_TOKENS the Gemini path uses. That cap is low because a
+// non-streaming SDK rejects long-running requests; the OpenRouter path streams
+// internally, so it has no such limit. The headroom is the truncation fix: with reasoning OFF and
 // 32k of room, a single path activity (one theory section / one quiz, the unit
 // of work is already small) finishes well inside the budget instead of hitting
 // finish_reason=length. There is NO Claude fallback anymore, so staying under
@@ -48,16 +48,16 @@ function isNonRetryable(error: unknown): boolean {
  * the tools render at a stable byte position (implicit-cache friendly), retries
  * up to `maxAttempts` with exponential backoff on transient errors, and parses
  * the forced tool call's arguments into `T`. Downstream Zod validators (shared
- * with the Anthropic/Gemini paths) still enforce the strict shape.
+ * with the Gemini path) still enforce the strict shape.
  */
 export async function forcedStructuredCallOpenRouter<T>(opts: {
   /** Plain-string system prompt. No cache_control — GLM caches the prefix
    *  implicitly, so the caller leads with corpus + static rules, dynamic last. */
   system: string;
-  /** The forced tool (reuse the existing Anthropic tool definitions). */
-  tool: Anthropic.Messages.Tool;
+  /** The forced tool (reuse the existing tool definitions, formerly Anthropic-shaped). */
+  tool: ToolDef;
   /** Full ordered tool array sent on every call (defaults to `[tool]`). */
-  tools?: Anthropic.Messages.Tool[];
+  tools?: ToolDef[];
   userMessage?: string;
   maxAttempts?: number;
   /** GLM model slug (e.g. `z-ai/glm-4.7`). */
@@ -72,6 +72,9 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
    * path-generator-routing.ts) — omit to keep today's behavior byte-identical.
    */
   reasoningEffort?: 'low' | 'medium' | 'high';
+  /** Sampling temperature. Undefined ⇒ provider default (~1.0). Structured/
+   *  extraction slots pass a low value so the forced tool output is stable. */
+  temperature?: number;
   onUsage?: (usage: OpenRouterUsage) => void;
 }): Promise<T> {
   const {
@@ -84,6 +87,7 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
     maxTokens = GLM_MAX_OUTPUT_TOKENS,
     sessionId,
     reasoningEffort,
+    temperature,
     onUsage,
   } = opts;
   const toolArray = (tools ?? [tool]).map(anthropicToolToOpenAI);
@@ -101,14 +105,16 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
         toolChoice: { type: 'function', function: { name: tool.name } },
         maxTokens: effectiveMaxTokens,
         ...(reasoningEffort ? { reasoningEffort } : { disableReasoning: true }),
+        ...(temperature !== undefined ? { temperature } : {}),
         sessionId,
       });
       onUsage?.(result.usage);
       // `finish_reason: 'length'` means GLM was cut off at max_tokens — the
       // forced tool call's `arguments` are truncated JSON and will never parse.
-      // Throw a clear, retryable error so the dispatcher falls back to Anthropic
-      // instead of surfacing a cryptic JSON-parse failure (reasoning models like
-      // GLM-5.2 can burn the whole output budget on thinking and truncate here).
+      // Throw a clear, retryable error so the caller retries on GLM (there is no
+      // Claude fallback) instead of surfacing a cryptic JSON-parse failure
+      // (reasoning models like GLM-5.2 can burn the whole output budget on
+      // thinking and truncate here).
       if (result.finishReason === 'length') {
         throw new Error(
           `GLM ${tool.name} truncated at ${effectiveMaxTokens}-token cap (finish_reason=length)`,

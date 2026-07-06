@@ -139,7 +139,8 @@ const geminiModelCall: ModelCall = async (req, onUsage) => {
     // A dense page can hit MAX_OUTPUT_TOKENS. The repair retry re-sends the full
     // page image and truncates at the same point — burn 2× for zero gain. Throw
     // (AFTER metering the spend above) so describePage skips the repair and the
-    // worker keeps the heuristic result (mirrors engine-anthropic's guard).
+    // worker keeps the heuristic result (same MAX_TOKENS guard pattern the
+    // retired Anthropic engine used).
     if (response.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
       throw new StructureEngineError(
         `Gemini vision response truncated at maxOutputTokens (${MAX_OUTPUT_TOKENS})`,

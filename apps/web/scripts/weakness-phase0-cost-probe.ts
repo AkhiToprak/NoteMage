@@ -23,13 +23,13 @@
 import { forcedStructuredCallOpenRouter } from '../src/lib/path-generator-openrouter';
 import { GLM_SONNET_MODEL, type OpenRouterUsage } from '../src/lib/openrouter';
 import { costForCall } from '../src/lib/path-generator-cost';
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef } from '../src/lib/ai-tool-types';
 
 // ── §5.2 output shape: ONE forced-tool call per session, for each of 2-3
 // concepts → { reteach, discriminate, retest }. Mirrors the Stage-B per-slot
 // quiz tool pattern (QUIZ_FOR_SLOT_TOOL in src/lib/ai-tools.ts): a single tool
 // whose input_schema enumerates a fixed-shape array, forced via tool_choice.
-const REMEDIATION_SESSION_TOOL: Anthropic.Messages.Tool = {
+const REMEDIATION_SESSION_TOOL: ToolDef = {
   name: 'create_remediation_session',
   description: [
     'Create a remediation session for 2-3 weak concepts: for EACH concept, emit a',

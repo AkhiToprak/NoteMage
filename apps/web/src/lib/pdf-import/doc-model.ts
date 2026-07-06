@@ -120,7 +120,7 @@ const codeBlockSchema = z
   .object({
     type: z.literal('codeBlock'),
     // PA-40f: nullable().optional() so models that omit `lang` don't trigger a
-    // full repair cycle on the Anthropic path — normalize.ts defaults to null.
+    // full repair cycle — normalize.ts defaults to null.
     lang: z.string().nullable().optional(),
     code: z.string(),
   })

@@ -71,7 +71,7 @@ const PRACTICE_CORPUS_CAP = 14_000;
 const MAX_FOCUS_TOPICS = 8;
 export const PRACTICE_QUIZ_PROMPT_VERSION = 'practice-quiz-2026-07-02-v2';
 
-/** Bounded question count per origin — keeps the single Haiku call cheap + fast. */
+/** Bounded question count per origin — keeps the single GLM quiz call cheap + fast. */
 export function practiceQuizCount(origin: PracticeOrigin): number {
   return origin === 'exam_sim' ? 12 : 8;
 }
@@ -120,8 +120,8 @@ export function selectFocusTopics(
 /**
  * The cacheable static instruction block — the quiz role + STRICT SHAPE RULES +
  * the payload catalog restricted to the allowed kinds. Byte-stable per kind set
- * so Anthropic prompt-caches it alongside the corpus (the dynamic focus tail is
- * left uncached). The shape rules mirror QUIZ_TOOL_V2's proven description.
+ * so GLM implicitly prefix-caches it alongside the corpus (the dynamic focus
+ * tail is left uncached). The shape rules mirror QUIZ_TOOL_V2's proven description.
  */
 export function buildPracticeQuizInstructions(kinds: QuestionKind[]): string {
   return [
@@ -484,8 +484,9 @@ export async function getOrCreatePracticeNotebook(userId: string): Promise<strin
 
 /**
  * Assemble a focused practice quiz by REUSING the path quiz primitive. Routes to
- * Haiku via `resolveModel('path-quiz')` (inside `forcedStructuredCall`), prompt-
- * caches the corpus + static rules (1h), and validates with the same
+ * the GLM quiz slot via `resolveModel('path-quiz')` (inside `forcedStructuredCall`),
+ * relies on GLM's implicit prefix cache for the corpus + static rules, and
+ * validates with the same
  * `QuizSetV2Schema`. Up to 2 validation attempts; logs one `ai.model_usage`
  * event. Throws if nothing usable is produced (the route refunds the quota).
  */
@@ -521,7 +522,9 @@ export async function assemblePracticeQuiz(opts: {
   const corpus = opts.corpus && opts.corpus.trim().length > 0 ? opts.corpus : null;
 
   const usage = {
-    provider: 'anthropic' as NormalizedUsage['provider'],
+    // Placeholder — overwritten by onUsage with the real provider (openrouter
+    // for the quiz stage). Kept as a valid provider literal for typing.
+    provider: 'openrouter' as NormalizedUsage['provider'],
     model: '',
     inputTokens: 0,
     outputTokens: 0,
@@ -556,6 +559,8 @@ export async function assemblePracticeQuiz(opts: {
         dynamicInstructions: tail,
         anthropicTool: QUIZ_FOR_SLOT_TOOL,
         userMessage: 'Generate the practice quiz now. The questions array must not be empty.',
+        // Extraction-shaped forced tool — sample cold, not at the ~1.0 default.
+        temperature: 0.3,
         onUsage,
       });
       parsed = parsePracticeQuiz(raw, opts.title, kinds);

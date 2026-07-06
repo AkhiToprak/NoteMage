@@ -1,12 +1,14 @@
-// Shared converters between the codebase's Anthropic-shaped tool definitions and
-// the OpenAI-compatible shape OpenRouter/GLM expects. The path generator and the
-// chat/Mage stream both reuse the existing Anthropic tool defs (`input_schema`),
-// so this one place translates them to `{ type:'function', function:{ ... } }`.
+// Shared converters between the codebase's tool definitions (formerly
+// Anthropic-shaped) and the OpenAI-compatible shape OpenRouter/GLM expects. The
+// path generator and the chat/Mage stream both reuse those tool defs
+// (`input_schema`), so this one place translates them to
+// `{ type:'function', function:{ ... } }`.
 
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef, ToolChoice } from './ai-tool-types';
 
-/** Translate one Anthropic tool definition to the OpenAI/OpenRouter shape. */
-export function anthropicToolToOpenAI(tool: Anthropic.Messages.Tool): Record<string, unknown> {
+/** Translate one tool definition (the codebase's `input_schema` shape) to the
+ *  OpenAI/OpenRouter shape. */
+export function anthropicToolToOpenAI(tool: ToolDef): Record<string, unknown> {
   return {
     type: 'function',
     function: {
@@ -17,18 +19,19 @@ export function anthropicToolToOpenAI(tool: Anthropic.Messages.Tool): Record<str
   };
 }
 
-/** Translate an array of Anthropic tool definitions to the OpenAI shape. */
+/** Translate an array of tool definitions to the OpenAI shape. */
 export function anthropicToolsToOpenAI(
-  tools: Anthropic.Messages.Tool[],
+  tools: ToolDef[],
 ): Record<string, unknown>[] {
   return tools.map(anthropicToolToOpenAI);
 }
 
-/** Translate an Anthropic `tool_choice` to the OpenAI/OpenRouter `tool_choice`.
- *  Anthropic: {type:'tool',name} | {type:'auto'} | {type:'none'} | {type:'any'}.
+/** Translate the internal `tool_choice` (formerly Anthropic-shaped) to the
+ *  OpenAI/OpenRouter `tool_choice`.
+ *  Internal: {type:'tool',name} | {type:'auto'} | {type:'none'} | {type:'any'}.
  *  OpenAI: 'auto' | 'none' | 'required' | {type:'function',function:{name}}. */
 export function toolChoiceToOpenAI(
-  choice: Anthropic.Messages.ToolChoice | undefined,
+  choice: ToolChoice | undefined,
 ): 'auto' | 'none' | 'required' | Record<string, unknown> | undefined {
   if (!choice) return undefined;
   switch (choice.type) {

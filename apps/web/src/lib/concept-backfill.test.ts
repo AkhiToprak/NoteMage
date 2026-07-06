@@ -10,7 +10,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   weaknessConceptsEnabled: vi.fn(),
   resolveModel: vi.fn(),
-  forcedStructuredCallAnthropic: vi.fn(),
   forcedStructuredCallOpenRouter: vi.fn(),
   forcedStructuredCallGemini: vi.fn(),
   persistSlotConcepts: vi.fn(),
@@ -28,10 +27,6 @@ vi.mock('@/lib/feature-flags', () => ({
 
 vi.mock('@/lib/model-routing', () => ({
   resolveModel: mocks.resolveModel,
-}));
-
-vi.mock('@/lib/path-generator-anthropic', () => ({
-  forcedStructuredCallAnthropic: mocks.forcedStructuredCallAnthropic,
 }));
 
 vi.mock('@/lib/path-generator-openrouter', () => ({
@@ -103,12 +98,15 @@ function emptySlot() {
   };
 }
 
+// Items are addressed by 1-based index into the slot's item list. For
+// makeSlot() the order is q1 (1), q2 (2), c1 (3) — mapped back to real itemIds
+// server-side by runConceptBackfill.
 const CLASSIFY_RESULT = {
   conceptCandidates: ['present-tense -ar stem', '-ar personal endings'],
   items: [
-    { itemId: 'q1', conceptKeys: ['present-tense -ar stem'] },
-    { itemId: 'q2', conceptKeys: ['-ar personal endings'] },
-    { itemId: 'c1', conceptKeys: ['present-tense -ar stem'] },
+    { index: 1, conceptKeys: ['present-tense -ar stem'] },
+    { index: 2, conceptKeys: ['-ar personal endings'] },
+    { index: 3, conceptKeys: ['present-tense -ar stem'] },
   ],
 };
 
@@ -120,8 +118,8 @@ const CONCEPT_ID_BY_KEY = new Map<string, string>([
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.weaknessConceptsEnabled.mockReturnValue(true);
-  mocks.resolveModel.mockReturnValue({ provider: 'anthropic', model: 'claude-haiku', token: 'haiku' });
-  mocks.forcedStructuredCallAnthropic.mockResolvedValue(CLASSIFY_RESULT);
+  mocks.resolveModel.mockReturnValue({ provider: 'openrouter', model: 'z-ai/glm-4.7', token: 'glm-flash' });
+  mocks.forcedStructuredCallOpenRouter.mockResolvedValue(CLASSIFY_RESULT);
   mocks.persistSlotConcepts.mockResolvedValue(CONCEPT_ID_BY_KEY);
   mocks.attachConceptTags.mockResolvedValue(undefined);
   mocks.recordConceptAttempt.mockResolvedValue('building');
@@ -139,7 +137,6 @@ describe('flag guard', () => {
     await runConceptBackfill(SLOT_ID);
 
     expect(mocks.checkpointSlotFindUnique).not.toHaveBeenCalled();
-    expect(mocks.forcedStructuredCallAnthropic).not.toHaveBeenCalled();
     expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
     expect(mocks.forcedStructuredCallGemini).not.toHaveBeenCalled();
     expect(mocks.persistSlotConcepts).not.toHaveBeenCalled();
@@ -159,7 +156,7 @@ describe('slot not found', () => {
       expect.stringContaining('slot not found'),
       expect.objectContaining({ slotId: SLOT_ID })
     );
-    expect(mocks.forcedStructuredCallAnthropic).not.toHaveBeenCalled();
+    expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
     errorSpy.mockRestore();
   });
 });
@@ -170,7 +167,7 @@ describe('empty slot', () => {
 
     await runConceptBackfill(SLOT_ID);
 
-    expect(mocks.forcedStructuredCallAnthropic).not.toHaveBeenCalled();
+    expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
     expect(mocks.persistSlotConcepts).not.toHaveBeenCalled();
     expect(mocks.conceptCount).not.toHaveBeenCalled();
   });
@@ -232,7 +229,7 @@ describe('fully-classified idempotency', () => {
     await runConceptBackfill(SLOT_ID);
 
     // No LLM call of any provider — the (costly) classify step is skipped.
-    expect(mocks.forcedStructuredCallAnthropic).not.toHaveBeenCalled();
+    expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
     expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
     expect(mocks.forcedStructuredCallGemini).not.toHaveBeenCalled();
     expect(mocks.persistSlotConcepts).not.toHaveBeenCalled();
@@ -268,7 +265,7 @@ describe('fresh classify path', () => {
 
     await runConceptBackfill(SLOT_ID);
 
-    expect(mocks.forcedStructuredCallAnthropic).toHaveBeenCalledTimes(1);
+    expect(mocks.forcedStructuredCallOpenRouter).toHaveBeenCalledTimes(1);
     expect(mocks.persistSlotConcepts).toHaveBeenCalledWith(
       PLAN_ID,
       SLOT_ID,
@@ -299,6 +296,38 @@ describe('fresh classify path', () => {
     // quizAnswer for each of the 2 quiz questions (flashcards excluded).
     expect(mocks.quizAnswerFindMany).toHaveBeenCalledTimes(2);
   });
+
+  it('drops (logs, does not crash) an item whose index is out of range', async () => {
+    mocks.checkpointSlotFindUnique.mockResolvedValue(makeSlot());
+    mocks.conceptCount.mockResolvedValue(0);
+    mocks.conceptTagFindMany.mockResolvedValue([]);
+    // index 1 is valid (q1); index 9 has no corresponding item and must be
+    // skipped rather than throwing or tagging the wrong item.
+    mocks.forcedStructuredCallOpenRouter.mockResolvedValue({
+      conceptCandidates: ['present-tense -ar stem', '-ar personal endings'],
+      items: [
+        { index: 1, conceptKeys: ['present-tense -ar stem'] },
+        { index: 9, conceptKeys: ['-ar personal endings'] },
+      ],
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(runConceptBackfill(SLOT_ID)).resolves.toBeUndefined();
+
+    // The valid item was tagged; the out-of-range one was not.
+    expect(mocks.attachConceptTags).toHaveBeenCalledWith(
+      'quiz_question',
+      'q1',
+      ['present-tense -ar stem'],
+      CONCEPT_ID_BY_KEY
+    );
+    expect(mocks.attachConceptTags).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('out-of-range item index'),
+      expect.objectContaining({ slotId: SLOT_ID, index: 9 })
+    );
+    errorSpy.mockRestore();
+  });
 });
 
 describe('fewer than 2 concept candidates', () => {
@@ -306,7 +335,7 @@ describe('fewer than 2 concept candidates', () => {
     mocks.checkpointSlotFindUnique.mockResolvedValue(makeSlot());
     mocks.conceptCount.mockResolvedValue(0);
     mocks.conceptTagFindMany.mockResolvedValue([]);
-    mocks.forcedStructuredCallAnthropic.mockResolvedValue({
+    mocks.forcedStructuredCallOpenRouter.mockResolvedValue({
       conceptCandidates: ['only-one'],
       items: [],
     });
@@ -328,7 +357,7 @@ describe('fewer than 2 concept candidates', () => {
     mocks.checkpointSlotFindUnique.mockResolvedValue(makeSlot());
     mocks.conceptCount.mockResolvedValue(0);
     mocks.conceptTagFindMany.mockResolvedValue([]);
-    mocks.forcedStructuredCallAnthropic.mockResolvedValue({ conceptCandidates: [], items: [] });
+    mocks.forcedStructuredCallOpenRouter.mockResolvedValue({ conceptCandidates: [], items: [] });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await runConceptBackfill(SLOT_ID);
@@ -359,7 +388,7 @@ describe('never throws', () => {
     mocks.checkpointSlotFindUnique.mockResolvedValue(makeSlot());
     mocks.conceptCount.mockResolvedValue(0);
     mocks.conceptTagFindMany.mockResolvedValue([]);
-    mocks.forcedStructuredCallAnthropic.mockRejectedValue(new Error('provider 500'));
+    mocks.forcedStructuredCallOpenRouter.mockRejectedValue(new Error('provider 500'));
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(runConceptBackfill(SLOT_ID)).resolves.toBeUndefined();
@@ -521,7 +550,6 @@ describe('provider dispatch', () => {
     await runConceptBackfill(SLOT_ID);
 
     expect(mocks.forcedStructuredCallOpenRouter).toHaveBeenCalledTimes(1);
-    expect(mocks.forcedStructuredCallAnthropic).not.toHaveBeenCalled();
     expect(mocks.forcedStructuredCallGemini).not.toHaveBeenCalled();
   });
 

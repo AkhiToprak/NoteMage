@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { docModelSchema, type DocModelBlock } from './doc-model';
 import type { GroundTruthPage } from './ground-truth';
-import { groundTruthToBlocks } from './heuristic-fallback';
+import { groundTruthToBlocks, isTableDensePage } from './heuristic-fallback';
 import type { Cell, Line } from './pdfjs-geometry';
 
 // The fallback consumes pure geometry, so fixtures are hand-built Line
@@ -168,5 +168,30 @@ describe('groundTruthToBlocks', () => {
         line(710, 12, cell('Body text content for the determinism check on this page.', 50)),
       );
     expect(groundTruthToBlocks(build())).toEqual(groundTruthToBlocks(build()));
+  });
+});
+
+const denseTable = (rows: number): DocModelBlock => ({
+  type: 'table',
+  headerRow: true,
+  rows: Array.from({ length: rows }, () => [[{ text: 'x' }]]),
+});
+const denseParagraph: DocModelBlock = { type: 'paragraph', runs: [{ text: 'hi' }] };
+
+describe('isTableDensePage', () => {
+  it('flags a page with a 4+ row table', () => {
+    expect(isTableDensePage([denseParagraph, denseTable(4)])).toBe(true);
+  });
+
+  it('does not flag a small table', () => {
+    expect(isTableDensePage([denseTable(2)])).toBe(false);
+  });
+
+  it('sums rows across multiple tables', () => {
+    expect(isTableDensePage([denseTable(2), denseTable(3)])).toBe(true);
+  });
+
+  it('does not flag a page with no tables', () => {
+    expect(isTableDensePage([denseParagraph, denseParagraph])).toBe(false);
   });
 });

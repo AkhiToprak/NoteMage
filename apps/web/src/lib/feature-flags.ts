@@ -26,7 +26,7 @@ export function mageGenerationActionsEnabled(): boolean {
  * Stage A/B path-generation tool schemas (`ai-tools.ts`). Off by default
  * (opt-in, unlike the kill-switches above): with the flag unset, the tool
  * schemas are byte-identical to pre-Phase-1A, so default path generation
- * (and the Anthropic prompt cache keyed on `PATH_TOOLS_STABLE`) is
+ * (and the GLM implicit prefix cache over the `PATH_TOOLS_STABLE` tools) is
  * unaffected. Set `WEAKNESS_TRAINING_CONCEPTS=1` to have Stage A emit
  * `conceptCandidates` per slot and Stage B emit `conceptKeys` per item.
  */

@@ -1,4 +1,4 @@
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef, ContentBlock } from './ai-tool-types';
 import type { QuestionKind } from '@notemage/shared';
 import { weaknessConceptsEnabled } from './feature-flags';
 
@@ -341,7 +341,7 @@ export interface QuizForSlotToolInput {
 
 // ── Tool definitions ──
 
-export const FLASHCARD_TOOL: Anthropic.Messages.Tool = {
+export const FLASHCARD_TOOL: ToolDef = {
   name: 'create_flashcards',
   description:
     'Create a set of study flashcards. Each flashcard has a question on the front and a concise answer on the back.',
@@ -436,10 +436,11 @@ export function quizShapeExamples(): string {
 
 // QUIZ_TOOL_V2 is the kind-aware quiz-generation tool. Each question
 // carries an explicit `kind` discriminator and a kind-specific `payload`.
-// Anthropic tool inputs don't support discriminated unions cleanly, so the
+// The tool-input schema (formerly Anthropic-shaped) doesn't support discriminated
+// unions cleanly, so the
 // schema accepts a generic `payload: object` and the server validates the
 // concrete shape with Zod (`QuizQuestionV2Schema` in `@notemage/shared`).
-export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
+export const QUIZ_TOOL_V2: ToolDef = {
   name: 'create_quiz_v2',
   description: [
     'Create a quiz where each question carries an explicit `kind` discriminator and a kind-specific `payload`.',
@@ -518,7 +519,7 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
   },
 };
 
-export const MINDMAP_TOOL: Anthropic.Messages.Tool = {
+export const MINDMAP_TOOL: ToolDef = {
   name: 'create_mindmap',
   description:
     'Create an interactive mind map defined as Markdown with heading hierarchy (# for root, ## for branches, ### for sub-branches, etc.).',
@@ -539,7 +540,7 @@ export const MINDMAP_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
-export const STUDY_PLAN_TOOL: Anthropic.Messages.Tool = {
+export const STUDY_PLAN_TOOL: ToolDef = {
   name: 'create_study_plan',
   description:
     'Create a structured study plan with phases and materials. Use this tool when the user asks you to create, generate, or make a study plan, study schedule, or revision plan from their study pack materials. Each phase has a title, description, duration, and a list of materials to study. For the Learn Path experience (Phase 5), prefer gateStrategy="checkpoint" on every phase and place a quiz_set material as the LAST material of each phase — that quiz becomes the checkpoint that gates the next phase.',
@@ -620,7 +621,7 @@ export const STUDY_PLAN_TOOL: Anthropic.Messages.Tool = {
 
 // Slim chat variant — only persisted fields; avoids forcing the model to
 // hallucinate referenceIds (no inventory is injected in chat turns).
-export const CHAT_STUDY_PLAN_TOOL: Anthropic.Messages.Tool = {
+export const CHAT_STUDY_PLAN_TOOL: ToolDef = {
   name: 'create_study_plan',
   description: 'Create a structured study plan with phases.',
   input_schema: {
@@ -653,7 +654,7 @@ export const CHAT_STUDY_PLAN_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
-export const PRESENTATION_TOOL: Anthropic.Messages.Tool = {
+export const PRESENTATION_TOOL: ToolDef = {
   name: 'create_presentation',
   description:
     'Create a visually rich presentation / PowerPoint deck with well-structured slides, varied types, fitting colors, and descriptions of graphics/diagrams where appropriate.',
@@ -742,7 +743,7 @@ export const PRESENTATION_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
-export const YOUTUBE_VIDEOS_TOOL: Anthropic.Messages.Tool = {
+export const YOUTUBE_VIDEOS_TOOL: ToolDef = {
   name: 'recommend_videos',
   description:
     'Search for and recommend relevant YouTube videos for a topic.',
@@ -773,7 +774,7 @@ export const YOUTUBE_VIDEOS_TOOL: Anthropic.Messages.Tool = {
 // (a changed tool def busts the 1h corpus cache). `actions` (Phase 6) and
 // `revealGate` (Phase 8) are declared now so future phases consume them without
 // editing this schema.
-export const ANNOTATE_ANSWER_TOOL: Anthropic.Messages.Tool = {
+export const ANNOTATE_ANSWER_TOOL: ToolDef = {
   name: 'annotate_answer',
   description: [
     'Call this EXACTLY ONCE, AFTER you have finished writing your prose answer, to annotate how that answer used the provided sources.',
@@ -875,7 +876,7 @@ const CONCEPT_KEYS_PROPERTY = {
   maxItems: 2,
 };
 
-const PATH_STRUCTURE_TOOL_BASE: Anthropic.Messages.Tool = {
+const PATH_STRUCTURE_TOOL_BASE: ToolDef = {
   name: 'create_path_structure',
   description: [
     'Design the section / slot skeleton for a guided learning path.',
@@ -1025,7 +1026,7 @@ const PATH_STRUCTURE_TOOL_BASE: Anthropic.Messages.Tool = {
  * `weaknessConceptsEnabled()` gate and the same injection site — 4.2b never
  * needed its own flag or its own schema-composition path.
  */
-function withConceptCandidates(inputSchema: Anthropic.Messages.Tool['input_schema']): Anthropic.Messages.Tool['input_schema'] {
+function withConceptCandidates(inputSchema: ToolDef['input_schema']): ToolDef['input_schema'] {
   const base = inputSchema as unknown as {
     properties: {
       phases: {
@@ -1071,16 +1072,17 @@ function withConceptCandidates(inputSchema: Anthropic.Messages.Tool['input_schem
         },
       },
     },
-  } as unknown as Anthropic.Messages.Tool['input_schema'];
+  } as unknown as ToolDef['input_schema'];
 }
 
 /**
  * PATH_STRUCTURE_TOOL — byte-identical to PATH_STRUCTURE_TOOL_BASE when
  * `weaknessConceptsEnabled()` is false (default), so default path generation
- * and the Anthropic prompt-cache-stable `PATH_TOOLS_STABLE` array
- * (path-generator-routing.ts) are provably unaffected.
+ * and the byte-stable `PATH_TOOLS_STABLE` array (path-generator-routing.ts —
+ * originally kept stable for the retired Anthropic prompt cache) are provably
+ * unaffected.
  */
-export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = weaknessConceptsEnabled()
+export const PATH_STRUCTURE_TOOL: ToolDef = weaknessConceptsEnabled()
   ? { ...PATH_STRUCTURE_TOOL_BASE, input_schema: withConceptCandidates(PATH_STRUCTURE_TOOL_BASE.input_schema) }
   : PATH_STRUCTURE_TOOL_BASE;
 
@@ -1119,7 +1121,7 @@ const SOURCE_ANCHOR_PROPERTY = {
   required: ['quote'],
 };
 
-export const THEORY_SECTION_TOOL: Anthropic.Messages.Tool = {
+export const THEORY_SECTION_TOOL: ToolDef = {
   name: 'create_theory_section',
   description: [
     'Generate a compact theory section for one checkpoint slot.',
@@ -1271,7 +1273,7 @@ export const THEORY_SECTION_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
-const FLASHCARDS_FOR_SLOT_TOOL_BASE: Anthropic.Messages.Tool = {
+const FLASHCARDS_FOR_SLOT_TOOL_BASE: ToolDef = {
   name: 'create_flashcards_for_slot',
   description: [
     'Create only as many flashcards as the slot\'s material genuinely supports — usually 3–6, sometimes as few as 2. NEVER pad to reach a number and NEVER repeat the same idea across cards.',
@@ -1344,7 +1346,7 @@ const FLASHCARDS_FOR_SLOT_TOOL_BASE: Anthropic.Messages.Tool = {
  * optional `conceptKeys` property onto each flashcard item via the same
  * `withItemProperty` composition used for `figure`/`source` below.
  */
-export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = weaknessConceptsEnabled()
+export const FLASHCARDS_FOR_SLOT_TOOL: ToolDef = weaknessConceptsEnabled()
   ? {
       ...FLASHCARDS_FOR_SLOT_TOOL_BASE,
       input_schema: withItemProperty(
@@ -1365,14 +1367,15 @@ export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = weaknessConcept
  * never drift apart — a future edit to either base tool's schema (including the
  * weaknessConceptsEnabled() `conceptKeys` injection above) propagates here
  * automatically. Deliberately excluded from `PATH_TOOLS_STABLE`
- * (path-generator-routing.ts): that array is the Anthropic prompt-cache tools
- * block and must stay byte-identical; this tool is only ever sent standalone
- * (`anthropicTools: [LEARNING_SLOT_BATCH_TOOL]`) on the GLM/OpenRouter branch,
- * which never sends the stable array anyway. See path-learning-batch.ts for the
+ * (path-generator-routing.ts): that array is the byte-stable tools block
+ * (originally kept stable for the retired Anthropic prompt cache); this tool is
+ * only ever sent standalone (`anthropicTools: [LEARNING_SLOT_BATCH_TOOL]`) on
+ * the GLM/OpenRouter branch, which never sends the stable array anyway. See
+ * path-learning-batch.ts for the
  * split/validate helpers and plans/glm-path-gen-phase8-batching-eval.md for the
  * cost analysis behind this experiment.
  */
-export const LEARNING_SLOT_BATCH_TOOL: Anthropic.Messages.Tool = {
+export const LEARNING_SLOT_BATCH_TOOL: ToolDef = {
   name: 'learning_slot_content',
   description: [
     'Generate BOTH the theory section AND the flashcards for ONE learning slot in a single call.',
@@ -1440,11 +1443,11 @@ const FLASHCARD_FIGURE_PROPERTY = {
  * while keeping the base tool lean. Chainable — inject `figure` then `source`.
  */
 function withItemProperty(
-  inputSchema: Anthropic.Messages.Tool['input_schema'],
+  inputSchema: ToolDef['input_schema'],
   arrayKey: string,
   propName: string,
   property: object,
-): Anthropic.Messages.Tool['input_schema'] {
+): ToolDef['input_schema'] {
   const base = inputSchema as unknown as {
     properties: Record<
       string,
@@ -1467,19 +1470,19 @@ function withItemProperty(
         },
       },
     },
-  } as unknown as Anthropic.Messages.Tool['input_schema'];
+  } as unknown as ToolDef['input_schema'];
 }
 
 /** Inject the optional `figure` exhibit property (figure-reuse P4/P5). */
 function withFigureProperty(
-  inputSchema: Anthropic.Messages.Tool['input_schema'],
+  inputSchema: ToolDef['input_schema'],
   arrayKey: string,
   figureProperty: object,
-): Anthropic.Messages.Tool['input_schema'] {
+): ToolDef['input_schema'] {
   return withItemProperty(inputSchema, arrayKey, 'figure', figureProperty);
 }
 
-export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
+export const QUIZ_FOR_SLOT_TOOL: ToolDef = {
   name: 'create_quiz_for_slot',
   description: [
     'Create a 5–8 question quiz that tests one checkpoint slot (12–20 for the final exam).',
@@ -1524,20 +1527,20 @@ export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
 // QUIZ_TOOL_V2 ONLY when the turn's attached context carries captioned images
 // (it builds + injects the catalog). The base tools stay figure-less so a turn
 // without imported images never advertises figures.
-export const FLASHCARD_TOOL_WITH_FIGURES: Anthropic.Messages.Tool = {
+export const FLASHCARD_TOOL_WITH_FIGURES: ToolDef = {
   ...FLASHCARD_TOOL,
   input_schema: withFigureProperty(FLASHCARD_TOOL.input_schema, 'flashcards', FLASHCARD_FIGURE_PROPERTY),
 };
 
-export const QUIZ_TOOL_V2_WITH_FIGURES: Anthropic.Messages.Tool = {
+export const QUIZ_TOOL_V2_WITH_FIGURES: ToolDef = {
   ...QUIZ_TOOL_V2,
   input_schema: withFigureProperty(QUIZ_TOOL_V2.input_schema, 'questions', QUIZ_FIGURE_PROPERTY),
 };
 
 // ── Subject classifier (path generation pre-step) ──────────────────────
 //
-// One-shot Haiku call that routes the path generator. Returns up to three
-// subject buckets ranked by weight. The server normalizes the weights,
+// One-shot classifier call (Gemini Flash-Lite) that routes the path generator.
+// Returns up to three subject buckets ranked by weight. The server normalizes the weights,
 // drops anything under the floor, and falls back to `general` if the AI
 // produces nothing usable. Subjects are a closed enum mirrored from
 // `src/lib/path-subjects.ts` — drift between the two is a bug.
@@ -1556,7 +1559,7 @@ export interface ClassifySubjectsToolInput {
   }[];
 }
 
-export const CLASSIFY_SUBJECTS_TOOL: Anthropic.Messages.Tool = {
+export const CLASSIFY_SUBJECTS_TOOL: ToolDef = {
   name: 'classify_path_subjects',
   description: [
     'Classify the subject area(s) of a learning path so the generator can choose appropriate question types and pedagogy.',
@@ -1629,7 +1632,7 @@ export interface ClassifyChatIntentToolInput {
     | 'videos';
 }
 
-export const CLASSIFY_CHAT_INTENT_TOOL: Anthropic.Messages.Tool = {
+export const CLASSIFY_CHAT_INTENT_TOOL: ToolDef = {
   name: 'classify_chat_intent',
   description: [
     'Decide what the user wants in THIS chat turn so the assistant can load only the relevant tool.',
@@ -1659,7 +1662,7 @@ export const CLASSIFY_CHAT_INTENT_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
-// ── Helper to extract tool uses from Anthropic response ──
+// ── Helper to extract tool uses from a model response ──
 
 /** Input the model fills via `annotate_answer` (Mage Revolution Phase 4). */
 export interface AnnotateAnswerToolInput {
@@ -1673,7 +1676,7 @@ export interface AnnotateAnswerToolInput {
   materialCoverage?: 'covered' | 'partial' | 'not_covered';
 }
 
-export function extractToolUses(content: Anthropic.Messages.ContentBlock[]) {
+export function extractToolUses(content: ContentBlock[]) {
   let text = '';
   let flashcard: { id: string; input: FlashcardToolInput } | null = null;
   let quizV2: { id: string; input: QuizToolV2Input } | null = null;

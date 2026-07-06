@@ -1,6 +1,6 @@
 // Plain-text streaming bridge to Gemini for free-tier chat. No tools — only
 // the plain-chat (intent === 'chat') turn routes here; generation always uses
-// Anthropic. Mirrors the call shape of `forcedStructuredCallGemini`
+// GLM (via OpenRouter). Mirrors the call shape of `forcedStructuredCallGemini`
 // (path-generator-gemini.ts) but streams text instead of parsing JSON.
 
 import type { Content, GenerateContentConfig } from '@google/genai';
@@ -42,9 +42,9 @@ function joinNonEmpty(parts: (string | undefined | null)[]): string {
 
 /**
  * Stream a plain-text chat completion from Gemini. Throws on a hard error
- * (missing key, request failure, empty output) so the caller can fall back to
- * Anthropic; returns a partial result (no throw) when the caller's signal is
- * aborted mid-stream.
+ * (missing key, request failure, empty output) so the caller can surface the
+ * failure (there is no Claude fallback anymore); returns a partial result (no
+ * throw) when the caller's signal is aborted mid-stream.
  */
 export async function streamGeminiChatText(
   opts: StreamGeminiChatTextOpts

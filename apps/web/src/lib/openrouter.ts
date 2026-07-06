@@ -9,7 +9,7 @@
  *     quiz/flashcards, deep Mage)
  * Gemini generation stays Google-direct; the independent quiz verifier uses
  * Gemini 2.5 Flash-Lite through OpenRouter so all verification spend appears
- * on the same billed-cost surface. Anthropic remains available through routing.
+ * on the same billed-cost surface. (Claude/Anthropic is fully removed.)
  *
  * Caching: GLM uses automatic, prefix-based (implicit) caching — no
  * `cache_control` markers. Keep the prompt PREFIX stable (system + static
@@ -254,8 +254,8 @@ function normalizeUsage(usage: OpenRouterUsageRaw | undefined): OpenRouterUsage 
 /**
  * Make a single (non-streaming) chat completion through OpenRouter and return
  * the text/tool calls plus normalized usage incl. the real USD cost. Throws on
- * a missing key or a non-2xx response (caller decides whether to fall back to
- * Anthropic).
+ * a missing key or a non-2xx response (the caller surfaces the failure — there
+ * is no Claude fallback anymore).
  */
 export async function callOpenRouter(opts: CallOpenRouterOptions): Promise<OpenRouterResult> {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -348,7 +348,7 @@ const EMPTY_USAGE: OpenRouterUsage = {
 /**
  * Low-level streaming call: yields text / reasoning / tool-call deltas and a
  * final usage event as OpenRouter's SSE arrives. Throws on a missing key or a
- * non-2xx response (the caller decides whether to fall back to Anthropic), and
+ * non-2xx response (the caller surfaces the failure — no Claude fallback), and
  * honors `opts.signal` for abort. NOTE: GLM tool-call arguments stream in
  * fragments across many `tool_call_delta` events sharing the same `index` —
  * concatenate by index (the `streamOpenRouterText` collector below does this).

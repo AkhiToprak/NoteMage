@@ -28,7 +28,7 @@
  * feature-flag/Pro gating, rate limiting, and quota reserve/refund.
  */
 
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef } from './ai-tool-types';
 import { Prisma } from '@prisma/client';
 import { db } from './db';
 import { tiptapJsonToPlainText } from './contentConverter';
@@ -418,7 +418,7 @@ export interface WeaknessSessionToolInput {
  * restricted to `RETEST_KINDS`, so the retest payload validates through the
  * unchanged `QuizSetV2Schema` + `buildLegacyColumns` pipeline.
  */
-export const WEAKNESS_SESSION_TOOL: Anthropic.Messages.Tool = {
+export const WEAKNESS_SESSION_TOOL: ToolDef = {
   name: 'create_weakness_session',
   description: [
     'Build a short remediation session for 1-3 concepts a learner is weak or rusty on.',
@@ -648,7 +648,9 @@ export async function generateWeaknessSession(opts: {
   });
 
   const usage = {
-    provider: 'anthropic' as NormalizedUsage['provider'],
+    // Placeholder — overwritten by onUsage with the real provider (openrouter
+    // for the quiz stage). Kept as a valid provider literal for typing.
+    provider: 'openrouter' as NormalizedUsage['provider'],
     model: '',
     inputTokens: 0,
     outputTokens: 0,
@@ -687,6 +689,8 @@ export async function generateWeaknessSession(opts: {
         anthropicTool: WEAKNESS_SESSION_TOOL,
         anthropicTools: [WEAKNESS_SESSION_TOOL],
         userMessage: 'Generate the remediation session now. The concepts array must not be empty.',
+        // Extraction-shaped forced tool — sample cold, not at the ~1.0 default.
+        temperature: 0.3,
         onUsage,
       });
       parsed = parseWeaknessSession(raw, targetIds, labelById);

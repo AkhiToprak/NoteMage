@@ -40,9 +40,10 @@ export interface DescribePageInput {
   onUsage?: PdfUsageSink;
 }
 
-/** Token usage from one PDF-structure model round trip. */
+/** Token usage from one PDF-structure model round trip. Gemini is the only
+ *  structure engine (the Anthropic vision engine was retired). */
 export interface PdfPageUsage {
-  provider: 'anthropic' | 'gemini';
+  provider: 'gemini';
   model: string;
   inputTokens: number;
   outputTokens: number;

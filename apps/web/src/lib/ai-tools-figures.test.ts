@@ -16,10 +16,10 @@ import {
   CHAT_STUDY_PLAN_TOOL,
   STUDY_PLAN_TOOL,
 } from './ai-tools';
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef } from './ai-tool-types';
 
 // Drill into `input_schema.properties[arrayKey].items.properties` for a tool.
-function itemProps(tool: Anthropic.Messages.Tool, arrayKey: string): Record<string, unknown> {
+function itemProps(tool: ToolDef, arrayKey: string): Record<string, unknown> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const schema = tool.input_schema as any;
   return schema.properties[arrayKey].items.properties as Record<string, unknown>;
@@ -64,7 +64,7 @@ describe('figure-enabled tool variants', () => {
 describe('CHAT_STUDY_PLAN_TOOL slim variant', () => {
    
   const phaseProps = (tool: typeof CHAT_STUDY_PLAN_TOOL) => {
-    const schema = tool.input_schema as {
+    const schema = tool.input_schema as unknown as {
       properties: { phases: { items: { properties: Record<string, unknown> } } };
     };
     return schema.properties.phases.items.properties;
@@ -91,7 +91,7 @@ describe('CHAT_STUDY_PLAN_TOOL slim variant', () => {
 // concept fields. The ON assertions re-import the module with the env var
 // set via `vi.resetModules()`, since the gate is evaluated at module load.
 describe('weakness training concept-tagging tool schema (WEAKNESS_TRAINING_CONCEPTS)', () => {
-  const slotItemProps = (tool: Anthropic.Messages.Tool) => {
+  const slotItemProps = (tool: ToolDef) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const schema = tool.input_schema as any;
     return schema.properties.phases.items.properties.slots.items.properties as Record<

@@ -40,7 +40,8 @@ function baseConfig(
 /**
  * One-shot (non-streaming) plain-text completion from Gemini. Throws on a hard
  * error (missing key, request failure), empty output, or degenerate output —
- * the caller catches and falls back to Anthropic.
+ * the caller catches and handles it (no Claude fallback; e.g. chat-title just
+ * returns null).
  */
 export async function generateGeminiText(opts: {
   system: string;

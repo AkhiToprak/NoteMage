@@ -11,7 +11,7 @@
  * Touches NO production routing. Exits 1 if a critical assertion fails.
  */
 
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef, TextBlockParam } from '../src/lib/ai-tool-types';
 import { streamChatGLM } from '../src/lib/chat-stream-openrouter';
 import { GLM_HAIKU_MODEL } from '../src/lib/openrouter';
 import {
@@ -26,7 +26,7 @@ import {
 } from '../src/lib/ai-tools';
 
 // Same array chat-stream.ts sends on every turn.
-const CHAT_TOOLS: Anthropic.Messages.Tool[] = [
+const CHAT_TOOLS: ToolDef[] = [
   FLASHCARD_TOOL_WITH_FIGURES,
   QUIZ_TOOL_V2_WITH_FIGURES,
   MINDMAP_TOOL,
@@ -36,7 +36,7 @@ const CHAT_TOOLS: Anthropic.Messages.Tool[] = [
   ANNOTATE_ANSWER_TOOL,
 ];
 
-const sys = (text: string): Anthropic.Messages.TextBlockParam[] => [{ type: 'text', text }];
+const sys = (text: string): TextBlockParam[] => [{ type: 'text', text }];
 let failures = 0;
 
 // ── Test A — Mage answer shape: tool_choice 'auto' → prose + annotate_answer ─

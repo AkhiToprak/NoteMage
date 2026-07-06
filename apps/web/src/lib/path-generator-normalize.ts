@@ -1,7 +1,7 @@
 // Phase 10.7 — defensive normalization for Stage B AI tool outputs.
 //
-// Anthropic tool `input_schema` declares the SHAPE the model should return
-// but doesn't bind it tightly enough for nested payloads — `QUIZ_TOOL_V2`
+// The tool `input_schema` (formerly Anthropic-shaped) declares the SHAPE the
+// model should return but doesn't bind it tightly enough for nested payloads — `QUIZ_TOOL_V2`
 // uses `payload: { type: 'object' }` and `THEORY_SECTION_TOOL` accepts a
 // `keyPoints` array that the model has been observed to return as a
 // stringified JSON / object-keyed-by-index. These helpers coerce the
@@ -239,7 +239,7 @@ export interface NormalizedFlashcardsInput {
 }
 
 // A flashcard side may arrive as a plain string or wrapped in an object
-// (`{ text }` / `{ value }` / `{ content }` / `{ label }`) — Haiku
+// (`{ text }` / `{ value }` / `{ content }` / `{ label }`) — the model
 // intermittently nests the question/answer text under the strict tool
 // schema, which then drops the whole card and surfaces as a spurious
 // "empty flashcards" failure. Pull a usable string out of either shape
@@ -669,8 +669,9 @@ export function normalizeQuizQuestions(raw: unknown): NormalizedQuizQuestion[] {
   // `toUnknownArray` (not a bare Array.isArray) so a JSON-stringified questions
   // array — GLM-5.2 returns the whole `questions` field as a `"[...]"` string
   // under forced tools — is parsed back into an array instead of dropped. A
-  // dropped array failed Zod (`too_small`), which forced a retry storm and a
-  // Sonnet fallback per checkpoint. Mirrors normalizePathStructure's phases/slots.
+  // dropped array failed Zod (`too_small`), which forced a retry storm and (on
+  // the since-removed Claude path) a Sonnet fallback per checkpoint. Mirrors
+  // normalizePathStructure's phases/slots.
   const out: NormalizedQuizQuestion[] = [];
   for (const q of toUnknownArray(raw)) {
     if (!isPlainObject(q)) continue;

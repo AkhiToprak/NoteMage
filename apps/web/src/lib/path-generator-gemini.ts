@@ -2,10 +2,10 @@
 //
 // Same retry semantics (2 attempts, exponential backoff 1s/2s, onUsage
 // invoked per attempt), but uses Gemini's JSON mode (`responseMimeType:
-// 'application/json'` + optional `responseSchema`) instead of Anthropic's
+// 'application/json'` + optional `responseSchema`) instead of the GLM/OpenRouter
 // forced tool_choice. The returned value is the parsed JSON cast to `T`;
 // the caller (`path-generator.ts`) feeds it through the same Zod
-// validators used for the Anthropic side, so the two paths are
+// validators used for the GLM/OpenRouter side, so the two paths are
 // apples-to-apples downstream.
 //
 // Path generation (the basic tier runs on Gemini, so this is where the
@@ -211,6 +211,10 @@ export async function forcedStructuredCallGemini<T>(opts: {
   maxAttempts?: number;
   /** Override the default Gemini model id. */
   model?: string;
+  /** Sampling temperature. Undefined ⇒ Gemini default. Path stages pass the
+   *  same low per-stage value they pass the GLM path so a Gemini env-pin
+   *  produces equally stable structured output. */
+  temperature?: number;
   /** Invoked with the token usage of every attempt, retries included. */
   onUsage?: (usage: GeminiUsage) => void;
 }): Promise<T> {
@@ -222,6 +226,7 @@ export async function forcedStructuredCallGemini<T>(opts: {
     userMessage = 'Generate now.',
     maxAttempts = 2,
     model = GEMINI_PATH_MODEL,
+    temperature,
     onUsage,
   } = opts;
 
@@ -252,6 +257,7 @@ export async function forcedStructuredCallGemini<T>(opts: {
         // already enforced by the prompt + Zod post-validation, so the
         // extra reasoning adds little value — disable it.
         thinkingConfig: { thinkingBudget: 0 },
+        ...(temperature !== undefined ? { temperature } : {}),
         ...(responseSchema ? { responseSchema: responseSchema as Schema } : {}),
       };
 

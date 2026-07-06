@@ -1,13 +1,13 @@
 // Gemini-shaped response schemas for the 4 path-generation tools.
 //
-// The Anthropic side authors each tool's `input_schema` in `ai-tools.ts`
-// — that file is the single source of truth. We derive the Gemini
-// equivalents here by running each Anthropic schema through
+// `ai-tools.ts` authors each tool's `input_schema` (the codebase's shape,
+// formerly Anthropic-shaped) — that file is the single source of truth. We
+// derive the Gemini equivalents here by running each schema through
 // `toGeminiSchema`, so the two providers never drift.
 //
 // Gemini's structured-output schema is an OpenAPI 3.0 subset: types are
 // UPPERCASE strings ('STRING', 'OBJECT', 'ARRAY', …), `additionalProperties`
-// is not supported, and Anthropic-only keys like `cache_control` must be
+// is not supported, and leftover keys like `cache_control` must be
 // stripped. The Zod validators in `@notemage/shared` still run after the
 // call and enforce the strict shapes (especially the quiz `payload`
 // discriminated union, which is intentionally left loose here so we
@@ -32,10 +32,10 @@ const TYPE_MAP: Record<string, string> = {
 const DROPPED_KEYS = new Set(['cache_control', 'additionalProperties', '$schema']);
 
 /**
- * Convert an Anthropic-shaped JSON Schema (`input_schema`) into a Gemini
- * `responseSchema`. Recursive — handles nested `properties`, `items`, and
- * enum arrays. Pass-through for `description`, `enum`, `required`,
- * `minItems`, `maxItems`. Drops Anthropic-only and unsupported keys.
+ * Convert the codebase's JSON Schema (`input_schema`, formerly Anthropic-shaped)
+ * into a Gemini `responseSchema`. Recursive — handles nested `properties`,
+ * `items`, and enum arrays. Pass-through for `description`, `enum`, `required`,
+ * `minItems`, `maxItems`. Drops leftover and unsupported keys.
  */
 export function toGeminiSchema(schema: unknown): object {
   return convert(schema) as object;

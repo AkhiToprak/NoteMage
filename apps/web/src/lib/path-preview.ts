@@ -3,7 +3,8 @@
 // A capped corpus → `{ structure, slot-1 lesson, exactly 2 questions }` as PLAIN
 // JSON, with NO database writes (the plan is not persisted until claim, P4). The
 // preview is the make-or-break first impression but only ~3 small calls, so it
-// routes through the `path-preview` feature (Sonnet by default, D4) and folds
+// routes through the `path-preview` feature (GLM-5.2, the former Sonnet slot, by
+// default, D4) and folds
 // every artifact through validate-and-repair (one retry; the caller falls back
 // to the static sample on a second miss — D6/D11).
 //
@@ -12,7 +13,7 @@
 // adopt the same validate/repair loop later (out of scope for v1).
 
 import { z } from 'zod';
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef } from './ai-tool-types';
 import { TheorySectionSchema, type TheorySection } from '@notemage/shared';
 import {
   buildTheoryPrompt,
@@ -168,11 +169,12 @@ const PreviewQuestionsSchema = z.object({
   questions: z.array(PreviewQuestionSchema).length(2),
 });
 
-// Anthropic tool for the 2-question preview. Lives here (not ai-tools.ts) because
+// Forced tool for the 2-question preview (the codebase's tool shape, formerly
+// Anthropic-shaped). Lives here (not ai-tools.ts) because
 // it is onboarding-only and its shape is the sample-run shape, not QuizSetV2.
 // `tool_choice` forces it, so the dispatcher must send it as its OWN tools array
 // (it is NOT one of the four stable path tools) — see `anthropicTools` below.
-const PREVIEW_QUESTIONS_TOOL: Anthropic.Messages.Tool = {
+const PREVIEW_QUESTIONS_TOOL: ToolDef = {
   name: 'create_preview_questions',
   description: [
     'Create EXACTLY two warm-up questions on the lesson the learner just read.',
@@ -446,8 +448,9 @@ function defaultSourceLabel(meta: PreviewMeta): string {
 // ── Orchestrator ─────────────────────────────────────────────────────────────
 
 /**
- * Generate the anonymous onboarding preview: structure (Sonnet, bounded to a
- * short section) → slot-1 lesson → exactly 2 questions, all PLAIN JSON, NO DB
+ * Generate the anonymous onboarding preview: structure (GLM-5.2, the former
+ * Sonnet slot, bounded to a short section) → slot-1 lesson → exactly 2 questions,
+ * all PLAIN JSON, NO DB
  * writes. Throws `PreviewGenerationError` on any unrecoverable miss so the
  * caller falls back to the sample flow (D11).
  */

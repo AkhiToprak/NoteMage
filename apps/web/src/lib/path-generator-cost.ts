@@ -3,13 +3,12 @@
 // usage map.
 //
 // The UsageMeter in `path-generator.ts` accumulates tokens BY MODEL
-// (not just by provider) because Sonnet and Haiku are both 'anthropic'
-// but priced very differently — collapsing them to a single
-// 'anthropic' bucket would hide the Sonnet upgrade on ultra quizzes.
+// (not just by provider) because the basic vs ultra GLM slots (GLM-flash and
+// GLM-5.2) share the 'openrouter' provider but are priced very differently —
+// collapsing them to one bucket would hide the ultra upgrade on ultra quizzes.
 //
 // Prices are USD per 1,000,000 tokens. Validate against published rates
-// at deploy time — Anthropic and Google both rotate pricing
-// occasionally.
+// at deploy time — OpenRouter and Google both rotate pricing occasionally.
 
 export interface ModelUsage {
   model: string;
@@ -19,8 +18,8 @@ export interface ModelUsage {
   cacheReadTokens: number;
   cacheWriteTokens: number;
   /** Accumulated EXACT USD that OpenRouter billed inline for these calls. 0 for
-   *  Anthropic/Gemini (their cost is derived from token rates). When > 0 the
-   *  meter reports this instead of re-deriving from the approximate rate table. */
+   *  the Gemini path (its cost is derived from token rates). When > 0 the meter
+   *  reports this instead of re-deriving from the approximate rate table. */
   costUsdExact: number;
 }
 
@@ -44,10 +43,9 @@ interface RateCard {
  * be backfilled).
  */
 export const COSTS: Record<string, RateCard> = {
-  // cacheWrite is the 1h-TTL rate (2×): Haiku $2/M, Sonnet $6/M.
-  // Stage A uses ephemeral (5-min, 1.25×) writes which are slightly
-  // overcounted here — the difference is small and the 1h rate is the
-  // dominant cost since Stage B fires ~50 calls that actually read the cache.
+  // DORMANT rate rows — no Claude model is called anymore (path gen + Mage +
+  // chat run on GLM). Kept as reference data only; nothing looks these up.
+  // cacheWrite was the 1h-TTL rate (2×): Haiku $2/M, Sonnet $6/M.
   'claude-haiku-4-5-20251001': { input: 1.0, output: 5.0, cacheRead: 0.1, cacheWrite: 2.0 },
   'claude-sonnet-4-6': { input: 3.0, output: 15.0, cacheRead: 0.3, cacheWrite: 6.0 },
   // Gemini 2.5 Flash: implicit caching gives a 75% discount on cache hits
@@ -70,8 +68,9 @@ export const COSTS: Record<string, RateCard> = {
 
 /**
  * Approximate per-1M rates for GLM-via-OpenRouter models, matched by slug PREFIX
- * so an env slug bump (glm-4.7 → 4.8) keeps pricing. GLM-4.x ≈ the Haiku tier
- * ($0.40/$1.75), GLM-5.x ≈ the Sonnet tier ($0.95/$3); cacheRead ≈ 25% of input
+ * so an env slug bump (glm-4.7 → 4.8) keeps pricing. GLM-4.x ≈ the former Haiku
+ * tier ($0.40/$1.75), GLM-5.x ≈ the former Sonnet tier ($0.95/$3); cacheRead ≈
+ * 25% of input
  * (OpenRouter implicit caching is ~75% cheaper). The EXACT cost is available
  * inline from OpenRouter (usage.cost) and is preferred via the logAiUsage
  * `costUsd` override — this is the fallback when that isn't threaded.

@@ -2,12 +2,10 @@
 // (~2.5–3k tokens) + heavy tool-usage prose on EVERY turn, which forced a
 // capable model and re-billed that overhead each message. Instead we classify
 // the turn's intent up front: a sync keyword heuristic handles the dominant
-// plain-chat case (zero LLM cost/latency), and a small forced-tool Haiku call
-// disambiguates the rest. The chat call then loads ONLY the matching tool (or
-// none for plain chat). Pattern mirrors `path-classifier.ts`.
+// plain-chat case (zero LLM cost/latency), and a small forced-tool GLM-4.7-flash
+// call disambiguates the rest. The chat call then loads ONLY the matching tool
+// (or none for plain chat). Pattern mirrors `path-classifier.ts`.
 
-import type Anthropic from '@anthropic-ai/sdk';
-import { anthropic, AI_CLASSIFIER_MODEL, MAX_OUTPUT_TOKENS } from './anthropic';
 import { CLASSIFY_CHAT_INTENT_TOOL, type ClassifyChatIntentToolInput } from './ai-tools';
 import { logAiUsage } from './ai-usage';
 import { resolveModel } from './model-routing';
@@ -99,16 +97,6 @@ const SYSTEM_PROMPT = [
   'When unsure, choose "chat".',
 ].join('\n');
 
-function findToolUse(
-  content: Anthropic.Messages.ContentBlock[],
-  name: string
-): Extract<Anthropic.Messages.ContentBlock, { type: 'tool_use' }> | null {
-  for (const block of content) {
-    if (block.type === 'tool_use' && block.name === name) return block;
-  }
-  return null;
-}
-
 export interface ClassifyChatIntentOpts {
   userMessage: string;
   /** Optional recent-history tail, for follow-ups like "make 10 more". */
@@ -116,9 +104,9 @@ export interface ClassifyChatIntentOpts {
 }
 
 /**
- * LLM fallback for ambiguous turns. Cheap (Haiku, forced single-enum tool,
- * tiny output). Degrades to plain `chat` on any error so it never blocks a
- * turn.
+ * LLM fallback for ambiguous turns. Cheap (GLM-4.7-flash, forced single-enum
+ * tool, tiny output). Degrades to plain `chat` on any error so it never blocks
+ * a turn.
  */
 export async function classifyChatIntent(
   opts: ClassifyChatIntentOpts
@@ -130,68 +118,45 @@ export async function classifyChatIntent(
     }
     lines.push('', 'Classify this turn now using the tool.');
 
-    // GLM_COMPOSITION flips this Haiku classifier to GLM-4.7 (forced tool —
-    // 100% reliable on GLM, unlike json_schema). Any failure falls through to
-    // the outer catch → plain 'chat', same degradation as the Anthropic path.
+    // GLM-4.7-flash forced tool (100% reliable on GLM, unlike json_schema). Any
+    // failure falls through to the outer catch → plain 'chat'. A non-openrouter
+    // pin has no intent path here, so it degrades to 'chat' the same way.
     const resolved = resolveModel('chat-intent');
-    if (resolved.provider === 'openrouter') {
-      const r = await callOpenRouter({
-        model: resolved.model,
-        system: SYSTEM_PROMPT,
-        user: lines.join('\n'),
-        tools: [anthropicToolToOpenAI(CLASSIFY_CHAT_INTENT_TOOL)],
-        toolChoice: { type: 'function', function: { name: CLASSIFY_CHAT_INTENT_TOOL.name } },
-        maxTokens: 256,
-        disableReasoning: true,
-      });
-      logAiUsage({
-        userId: null,
-        feature: 'chat-intent',
-        provider: 'openrouter',
-        model: resolved.model,
-        inputTokens: r.usage.inputTokens,
-        outputTokens: r.usage.outputTokens,
-        cacheReadTokens: r.usage.cachedTokens,
-        costUsd: r.usage.costUsd,
-      });
-      const call =
-        r.toolCalls.find((c) => c.name === CLASSIFY_CHAT_INTENT_TOOL.name) ?? r.toolCalls[0];
-      let glmIntent: ChatIntent | undefined;
-      if (call) {
-        try {
-          glmIntent = (JSON.parse(call.arguments) as ClassifyChatIntentToolInput).intent;
-        } catch {
-          glmIntent = undefined;
-        }
-      }
-      if (glmIntent && VALID_INTENTS.has(glmIntent)) return { intent: glmIntent, via: 'llm' };
+    if (resolved.provider !== 'openrouter') {
       return { intent: 'chat', via: 'fallback' };
     }
-
-    const response = await anthropic.messages.create({
-      model: AI_CLASSIFIER_MODEL,
-      max_tokens: Math.min(MAX_OUTPUT_TOKENS, 256),
+    const r = await callOpenRouter({
+      model: resolved.model,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: lines.join('\n') }],
-      tools: [CLASSIFY_CHAT_INTENT_TOOL],
-      tool_choice: { type: 'tool', name: CLASSIFY_CHAT_INTENT_TOOL.name },
+      user: lines.join('\n'),
+      tools: [anthropicToolToOpenAI(CLASSIFY_CHAT_INTENT_TOOL)],
+      toolChoice: { type: 'function', function: { name: CLASSIFY_CHAT_INTENT_TOOL.name } },
+      maxTokens: 256,
+      disableReasoning: true,
+      // Single-enum classification — fully deterministic.
+      temperature: 0,
     });
-
     logAiUsage({
       userId: null,
       feature: 'chat-intent',
-      provider: 'anthropic',
-      model: AI_CLASSIFIER_MODEL,
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-      cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+      provider: 'openrouter',
+      model: resolved.model,
+      inputTokens: r.usage.inputTokens,
+      outputTokens: r.usage.outputTokens,
+      cacheReadTokens: r.usage.cachedTokens,
+      costUsd: r.usage.costUsd,
     });
-
-    const block = findToolUse(response.content, CLASSIFY_CHAT_INTENT_TOOL.name);
-    const intent = (block?.input as ClassifyChatIntentToolInput | undefined)?.intent;
-    if (intent && VALID_INTENTS.has(intent)) {
-      return { intent, via: 'llm' };
+    const call =
+      r.toolCalls.find((c) => c.name === CLASSIFY_CHAT_INTENT_TOOL.name) ?? r.toolCalls[0];
+    let glmIntent: ChatIntent | undefined;
+    if (call) {
+      try {
+        glmIntent = (JSON.parse(call.arguments) as ClassifyChatIntentToolInput).intent;
+      } catch {
+        glmIntent = undefined;
+      }
     }
+    if (glmIntent && VALID_INTENTS.has(glmIntent)) return { intent: glmIntent, via: 'llm' };
     return { intent: 'chat', via: 'fallback' };
   } catch (error) {
     console.error('[chat-intent] classification failed', error);

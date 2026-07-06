@@ -1,42 +1,21 @@
-// Provider dispatcher for path-generation calls. Sits in front of the
-// Anthropic and Gemini wrappers; `resolveModel` (model-routing.ts) decides
+// Provider dispatcher for path-generation calls. Sits in front of the GLM
+// (OpenRouter) and Gemini wrappers; `resolveModel` (model-routing.ts) decides
 // which provider + model each stage uses. The activity generators in
-// `path-generator.ts` only see this dispatcher — they pass both the Anthropic
-// tool and the Gemini schema and let routing decide which is called.
+// `path-generator.ts` only see this dispatcher — they pass the tool def and the
+// Gemini schema and let routing decide which is called.
 //
-// Default routing is the optimized composition (structure: Flash basic /
-// Sonnet ultra; theory + flashcards: Flash-Lite; quiz: Haiku for all tiers).
-// `MODEL_COMPOSITION_LEGACY=1` reverts to the prior PATH_PROVIDER_* routing
-// with the ultra→Sonnet quiz upgrade. `ctx.ultra` and `ctx.providerOverride`
-// (plan.gemini) are forwarded to the resolver.
+// Default routing is the optimized composition (structure + theory: GLM-5.2;
+// flashcards + quiz: GLM-4.7-flash basic / GLM-5.2 ultra). `ctx.ultra` and
+// `ctx.providerOverride` are forwarded to the resolver. Claude is gone — the
+// resolver only ever returns 'gemini' or 'openrouter'.
 
-import type Anthropic from '@anthropic-ai/sdk';
-import { buildCachedSystem, buildSourceMaterialsBlock, GEMINI_JSON_PREAMBLE } from './path-prompts';
-import { forcedStructuredCallAnthropic } from './path-generator-anthropic';
+import type { ToolDef } from './ai-tool-types';
+import { buildSourceMaterialsBlock, GEMINI_JSON_PREAMBLE } from './path-prompts';
 import { forcedStructuredCallGemini, type GeminiUsage } from './path-generator-gemini';
 import { forcedStructuredCallOpenRouter } from './path-generator-openrouter';
 import { resolveModel, type ModelFeature } from './model-routing';
-import {
-  PATH_STRUCTURE_TOOL,
-  THEORY_SECTION_TOOL,
-  FLASHCARDS_FOR_SLOT_TOOL,
-  QUIZ_FOR_SLOT_TOOL,
-} from './ai-tools';
 
-/**
- * All four path tools in a fixed order. Sending a byte-identical `tools`
- * array on every stage call lets the Anthropic prompt cache cover the tools
- * block across stages — `tool_choice` selects the active tool without
- * invalidating the cache.
- */
-const PATH_TOOLS_STABLE: Anthropic.Messages.Tool[] = [
-  PATH_STRUCTURE_TOOL,
-  THEORY_SECTION_TOOL,
-  FLASHCARDS_FOR_SLOT_TOOL,
-  QUIZ_FOR_SLOT_TOOL,
-];
-
-export type Provider = 'anthropic' | 'gemini' | 'openrouter';
+export type Provider = 'gemini' | 'openrouter';
 export type Stage = 'structure' | 'theory' | 'flashcards' | 'quiz';
 
 /** Map a pipeline stage to its routing feature key. */
@@ -68,20 +47,21 @@ export interface NormalizedUsage {
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens: number;
-  /** Anthropic: cache_creation_input_tokens. Gemini: explicit CachedContent create cost (0 when inline). */
+  /** Gemini: explicit CachedContent create cost (0 when inline). GLM caches the
+   *  prefix implicitly, so this is 0 on the OpenRouter path. */
   cacheWriteTokens: number;
   /** OpenRouter only: the real USD cost OpenRouter bills inline for this call.
-   *  Undefined for Anthropic/Gemini (cost is derived from tokens). Phase 5 wires
+   *  Undefined for the Gemini path (cost is derived from tokens). Phase 5 wires
    *  this straight into the meter instead of re-deriving from token pricing. */
   costUsd?: number;
 }
 
-// Stage→provider/model resolution moved to model-routing.ts (`resolveModel`),
-// which owns both the optimized composition and the LEGACY reproduction of the
-// old PATH_PROVIDER_<STAGE> → PATH_PROVIDER → 'anthropic' precedence.
+// Stage→provider/model resolution lives in model-routing.ts (`resolveModel`),
+// which owns the composition. The old PATH_PROVIDER_<STAGE> / PATH_PROVIDER env
+// vars are retired and ignored — the resolver only returns 'gemini' or 'openrouter'.
 
 export interface StructuredCallCtx<T> {
-  /** Pipeline stage — drives provider resolution + Anthropic model tier. */
+  /** Pipeline stage — drives provider resolution + model tier. */
   stage: Stage;
   /** Raw corpus text. Null/empty means no source materials are attached. */
   corpus: string | null;
@@ -91,32 +71,38 @@ export interface StructuredCallCtx<T> {
   /** Per-slot/per-phase dynamic text (the `tail` half of buildXxxPrompt) plus
    *  any retry/corrective notices — left uncached so the prefix stays stable. */
   dynamicInstructions: string;
-  /** Anthropic tool definition for the call. */
-  anthropicTool: Anthropic.Messages.Tool;
+  /** Forced tool definition for the call (the field name is a legacy anchor —
+   *  the shape is the codebase's own, formerly Anthropic-shaped). */
+  anthropicTool: ToolDef;
   /**
-   * Override the Anthropic `tools` array sent on the call. Defaults to the four
+   * Override the `tools` array sent on the call. Defaults to the four
    * stable path tools (`PATH_TOOLS_STABLE`). The forced `anthropicTool` MUST be
    * present in whatever array is sent, so a call forcing a tool OUTSIDE the four
    * (e.g. the onboarding preview-questions tool) supplies its own single-tool
    * array here. Ignored on the Gemini branch (it never sends tools).
    */
-  anthropicTools?: Anthropic.Messages.Tool[];
+  anthropicTools?: ToolDef[];
   /**
    * Resolve the model against a DIFFERENT feature key than the stage's default
-   * (e.g. `'path-preview'` → Sonnet for the anonymous onboarding preview). The
-   * `stage` still drives cache TTL + the Gemini prefix shape; only the model
-   * picked changes. Omit for normal Stage A/B calls.
+   * (e.g. `'path-preview'` → GLM-5.2, the former Sonnet slot, for the anonymous
+   * onboarding preview). The `stage` still drives cache TTL + the Gemini prefix
+   * shape; only the model picked changes. Omit for normal Stage A/B calls.
    */
   featureOverride?: ModelFeature;
   /** User-turn message — usually 'Generate now.' or a corrective notice on retry. */
   userMessage: string;
   /** Max attempts at the call level. Default 2 (matches the existing pattern). */
   maxAttempts?: number;
+  /** Sampling temperature for this call. Undefined ⇒ provider default (~1.0).
+   *  Forwarded to both the OpenRouter and Gemini branches — the caller
+   *  (path-generator.ts) sets a low per-stage value so structured tool output
+   *  is deterministic rather than sampled hot. */
+  temperature?: number;
   /** Per-attempt usage callback. The dispatcher converts each provider's
    *  native usage shape into the unified `NormalizedUsage`. */
   onUsage: (usage: NormalizedUsage) => void;
-  /** When true on a quiz call, forces Anthropic+Sonnet regardless of env —
-   *  preserves the existing "ultra path" behavior. */
+  /** When true on a quiz call, forces the ultra slot (GLM-5.2, the former Sonnet
+   *  slot) regardless of env — preserves the existing "ultra path" behavior. */
   ultra?: boolean;
   /** Per-call provider override. Wins over both `ultra` and the env-var
    *  resolver — set it from `plan.gemini=true` to force every stage
@@ -124,8 +110,7 @@ export interface StructuredCallCtx<T> {
   providerOverride?: Provider;
   /** OpenRouter sticky-routing token (X-Session-Id). One per runPathGeneration,
    *  stable across all its calls + sweeps, so they land on the same upstream and
-   *  the corpus prefix cache actually hits. Ignored on the Anthropic/Gemini
-   *  branches. */
+   *  the corpus prefix cache actually hits. Ignored on the Gemini branch. */
   sessionId?: string;
   /** Mark the unused generic so callers don't have to widen at consumption. */
   _phantom?: T;
@@ -136,18 +121,15 @@ export interface StructuredCallCtx<T> {
  * the parsed payload typed as `T`; downstream Zod validators (the same
  * for both providers) enforce the strict shape.
  *
- * Resolution order:
- *   1. `providerOverride` (per-plan opt-in, e.g. the Gemini test toggle).
- *   2. `ultra=true` on a quiz call → Anthropic+Sonnet.
- *   3. env-var routing (`PATH_PROVIDER_<STAGE>` then `PATH_PROVIDER`).
- *   4. default `'anthropic'`.
+ * The resolver returns only 'openrouter' (GLM, the default for every stage) or
+ * 'gemini' (a per-stage env pin). Claude is gone — there is no anthropic branch
+ * and no GLM→Claude fallback.
  */
 export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promise<T> {
   // Provider + model both come from the central resolver. Defaults encode the
-  // optimized composition (structure: Flash basic / Sonnet ultra; theory +
-  // flashcards: Flash-Lite; quiz: Haiku all tiers). MODEL_COMPOSITION_LEGACY=1
-  // reverts to the prior routing; PATH_<STAGE>_MODEL pins a single stage; and
-  // `providerOverride` (plan.gemini) still forces a provider for one run.
+  // optimized composition (structure + theory: GLM-5.2; flashcards + quiz:
+  // GLM-4.7-flash basic / GLM-5.2 ultra). PATH_<STAGE>_MODEL pins a single
+  // stage; `providerOverride` forces a provider for one run.
   const resolved = resolveModel(ctx.featureOverride ?? STAGE_FEATURE[ctx.stage], {
     ultra: ctx.ultra,
     providerOverride: ctx.providerOverride,
@@ -155,46 +137,10 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   const provider = resolved.provider;
   const model = resolved.model;
 
-  // Anthropic generation — reached ONLY when the resolver explicitly picks the
-  // Anthropic provider (i.e. MODEL_COMPOSITION_LEGACY=1, the rollback path). It
-  // is NOT a fallback for the GLM branch anymore: normal operation is GLM-only.
-  const runAnthropic = (anthropicModel: string): Promise<T> => {
-    // Stage A is a single call per path — its 1h cache write is never read,
-    // so use ephemeral (5-min, 1.25× write) to cover retries only.
-    const cacheTtl: '1h' | '5m' = ctx.stage === 'structure' ? '5m' : '1h';
-    const system = buildCachedSystem(
-      ctx.corpus,
-      ctx.staticInstructions,
-      ctx.dynamicInstructions,
-      cacheTtl,
-    );
-    return forcedStructuredCallAnthropic<T>({
-      system,
-      tool: ctx.anthropicTool,
-      tools: ctx.anthropicTools ?? PATH_TOOLS_STABLE,
-      userMessage: ctx.userMessage,
-      maxAttempts: ctx.maxAttempts,
-      model: anthropicModel,
-      onUsage: (usage) =>
-        ctx.onUsage({
-          provider: 'anthropic',
-          model: anthropicModel,
-          inputTokens: usage.input_tokens,
-          outputTokens: usage.output_tokens,
-          cacheReadTokens: usage.cache_read_input_tokens ?? 0,
-          cacheWriteTokens: usage.cache_creation_input_tokens ?? 0,
-        }),
-    });
-  };
-
-  if (provider === 'anthropic') {
-    return runAnthropic(model);
-  }
-
   if (provider === 'openrouter') {
-    // GLM via OpenRouter (GLM_COMPOSITION on). Structured output goes through
-    // FORCED TOOLS — json_schema is flaky on GLM-4.7; the reused Anthropic tools
-    // are translated to OpenAI shape inside the wrapper. No cache_control: GLM
+    // GLM via OpenRouter (the default for every stage). Structured output goes
+    // through FORCED TOOLS — json_schema is flaky on GLM-4.7; the reused tool
+    // defs are translated to OpenAI shape inside the wrapper. No cache_control: GLM
     // caches the prefix implicitly, so lead with corpus + static rules and keep
     // the dynamic tail last (mirrors the Gemini prefix ordering below). The
     // Gemini JSON preamble is omitted — tool_choice forces the structure.
@@ -233,8 +179,8 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
       tool: ctx.anthropicTool,
       // GLM/OpenRouter: send ONLY the forced tool, not the 4-tool stable array.
       // GLM's implicit cache keys on the SYSTEM-PROMPT prefix, not the tools
-      // block, so the byte-stable 4-tool array (which the Anthropic branch needs
-      // for ITS prompt cache) is pure token waste here — 3 unused tool schemas ×
+      // block, so the byte-stable 4-tool array (which the retired Anthropic
+      // prompt cache needed) is pure token waste here — 3 unused tool schemas ×
       // every call. An explicit `anthropicTools` override (e.g. the onboarding
       // preview tool) is still honored.
       tools: ctx.anthropicTools ?? [ctx.anthropicTool],
@@ -243,6 +189,7 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
       model,
       sessionId: ctx.sessionId,
       reasoningEffort,
+      temperature: ctx.temperature,
       onUsage: (usage) =>
         ctx.onUsage({
           provider: 'openrouter',
@@ -257,8 +204,8 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   }
 
   // Safety guard (Phase 3 group 5): only Gemini should remain. Throw on any
-  // unhandled provider rather than silently routing it through Gemini — this is
-  // what makes GLM_COMPOSITION safe to flip once every dispatcher is wired.
+  // unhandled provider rather than silently routing it through Gemini — the
+  // resolver only ever returns 'openrouter' (handled above) or 'gemini'.
   if (provider !== 'gemini') {
     throw new Error(`forcedStructuredCall: unhandled provider '${provider as string}'`);
   }
@@ -271,7 +218,7 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   // prefix is byte-identical across a run's calls (cache + implicit-cache match).
   //
   // GEMINI_JSON_PREAMBLE is prepended here (not in the builders) because it is
-  // Gemini JSON-mode-specific: on the Anthropic path tool_choice forces
+  // Gemini JSON-mode-specific: on the GLM/OpenRouter path tool_choice forces
   // structured output so the preamble is both redundant and contradictory.
   const cacheablePrefix = [
     GEMINI_JSON_PREAMBLE,
@@ -286,7 +233,7 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   // states for serving" because of nested arrays with min/max bounds and
   // multi-value enums. The strict shape lives in the system prompt
   // (`buildXxxPrompt`) and is enforced post-hoc by the same Zod
-  // validators the Anthropic path uses — matches the existing Gemini
+  // validators the GLM/OpenRouter path uses — matches the existing Gemini
   // pattern in `engine-gemini.ts` and `subject-detect.ts`. The schemas
   // in `ai-tools-gemini.ts` stay for documentation / future re-enable
   // once Gemini relaxes the constraint.
@@ -305,6 +252,7 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
     userMessage: ctx.userMessage,
     maxAttempts: ctx.maxAttempts,
     model,
+    temperature: ctx.temperature,
     onUsage: (usage: GeminiUsage) => {
       // `promptTokenCount` includes `cachedContentTokenCount`; subtract to
       // avoid double-billing cached tokens as both input and cache-read.

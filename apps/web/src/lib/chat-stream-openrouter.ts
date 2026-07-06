@@ -1,29 +1,32 @@
 // GLM-via-OpenRouter adapter for the chat / Mage stream. Mirrors
 // chat-stream-gemini.ts. The whole point is to take chat-stream's existing
-// ANTHROPIC-shaped inputs (system blocks, message history, tool defs,
-// tool_choice) and return an ANTHROPIC-shaped `Message` — so chat-stream's
-// post-stream processing (`extractToolUses` + every artifact builder + the
-// usage logging) is reused verbatim for the GLM path.
+// tool-def inputs (system blocks, message history, tool defs, tool_choice —
+// the codebase's internal shape, formerly Anthropic-shaped) and return a
+// matching `Message` — so chat-stream's post-stream processing
+// (`extractToolUses` + every artifact builder + the usage logging) is reused
+// verbatim for the GLM path.
 //
 // Reasoning is disabled by default: GLM-4.7/5.2 are reasoning models, and with
 // reasoning ON the thinking tokens consume the output budget so the prose / tool
-// call comes back empty (this replaces non-reasoning Haiku/Sonnet anyway).
+// call comes back empty (GLM is the only chat path now — no Claude anywhere).
 
-import type Anthropic from '@anthropic-ai/sdk';
 import {
   streamOpenRouterText,
   type OpenRouterMessage,
   type OpenRouterStreamHandlers,
 } from './openrouter';
 import { anthropicToolsToOpenAI, toolChoiceToOpenAI } from './openrouter-tools';
+import type {
+  ChatMessageParam,
+  ChatTurnResult,
+  ContentBlock,
+  TextBlockParam,
+  ToolChoice,
+  ToolDef,
+} from './ai-tool-types';
 
-type AnthropicChatMessage = {
-  role: 'user' | 'assistant';
-  content: string | Anthropic.Messages.TextBlockParam[];
-};
-
-/** Flatten an Anthropic message/system content (string or text blocks) to plain text. */
-function flattenContent(content: string | Anthropic.Messages.TextBlockParam[]): string {
+/** Flatten a message/system content (string or text blocks) to plain text. */
+function flattenContent(content: string | TextBlockParam[]): string {
   if (typeof content === 'string') return content;
   return content.map((b) => b.text).join('');
 }
@@ -33,18 +36,22 @@ export interface StreamChatGLMOptions {
   model: string;
   /** chat-stream's `systemBlocks` (cache_control is dropped — GLM caches the
    *  prefix implicitly; keeping the corpus-first ordering preserves hits). */
-  system: Anthropic.Messages.TextBlockParam[];
+  system: TextBlockParam[];
   /** chat-stream's `conversationMessages` (already stripped + char-capped). */
-  messages: AnthropicChatMessage[];
-  /** chat-stream's `CHAT_TOOLS` (Anthropic shape → converted to OpenAI here). */
-  tools: Anthropic.Messages.Tool[];
+  messages: ChatMessageParam[];
+  /** chat-stream's `CHAT_TOOLS` (tool defs → converted to OpenAI here). */
+  tools: ToolDef[];
   /** chat-stream's `streamParams.tool_choice`. */
-  toolChoice: Anthropic.Messages.ToolChoice;
+  toolChoice: ToolChoice;
   /** Forward prose deltas to the SSE stream. */
   onText: (delta: string) => void;
   signal?: AbortSignal;
   /** Defaults to true (parity with the non-reasoning slots GLM replaces). */
   enableReasoning?: boolean;
+  /** Sampling temperature. Undefined ⇒ provider default (~1.0). chat-stream
+   *  sets a low value on GENERATION turns (a forced tool emitting structured
+   *  JSON) and leaves it unset on prose/Mage turns where creativity is fine. */
+  temperature?: number;
   /** Completion ceiling. Unset ⇒ OpenRouter's default (4096) — chat-stream
    *  passes the model ceiling on generation turns so structured JSON isn't
    *  silently truncated. `stop_reason: 'max_tokens'` signals it was hit. */
@@ -56,13 +63,14 @@ export interface StreamChatGLMOptions {
 }
 
 /**
- * Stream a chat/Mage turn through GLM and return an Anthropic-shaped `Message`.
+ * Stream a chat/Mage turn through GLM and return a neutral `ChatTurnResult`.
  * `content` carries a text block (the streamed prose) followed by a `tool_use`
  * block per GLM tool call (arguments JSON-parsed into `.input`), so
- * `extractToolUses(response.content)` works unchanged. Throws on a missing key
- * or transport error — chat-stream catches it and falls back to Anthropic.
+ * `extractToolUses(result.content)` works unchanged. Throws on a missing key or
+ * transport error — chat-stream catches it and surfaces the failure (there is
+ * no Claude fallback anymore).
  */
-export async function streamChatGLM(opts: StreamChatGLMOptions): Promise<Anthropic.Messages.Message> {
+export async function streamChatGLM(opts: StreamChatGLMOptions): Promise<ChatTurnResult> {
   const systemText = opts.system.map((b) => b.text).join('\n\n');
   const messages: OpenRouterMessage[] = opts.messages.map((m) => ({
     role: m.role,
@@ -83,14 +91,15 @@ export async function streamChatGLM(opts: StreamChatGLMOptions): Promise<Anthrop
       disableReasoning: opts.enableReasoning !== true,
       plugins: opts.plugins,
       maxTokens: opts.maxTokens,
+      temperature: opts.temperature,
       signal: opts.signal,
     },
     handlers,
   );
 
-  const content: Anthropic.Messages.ContentBlock[] = [];
+  const content: ContentBlock[] = [];
   if (result.text.length > 0) {
-    content.push({ type: 'text', text: result.text, citations: null } as Anthropic.Messages.TextBlock);
+    content.push({ type: 'text', text: result.text });
   }
   result.toolCalls.forEach((tc, i) => {
     let input: unknown = {};
@@ -99,26 +108,10 @@ export async function streamChatGLM(opts: StreamChatGLMOptions): Promise<Anthrop
     } catch {
       input = {};
     }
-    content.push({
-      type: 'tool_use',
-      id: `glm_${i}_${tc.name}`,
-      name: tc.name,
-      input,
-    } as Anthropic.Messages.ToolUseBlock);
+    content.push({ type: 'tool_use', id: `glm_${i}_${tc.name}`, name: tc.name, input });
   });
 
-  const usage = {
-    input_tokens: result.usage.inputTokens,
-    output_tokens: result.usage.outputTokens,
-    cache_read_input_tokens: result.usage.cachedTokens,
-    cache_creation_input_tokens: 0,
-  } as unknown as Anthropic.Messages.Usage;
-
   return {
-    id: 'glm-msg',
-    type: 'message',
-    role: 'assistant',
-    model: opts.model,
     content,
     // 'length' ⇒ cut off at max_tokens (prose or tool-call JSON truncated);
     // chat-stream drops a truncated tool call and warns the user.
@@ -128,7 +121,11 @@ export async function streamChatGLM(opts: StreamChatGLMOptions): Promise<Anthrop
         : result.toolCalls.length > 0
           ? 'tool_use'
           : 'end_turn',
-    stop_sequence: null,
-    usage,
-  } as unknown as Anthropic.Messages.Message;
+    usage: {
+      input_tokens: result.usage.inputTokens,
+      output_tokens: result.usage.outputTokens,
+      cache_read_input_tokens: result.usage.cachedTokens,
+      cache_creation_input_tokens: 0,
+    },
+  };
 }

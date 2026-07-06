@@ -1,8 +1,6 @@
-import type Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
-import { anthropic, MAX_OUTPUT_TOKENS } from './anthropic';
-import { CLASSIFY_SUBJECTS_TOOL } from './ai-tools';
 import { resolveModel } from './model-routing';
+import { GEMINI_PATH_MODEL_LITE } from './gemini';
 import { geminiStructured } from './gemini-structured';
 import { logAiUsage } from './ai-usage';
 import {
@@ -25,8 +23,8 @@ export interface ClassifySubjectsResult {
   fallback: boolean;
 }
 
-/** Provider-neutral raw classifier output (Anthropic tool input + Gemini JSON
- *  share this shape). */
+/** Provider-neutral raw classifier output (the tool-input schema and the Gemini
+ *  JSON output share this shape). */
 interface RawClassify {
   subjects: { id: string; weight: number }[];
 }
@@ -53,13 +51,6 @@ const BUCKETS_AND_RULES = [
   '- Use `general` ONLY when the topic genuinely fits nothing else. Never combine `general` with another subject.',
 ].join('\n');
 
-const ANTHROPIC_SYSTEM_PROMPT = [
-  INTRO,
-  'Call the `classify_path_subjects` tool exactly once. Do not produce any text outside the tool call.',
-  '',
-  BUCKETS_AND_RULES,
-].join('\n');
-
 const GEMINI_SYSTEM_PROMPT = [
   INTRO,
   'Return ONLY a JSON object of the form { "subjects": [ { "id": string, "weight": number } ] }. No prose, no markdown.',
@@ -70,16 +61,6 @@ const GEMINI_SYSTEM_PROMPT = [
 const geminiClassifySchema = z.object({
   subjects: z.array(z.object({ id: z.string(), weight: z.number() })).min(1),
 });
-
-function findToolUse(
-  content: Anthropic.Messages.ContentBlock[],
-  name: string
-): Extract<Anthropic.Messages.ContentBlock, { type: 'tool_use' }> | null {
-  for (const block of content) {
-    if (block.type === 'tool_use' && block.name === name) return block;
-  }
-  return null;
-}
 
 // The subject is detectable from a modest excerpt — cap the corpus fed to the
 // cheap, uncached classifier call rather than shipping the full corpus to it.
@@ -130,45 +111,26 @@ async function classifyViaGemini(
   return data;
 }
 
-/** Anthropic forced-tool branch (legacy default / CLASSIFIER_PROVIDER=anthropic). */
-async function classifyViaAnthropic(
-  opts: ClassifySubjectsOpts,
-  model: string
-): Promise<RawClassify | null> {
-  const response = await anthropic.messages.create({
-    model,
-    max_tokens: Math.min(MAX_OUTPUT_TOKENS, 1024),
-    system: ANTHROPIC_SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: renderUserPrompt(opts) }],
-    tools: [CLASSIFY_SUBJECTS_TOOL],
-    tool_choice: { type: 'tool', name: CLASSIFY_SUBJECTS_TOOL.name },
-  });
-  logAiUsage({
-    userId: null,
-    feature: 'path-classify',
-    provider: 'anthropic',
-    model,
-    inputTokens: response.usage.input_tokens,
-    outputTokens: response.usage.output_tokens,
-    cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
-  });
-  const block = findToolUse(response.content, CLASSIFY_SUBJECTS_TOOL.name);
-  if (!block) return null;
-  return block.input as RawClassify;
-}
-
 export async function classifySubjects(
   opts: ClassifySubjectsOpts
 ): Promise<ClassifySubjectsResult> {
   const fallback: ClassifySubjectsResult = { subjects: ['general'], weights: [1], fallback: true };
   try {
-    // Composition moves classify Haiku → Flash-Lite (CLASSIFIER_MODEL /
-    // CLASSIFIER_PROVIDER override; MODEL_COMPOSITION_LEGACY=1 restores Haiku).
+    // Classify runs on Gemini Flash-Lite (forced JSON). CLASSIFIER_MODEL pins
+    // the model; a non-Gemini pin (e.g. a glm-* token) has no forced-tool
+    // classify path here, so fall back to the Gemini default + model.
     const resolved = resolveModel('path-classify');
-    const input =
+    const geminiModel =
       resolved.provider === 'gemini'
-        ? await classifyViaGemini(opts, resolved.model)
-        : await classifyViaAnthropic(opts, resolved.model);
+        ? resolved.model
+        : (() => {
+            console.warn(
+              `[path-classifier] CLASSIFIER_MODEL resolved to a non-Gemini provider ` +
+                `(${resolved.provider}); classify is Gemini-only — using the Flash-Lite default`,
+            );
+            return GEMINI_PATH_MODEL_LITE;
+          })();
+    const input = await classifyViaGemini(opts, geminiModel);
 
     if (!input || !Array.isArray(input.subjects) || input.subjects.length === 0) {
       return fallback;

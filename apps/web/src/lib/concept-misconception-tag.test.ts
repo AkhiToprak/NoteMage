@@ -11,7 +11,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   weaknessConceptsEnabled: vi.fn(),
   resolveModel: vi.fn(),
-  forcedStructuredCallAnthropic: vi.fn(),
   forcedStructuredCallOpenRouter: vi.fn(),
   forcedStructuredCallGemini: vi.fn(),
   deriveConceptMisconception: vi.fn(),
@@ -28,10 +27,6 @@ vi.mock('@/lib/feature-flags', () => ({
 
 vi.mock('@/lib/model-routing', () => ({
   resolveModel: mocks.resolveModel,
-}));
-
-vi.mock('@/lib/path-generator-anthropic', () => ({
-  forcedStructuredCallAnthropic: mocks.forcedStructuredCallAnthropic,
 }));
 
 vi.mock('@/lib/path-generator-openrouter', () => ({
@@ -115,8 +110,8 @@ function solidMasteryRow(overrides: Partial<Record<string, unknown>> = {}, now: 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.weaknessConceptsEnabled.mockReturnValue(true);
-  mocks.resolveModel.mockReturnValue({ provider: 'anthropic', model: 'claude-haiku', token: 'haiku' });
-  mocks.forcedStructuredCallAnthropic.mockResolvedValue({
+  mocks.resolveModel.mockReturnValue({ provider: 'openrouter', model: 'z-ai/glm-4.7', token: 'glm-flash' });
+  mocks.forcedStructuredCallOpenRouter.mockResolvedValue({
     misconceptionLine: 'This kind of question is often mixed up with the -er endings. Let\'s compare them.',
   });
   mocks.deriveConceptMisconception.mockResolvedValue(null);
@@ -345,7 +340,7 @@ describe('flag guard', () => {
     await runMisconceptionTag(CONCEPT_ID, USER_ID);
 
     expect(mocks.conceptMasteryFindUnique).not.toHaveBeenCalled();
-    expect(mocks.forcedStructuredCallAnthropic).not.toHaveBeenCalled();
+    expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
     expect(mocks.conceptMasteryUpdate).not.toHaveBeenCalled();
   });
 });
@@ -358,7 +353,7 @@ describe('mastery row not found', () => {
 
     await runMisconceptionTag(CONCEPT_ID, USER_ID);
 
-    expect(mocks.forcedStructuredCallAnthropic).not.toHaveBeenCalled();
+    expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
     expect(mocks.conceptMasteryUpdate).not.toHaveBeenCalled();
   });
 });
@@ -374,7 +369,7 @@ describe('cooldown active', () => {
 
     await runMisconceptionTag(CONCEPT_ID, USER_ID);
 
-    expect(mocks.forcedStructuredCallAnthropic).not.toHaveBeenCalled();
+    expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
     expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
     expect(mocks.forcedStructuredCallGemini).not.toHaveBeenCalled();
     expect(mocks.conceptMasteryUpdate).not.toHaveBeenCalled();
@@ -389,7 +384,7 @@ describe('hysteresis: concept recovered before the job ran', () => {
 
     await runMisconceptionTag(CONCEPT_ID, USER_ID);
 
-    expect(mocks.forcedStructuredCallAnthropic).not.toHaveBeenCalled();
+    expect(mocks.forcedStructuredCallOpenRouter).not.toHaveBeenCalled();
     expect(mocks.conceptMasteryUpdate).not.toHaveBeenCalled();
   });
 });
@@ -412,7 +407,7 @@ describe('happy path', () => {
 
     await runMisconceptionTag(CONCEPT_ID, USER_ID);
 
-    expect(mocks.forcedStructuredCallAnthropic).toHaveBeenCalledTimes(1);
+    expect(mocks.forcedStructuredCallOpenRouter).toHaveBeenCalledTimes(1);
     expect(mocks.conceptMasteryUpdate).toHaveBeenCalledTimes(1);
     const [updateArgs] = mocks.conceptMasteryUpdate.mock.calls[0] as [
       { where: { userId_conceptId: { userId: string; conceptId: string } }; data: { misconceptionLabel: string; misconceptionAt: Date } },
@@ -429,7 +424,7 @@ describe('happy path', () => {
 
     await runMisconceptionTag(CONCEPT_ID, USER_ID);
 
-    expect(mocks.forcedStructuredCallAnthropic).toHaveBeenCalledTimes(1);
+    expect(mocks.forcedStructuredCallOpenRouter).toHaveBeenCalledTimes(1);
     expect(mocks.conceptMasteryUpdate).toHaveBeenCalledTimes(1);
   });
 });
@@ -439,7 +434,7 @@ describe('happy path', () => {
 describe('LLM returns a forbidden second-person line', () => {
   it('guard rejects it and falls back to the tier-1 line when available', async () => {
     mocks.conceptMasteryFindUnique.mockResolvedValue(weakMasteryRow());
-    mocks.forcedStructuredCallAnthropic.mockResolvedValue({
+    mocks.forcedStructuredCallOpenRouter.mockResolvedValue({
       misconceptionLine: 'You keep mixing up the endings.',
     });
     mocks.deriveConceptMisconception.mockResolvedValue({
@@ -461,7 +456,7 @@ describe('LLM returns a forbidden second-person line', () => {
 
   it('guard rejects it and skips the write entirely when no tier-1 fallback exists', async () => {
     mocks.conceptMasteryFindUnique.mockResolvedValue(weakMasteryRow());
-    mocks.forcedStructuredCallAnthropic.mockResolvedValue({
+    mocks.forcedStructuredCallOpenRouter.mockResolvedValue({
       misconceptionLine: "You're confusing the two forms.",
     });
     mocks.deriveConceptMisconception.mockResolvedValue(null);
@@ -490,7 +485,7 @@ describe('never throws', () => {
 
   it('resolves even when the LLM call itself throws', async () => {
     mocks.conceptMasteryFindUnique.mockResolvedValue(weakMasteryRow());
-    mocks.forcedStructuredCallAnthropic.mockRejectedValue(new Error('provider 500'));
+    mocks.forcedStructuredCallOpenRouter.mockRejectedValue(new Error('provider 500'));
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(runMisconceptionTag(CONCEPT_ID, USER_ID)).resolves.toBeUndefined();
@@ -522,7 +517,6 @@ describe('provider dispatch', () => {
     await runMisconceptionTag(CONCEPT_ID, USER_ID);
 
     expect(mocks.forcedStructuredCallOpenRouter).toHaveBeenCalledTimes(1);
-    expect(mocks.forcedStructuredCallAnthropic).not.toHaveBeenCalled();
     expect(mocks.forcedStructuredCallGemini).not.toHaveBeenCalled();
     expect(mocks.conceptMasteryUpdate).toHaveBeenCalledTimes(1);
   });

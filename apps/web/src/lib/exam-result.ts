@@ -7,7 +7,7 @@
  *
  * Cost-aware (plan decision #2): the whole report is built from REAL recorded
  * data with zero AI; the only AI touchpoint is the short report prose, routed
- * through `resolveModel('exam-report-summary')` (Haiku/Flash-Lite), PRO-gated at
+ * through `resolveModel('exam-report-summary')` (Gemini Flash-Lite), PRO-gated at
  * the route, metered on `ai_study_plan`, and CACHED onto `ExamResult.reflection`
  * so it generates at most once per exam. Free tier always gets the deterministic
  * narrative. The reflection's "Mage's take" is fully deterministic (core lib).
@@ -19,8 +19,6 @@ import { loadExamReadiness, loadExamWeakAreas } from './exam-scope';
 import { loadPathForUser, serializePath } from './path-loader';
 import { resolveModel } from './model-routing';
 import { geminiStructured } from './gemini-structured';
-import { anthropic } from './anthropic';
-import { parseJsonLoose } from './json-util';
 import { logAiUsage } from './ai-usage';
 import {
   getGradingSystem,
@@ -526,7 +524,7 @@ const NarrativeSchema = z.object({
 });
 
 /**
- * AI report prose via `resolveModel('exam-report-summary')` (Haiku/Flash-Lite).
+ * AI report prose via `resolveModel('exam-report-summary')` (Gemini Flash-Lite).
  * The static system prompt is cache-friendly; dynamic data rides the user turn.
  * Metered by the route on `ai_study_plan`. Returns null on any failure so the
  * caller falls back to the deterministic narrative.
@@ -542,51 +540,31 @@ async function generateReportNarrative(
     recoverablePoints: number;
   },
 ): Promise<{ keyTopicsNote: string; focusInsight: string | null } | null> {
+  // Gemini-structured only (EXAM_REPORT_MODEL pins flash/flash-lite; a
+  // non-Gemini pin is warned + coerced to flash-lite in the resolver).
   const resolved = resolveModel('exam-report-summary');
   const userText = JSON.stringify(data);
 
   try {
-    if (resolved.provider === 'gemini') {
-      const res = await geminiStructured({
-        schema: NarrativeSchema,
-        system: NARRATIVE_SYSTEM,
-        userText,
-        model: resolved.model,
-        maxOutputTokens: 400,
-        temperature: 0.4,
-        onUsage: (u) =>
-          logAiUsage({
-            userId,
-            feature: 'exam-report-summary',
-            provider: 'gemini',
-            model: resolved.model,
-            inputTokens: u.promptTokens,
-            outputTokens: u.candidatesTokens,
-            cacheReadTokens: u.cachedTokens,
-          }),
-      });
-      return res;
-    }
-
-    const response = await anthropic.messages.create({
-      model: resolved.model,
-      max_tokens: 400,
+    const res = await geminiStructured({
+      schema: NarrativeSchema,
       system: NARRATIVE_SYSTEM,
-      messages: [{ role: 'user', content: `${userText}\n\nReturn ONLY the JSON object.` }],
-    });
-    logAiUsage({
-      userId,
-      feature: 'exam-report-summary',
-      provider: 'anthropic',
+      userText,
       model: resolved.model,
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-      cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+      maxOutputTokens: 400,
+      temperature: 0.4,
+      onUsage: (u) =>
+        logAiUsage({
+          userId,
+          feature: 'exam-report-summary',
+          provider: 'gemini',
+          model: resolved.model,
+          inputTokens: u.promptTokens,
+          outputTokens: u.candidatesTokens,
+          cacheReadTokens: u.cachedTokens,
+        }),
     });
-    const block = response.content.find((b) => b.type === 'text');
-    if (!block || block.type !== 'text') return null;
-    const parsed = NarrativeSchema.safeParse(parseJsonLoose(block.text));
-    return parsed.success ? parsed.data : null;
+    return res;
   } catch (err) {
     console.error('[exam-report] narrative failed', err);
     return null;

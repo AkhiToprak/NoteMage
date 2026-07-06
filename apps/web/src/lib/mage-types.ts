@@ -44,8 +44,9 @@ export type MageAssistancePolicy = 'full' | 'hints-first' | 'no-answers';
  * Answer depth / strictness toggle (Phase 9). `quick` is the automatic default;
  * the panel's `[Go deeper]` / `[Use only my material]` / `[Answer faster]`
  * switches set the others. Each maps to three knobs:
- *  - model tier   — `resolveModel('mage-answer', { mode })`: `deep` → Sonnet,
- *                   `quick` / `strict` → Haiku.
+ *  - model tier   — `resolveModel('mage-answer', { mode })`: `deep` → glm-sonnet
+ *                   (the former Sonnet slot), `quick` / `strict` → glm-haiku
+ *                   (the former Haiku slot).
  *  - prompt depth — `mageModePromptParts(mode)` (deep = thorough, quick =
  *                   concise, strict = source-bound, no general-knowledge fallback).
  *  - gate / sources — `strict` raises the reveal gate to at least `hint_only`
@@ -1087,8 +1088,8 @@ export interface MageModePromptParts {
  * Phase 9 — map an answer `mode` to its uncached prompt fragments (answer depth
  * + how to handle questions the material doesn't cover). Pure + client-safe so
  * it's single-sourced and testable; `chat-stream` appends these AFTER the cached
- * corpus block, so varying them per turn never busts the 1h corpus cache. The
- * model tier itself (Haiku vs Sonnet) is chosen separately by
+ * corpus block, so varying them per turn never busts the GLM prefix cache. The
+ * model tier itself (glm-haiku vs glm-sonnet) is chosen separately by
  * `resolveModel('mage-answer', { mode })`.
  */
 export function mageModePromptParts(mode: MageMode): MageModePromptParts {

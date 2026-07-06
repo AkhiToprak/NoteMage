@@ -2,13 +2,12 @@
 //
 // Stage A builds the curriculum skeleton. Stage B fills each slot's
 // activities (theory / flashcards / quiz). Each builder returns a
-// `{ system, tail }` split: `system` is the per-path-constant rule text
-// (cached via `buildCachedSystem`), `tail` is the per-slot dynamic text the
-// caller may extend with retry notices. The orchestrator (`path-generator.ts`)
-// forces the relevant tool via `tool_choice` so the AI is constrained to a
-// single structured output.
+// `{ system, tail }` split: `system` is the per-path-constant rule text (the
+// cacheable prefix — GLM caches it implicitly, Gemini via CachedContent),
+// `tail` is the per-slot dynamic text the caller may extend with retry notices.
+// The orchestrator (`path-generator.ts`) forces the relevant tool via
+// `tool_choice` so the AI is constrained to a single structured output.
 
-import type Anthropic from '@anthropic-ai/sdk';
 import type { QuestionKind } from '@notemage/shared';
 import {
   quizPayloadCatalogFor,
@@ -172,9 +171,9 @@ export interface SlotContentContext {
 
 /**
  * Build just the source-materials block text (preamble + corpus). Pulled
- * out so both providers can use the byte-identical string — Anthropic
- * wraps it in a `cache_control: ephemeral` block, Gemini concatenates it
- * into the flat `systemInstruction` for implicit caching.
+ * out so both providers can use the byte-identical string — GLM (OpenRouter)
+ * leads its system prompt with it for implicit prefix caching, Gemini
+ * concatenates it into the flat `systemInstruction` for implicit caching.
  */
 export function buildSourceMaterialsBlock(corpus: string): string {
   return (
@@ -231,68 +230,13 @@ export interface SplitPrompt {
 }
 
 /**
- * Assemble the `system` payload for a path-generation call as discrete text
- * blocks: an optional source-materials corpus, the per-path-constant static
- * instructions, and the per-call dynamic tail. The corpus and static blocks
- * are tagged `cache_control: ephemeral` so Anthropic caches them across the
- * ~50-call run (and across an activity's 2–3 retries, since only the tail
- * changes between attempts); the tail is left uncached. Always returns blocks
- * — with no corpus it is `[static(cached), tail(uncached)]`.
- *
- * NOTE on minimum cacheable prefix sizes: Haiku 4.5 requires ≥ 4096 tokens,
- * Sonnet 4.6 requires ≥ 2048 tokens. Below these thresholds the `cache_control`
- * marker is a silent no-op — nothing is written and nothing extra is billed.
- * Title-only (no corpus) paths may fall below the Haiku minimum; their rule
- * catalog will not be cached on Haiku.
- *
- * Empty `static` or `tail` blocks are skipped.
- *
- * @param ttl - Cache TTL for the corpus and static blocks.
- *   Use `'1h'` (default, 2× write rate) for Stage B, which fires ~50 calls
- *   that will read the cache. Use `'5m'` (ephemeral default, 1.25× write) for
- *   Stage A, which is a single call per path — a 1h write is never read.
- *   ('5m' is an explicit sentinel: passing `undefined` would trigger the
- *   default parameter and silently restore the 1h TTL.)
- */
-export function buildCachedSystem(
-  corpus: string | null | undefined,
-  staticInstructions: string,
-  dynamicTail: string,
-  ttl: '1h' | '5m' = '1h',
-): Anthropic.Messages.TextBlockParam[] {
-  const cacheControl: Anthropic.Messages.CacheControlEphemeral =
-    ttl === '1h' ? { type: 'ephemeral', ttl } : { type: 'ephemeral' };
-  const blocks: Anthropic.Messages.TextBlockParam[] = [];
-  if (corpus && corpus.trim().length > 0) {
-    blocks.push({
-      type: 'text',
-      text: buildSourceMaterialsBlock(corpus),
-      // 1h spans a whole Stage B run (~50 sequential calls); ephemeral
-      // (5 min) covers Stage A retries at lower write cost.
-      cache_control: cacheControl,
-    });
-  }
-  if (staticInstructions.length > 0) {
-    blocks.push({
-      type: 'text',
-      text: staticInstructions,
-      cache_control: cacheControl,
-    });
-  }
-  if (dynamicTail.length > 0) {
-    blocks.push({ type: 'text', text: dynamicTail });
-  }
-  return blocks;
-}
-
-/**
  * Stage A — system prompt for `create_path_structure`. The AI returns the
  * full phase / slot skeleton in one tool call.
  */
 /**
  * Gemini JSON-mode output directive. Prepended to the Gemini `cacheablePrefix`
- * by the dispatcher (path-generator-routing.ts). On the Anthropic side this is
- * omitted — `tool_choice` forces structured output, so "Output ONLY a JSON
+ * by the dispatcher (path-generator-routing.ts). On the GLM/OpenRouter side this
+ * is omitted — `tool_choice` forces structured output, so "Output ONLY a JSON
  * object" is both unsatisfiable (the model replies via a tool block, not prose)
  * and contradictory. Byte-stable so it sits inside the cached prefix.
  */
@@ -801,7 +745,7 @@ export interface PreviewQuizContext {
  * `mc` / `true_false` (the kinds weak models never malform), a forced source
  * cite, two-tier feedback, and the second question carrying the `weakPoint`
  * diagnostic. The JSON-shape prose is load-bearing for the schemaless Gemini
- * path; on Anthropic the preview-questions tool enforces the same shape.
+ * path; on the GLM/OpenRouter path the preview-questions tool enforces the same shape.
  */
 export function buildPreviewQuizPrompt(ctx: PreviewQuizContext): SplitPrompt {
   const systemLines: string[] = [

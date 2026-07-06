@@ -1,9 +1,9 @@
 // Guardrail G1 — tolerant JSON parsing for model output.
 //
-// Cheaper models (and Claude when not in forced-tool mode) often wrap JSON in a
+// Cheaper models (and GLM when not in forced-tool mode) often wrap JSON in a
 // ```json … ``` fence or sandwich it in prose ("Here is the JSON: { … }. Hope
 // that helps!"). `JSON.parse` chokes on both. These helpers strip the fence and
-// extract the first balanced JSON value, so any Claude-/Gemini-JSON path (essay
+// extract the first balanced JSON value, so any GLM-/Gemini-JSON path (essay
 // check, classify, doc summaries-as-JSON) can parse reliably.
 //
 // Use `parseJsonLoose` when a parse failure should surface as an error, or

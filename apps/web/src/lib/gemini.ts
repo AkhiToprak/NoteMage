@@ -15,9 +15,9 @@ import { GoogleGenAI } from '@google/genai';
 export const GEMINI_PATH_MODEL = process.env.GEMINI_PATH_MODEL ?? 'gemini-2.5-flash';
 
 /**
- * Cheaper Gemini tier (~10x under Haiku) used for the high-volume, lower-stakes
- * generations the cost-composition plan routes off Flash/Haiku: path theory +
- * flashcards, classify, chat title, inline rewrite/summarize, doc summaries.
+ * Cheaper Gemini tier (~10x cheaper than the former Haiku slot) used for the
+ * high-volume, lower-stakes generations the cost composition routes here: path
+ * theory + flashcards, classify, chat title, inline rewrite/summarize, doc summaries.
  * This is the resolver's canonical `'flash-lite'` token id (model-routing.ts).
  * Override with `GEMINI_PATH_MODEL_LITE` (Google rotates ids).
  */
@@ -26,8 +26,9 @@ export const GEMINI_PATH_MODEL_LITE =
 
 /**
  * Gemini model id for free-tier plain chat. Flash-Lite is the cheapest tier
- * (~10x under Haiku) and is plenty for ordinary study Q&A. Generation turns
- * never use this — they stay on Anthropic. Override with `GEMINI_CHAT_MODEL`.
+ * (~10x cheaper than the former Haiku slot) and is plenty for ordinary study
+ * Q&A. Generation turns never use this — they run on GLM (via OpenRouter).
+ * Override with `GEMINI_CHAT_MODEL`.
  *
  * NOTE: the cost-composition plan moves plain chat to Flash (for both FREE and
  * PRO) via the resolver's `chat-plain` feature; this constant only backs the
@@ -37,7 +38,7 @@ export const GEMINI_CHAT_MODEL = process.env.GEMINI_CHAT_MODEL ?? 'gemini-2.5-fl
 
 /**
  * Hard cap on output tokens per Gemini path-generation response. Mirrors
- * the Anthropic side's `MAX_OUTPUT_TOKENS = 16_000` so capacity isn't
+ * the OpenRouter/GLM side's `MAX_OUTPUT_TOKENS = 16_000` so capacity isn't
  * accidentally different between providers.
  */
 export const GEMINI_MAX_OUTPUT_TOKENS = 16_000;

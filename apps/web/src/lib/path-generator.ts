@@ -129,6 +129,35 @@ import {
 } from './quiz-verifier';
 
 // ─────────────────────────────────────────────────────────────────────
+// Structured-stage sampling temperature
+// ─────────────────────────────────────────────────────────────────────
+//
+// GLM/Gemini otherwise run these forced-tool calls at the provider default
+// (~1.0), which samples the structured output hotter than it should be for
+// extraction-shaped work. Pin a low per-stage temperature: theory (prose) gets
+// a touch more room than the card/quiz/structure extraction stages. The
+// learning-batch call routes on `stage: 'theory'` but is metered separately
+// here as `batch` because it emits BOTH theory and cards in one payload.
+const STAGE_TEMPERATURE = {
+  structure: 0.3,
+  theory: 0.5,
+  flashcards: 0.3,
+  quiz: 0.3,
+  batch: 0.4,
+} as const;
+
+/**
+ * A/B override: when `PATH_GEN_TEMPERATURE` is a valid float, it overrides
+ * EVERY structured stage's temperature (for tuning without a redeploy per
+ * stage). Read at call time so a script can toggle it per run. Returns the
+ * per-stage constant when the env var is unset or unparseable.
+ */
+function stageTemperature(stage: keyof typeof STAGE_TEMPERATURE): number {
+  const override = Number.parseFloat(process.env.PATH_GEN_TEMPERATURE ?? '');
+  return Number.isFinite(override) ? override : STAGE_TEMPERATURE[stage];
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Public types
 // ─────────────────────────────────────────────────────────────────────
 
@@ -162,8 +191,9 @@ export interface GeneratePathStructureOpts {
    * taster: the Stage A prompt is bounded to a single section of ~`previewMaxSlots`
    * learning slots, the result is trimmed to one phase capped at that many raw
    * slots BEFORE `enforceSpacedReviews` interleaves the review + assessment, and
-   * model routing goes through the `path-preview` feature (Sonnet by default,
-   * D4) rather than the cheap full-path structure model. Omit for the full path.
+   * model routing goes through the `path-preview` feature (GLM-5.2, the former
+   * Sonnet slot, by default, D4) rather than the cheap full-path structure
+   * model. Omit for the full path.
    */
   previewMaxSlots?: number;
   /**
@@ -205,7 +235,7 @@ const MAX_ACTIVITY_ATTEMPTS = 3;
 // still missing — on top of each activity's own MAX_ACTIVITY_ATTEMPTS retries —
 // reloading the plan between sweeps so generated/pruned activities are skipped.
 // Ultra is capped at 3/month, so cost is irrelevant: sweep generously. Basic
-// (Haiku, high-volume) gets one extra sweep; its real fix is prompt reliability.
+// (GLM-flash, high-volume) gets one extra sweep; its real fix is prompt reliability.
 const PATH_RETRY_SWEEPS_ULTRA = 3;
 const PATH_RETRY_SWEEPS_BASIC = 1;
 
@@ -245,9 +275,10 @@ interface UsageMeter {
   outputTokens: number;
   cacheReadTokens: number;
   cacheWriteTokens: number;
-  // Per-model breakdown. Required for cost computation because Sonnet
-  // and Haiku are both 'anthropic' but priced very differently — a
-  // provider-level rollup would hide the Sonnet upgrade on ultra quizzes.
+  // Per-model breakdown. Required for cost computation because the ultra and
+  // basic path-quiz slots (GLM-5.2 and GLM-flash) both land in the 'openrouter'
+  // bucket but are priced very differently — a provider-level rollup would hide
+  // the ultra upgrade on ultra quizzes. (The 'anthropic' bucket is now dormant.)
   perModel: Record<string, ModelUsage>;
   // Per-provider call counts — quick at-a-glance signal in telemetry.
   byProvider: { anthropic: number; gemini: number; openrouter: number };
@@ -293,20 +324,18 @@ function addNormalizedUsage(meter: UsageMeter, u: NormalizedUsage): void {
 }
 
 /** Derive the billing provider from a model id (for the per-model ledger rows).
- *  GLM (`z-ai/glm-*`) and DeepSeek (`deepseek/*`) route via OpenRouter; Gemini
- *  ids start with `gemini`; everything else is Anthropic. */
+ *  Gemini ids start with `gemini`; everything else (GLM `z-ai/glm-*`, DeepSeek
+ *  `deepseek/*`, any other OpenRouter slug) routes via OpenRouter. */
 function providerOfModel(model: string): Provider {
   if (model.startsWith('gemini')) return 'gemini';
-  if (model.startsWith('z-ai/') || model.includes('glm')) return 'openrouter';
-  if (model.startsWith('deepseek/')) return 'openrouter';
-  return 'anthropic';
+  return 'openrouter';
 }
 
 /**
  * Persist a path-stage's accumulated usage to the admin AI-usage ledger — one
- * row per model so Haiku vs Sonnet costs stay distinguishable. Emitted once per
- * stage at completion (not per call) since the meter already aggregates by
- * model. Best-effort via logAiUsage(); never throws.
+ * row per model so the basic vs ultra GLM slots (GLM-flash vs GLM-5.2) stay
+ * distinguishable. Emitted once per stage at completion (not per call) since the
+ * meter already aggregates by model. Best-effort via logAiUsage(); never throws.
  */
 function reportMeterUsage(meter: UsageMeter, feature: string, userId: string | null): void {
   for (const m of Object.values(meter.perModel)) {
@@ -320,7 +349,7 @@ function reportMeterUsage(meter: UsageMeter, feature: string, userId: string | n
       cacheReadTokens: m.cacheReadTokens,
       cacheWriteTokens: m.cacheWriteTokens,
       // Prefer OpenRouter's exact billed amount; logAiUsage falls back to the
-      // derived rate when this is undefined (Anthropic/Gemini paths).
+      // derived rate when this is undefined (the Gemini path derives from tokens).
       costUsd: m.costUsdExact > 0 ? m.costUsdExact : undefined,
     });
   }
@@ -603,12 +632,13 @@ export async function generatePathStructure(
         staticInstructions: system,
         dynamicInstructions: attemptTail,
         anthropicTool: PATH_STRUCTURE_TOOL,
-        // Preview routes Stage A through `path-preview` (Sonnet); the full path
-        // keeps the cheap `path-structure` model. Provider override (plan.gemini)
-        // still wins inside the resolver.
+        // Preview routes Stage A through `path-preview` (GLM-5.2, the former
+        // Sonnet slot); the full path keeps the cheap `path-structure` model.
+        // Provider override (plan.gemini) still wins inside the resolver.
         featureOverride: preview ? 'path-preview' : undefined,
         userMessage: `Design the path "${opts.title}".`,
         providerOverride: opts.gemini ? 'gemini' : undefined,
+        temperature: stageTemperature('structure'),
         onUsage: (u) => addNormalizedUsage(meter, u),
       });
       const normalized = normalizePathStructure(raw);
@@ -1703,6 +1733,7 @@ async function generateTheoryActivity(
         userMessage: `Write the theory section for slot "${slot.title}".`,
         providerOverride: plan.gemini ? 'gemini' : undefined,
         sessionId: plan.sessionId,
+        temperature: stageTemperature('theory'),
         onUsage: (u) => addNormalizedUsage(plan.usage, u),
       }),
     parse: (raw) => {
@@ -2072,6 +2103,7 @@ async function generateFlashcardsActivity(
         userMessage: `Generate flashcards for slot "${slot.title}" — only as many as the material supports. The flashcards array must not be empty.`,
         providerOverride: plan.gemini ? 'gemini' : undefined,
         sessionId: plan.sessionId,
+        temperature: stageTemperature('flashcards'),
         onUsage: (u) => addNormalizedUsage(plan.usage, u),
       }),
     parse: (raw) => {
@@ -2331,6 +2363,7 @@ async function callQuizDispatch(
     userMessage: `Generate the quiz for slot "${slotTitle}". The questions array must not be empty.`,
     providerOverride: plan.gemini ? 'gemini' : undefined,
     sessionId: plan.sessionId,
+    temperature: stageTemperature('quiz'),
     onUsage: (u) => addNormalizedUsage(plan.usage, u),
     ultra: plan.ultra,
   });
@@ -2956,6 +2989,7 @@ async function generateLearningSlotBatch(
       providerOverride: plan.gemini ? 'gemini' : undefined,
       sessionId: plan.sessionId,
       maxAttempts: 1,
+      temperature: stageTemperature('batch'),
       onUsage: (u) => addNormalizedUsage(plan.usage, u),
     });
   } catch (error) {
@@ -3160,8 +3194,8 @@ async function processSlot(
   // Read the flag at CALL time (not module scope) so a toggle takes effect
   // without a redeploy. `resolveModel` is checked with the SAME ctx
   // `forcedStructuredCall` would build internally for this slot's calls
-  // (`ultra`/`gemini` from the plan) — Anthropic/Gemini (the
-  // MODEL_COMPOSITION_LEGACY rollback) never reach here. On any batching
+  // (`ultra`/`gemini` from the plan); only the GLM/OpenRouter theory provider
+  // reaches this batched path (a Gemini plan skips it). On any batching
   // failure `generateLearningSlotBatch` returns null (already logged a
   // console.warn internally) and this block simply does nothing further —
   // `batchedTheoryText` stays undefined and the unbatched theory/flashcards

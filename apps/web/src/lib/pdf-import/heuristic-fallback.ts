@@ -1,5 +1,20 @@
 import type { DocModelBlock, InlineRun } from './doc-model';
 import type { GroundTruthPage } from './ground-truth';
+
+/**
+ * A page is "table-dense" when its extracted blocks contain a substantial
+ * amount of tabular content (≥ 4 total table rows across all table blocks) —
+ * the case where a cheap vision model is most likely to mangle cell content.
+ * Ported from the retired pdf-table-escalate.ts (the Anthropic escalation
+ * wrapper is gone); the predicate stays for a later phase that reuses it.
+ */
+export function isTableDensePage(blocks: DocModelBlock[]): boolean {
+  let tableRows = 0;
+  for (const block of blocks) {
+    if (block.type === 'table') tableRows += block.rows.length;
+  }
+  return tableRows >= 4;
+}
 import {
   buildRowsForTable,
   detectCanonicalColumns,

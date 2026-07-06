@@ -30,12 +30,11 @@
  * every step is wrapped and failures are logged with `slotId` for follow-up.
  */
 
-import type Anthropic from '@anthropic-ai/sdk';
+import type { ToolDef } from '@/lib/ai-tool-types';
 import { db } from '@/lib/db';
 import { weaknessConceptsEnabled } from '@/lib/feature-flags';
 import { resolveModel } from '@/lib/model-routing';
 import { persistSlotConcepts, attachConceptTags, recordConceptAttempt } from '@/lib/concept-write';
-import { forcedStructuredCallAnthropic } from '@/lib/path-generator-anthropic';
 import { forcedStructuredCallGemini } from '@/lib/path-generator-gemini';
 import { forcedStructuredCallOpenRouter } from '@/lib/path-generator-openrouter';
 
@@ -47,7 +46,10 @@ const MAX_CONCEPT_KEYS_PER_ITEM = 2;
 
 interface BackfillClassifyToolInput {
   conceptCandidates: string[];
-  items: { itemId: string; conceptKeys: string[] }[];
+  // `index` is the 1-based position from the numbered item list in the prompt.
+  // The model no longer echoes each item's CUID (wasted output tokens + a
+  // mistyped id silently dropped that item); we map index → real itemId here.
+  items: { index: number; conceptKeys: string[] }[];
 }
 
 interface ClassifyItem {
@@ -56,7 +58,7 @@ interface ClassifyItem {
   text: string;
 }
 
-function buildClassifyTool(slotTitle: string): Anthropic.Messages.Tool {
+function buildClassifyTool(slotTitle: string): ToolDef {
   return {
     name: 'classify_slot_concepts',
     description: [
@@ -67,7 +69,8 @@ function buildClassifyTool(slotTitle: string): Anthropic.Messages.Tool {
       '   "-ar personal endings", "irregular stem changes in -ar verbs"], not just the slot',
       '   title restated). These become `conceptCandidates`, a CLOSED list.',
       '2. Tag EVERY given item with 1-2 `conceptKeys`, each copied VERBATIM from',
-      '   `conceptCandidates` — never invent a label outside that list.',
+      '   `conceptCandidates` — never invent a label outside that list. Identify',
+      '   each item by its `index` — the 1-based number shown before it in the list.',
     ].join('\n'),
     input_schema: {
       type: 'object' as const,
@@ -84,7 +87,10 @@ function buildClassifyTool(slotTitle: string): Anthropic.Messages.Tool {
           items: {
             type: 'object',
             properties: {
-              itemId: { type: 'string', description: 'The itemId copied verbatim from the input list.' },
+              index: {
+                type: 'integer',
+                description: 'The 1-based number of the item from the numbered list.',
+              },
               conceptKeys: {
                 type: 'array',
                 items: { type: 'string' },
@@ -93,7 +99,7 @@ function buildClassifyTool(slotTitle: string): Anthropic.Messages.Tool {
                 description: '1-2 keys, each one of the conceptCandidates strings.',
               },
             },
-            required: ['itemId', 'conceptKeys'],
+            required: ['index', 'conceptKeys'],
           },
         },
       },
@@ -110,7 +116,7 @@ function buildGeminiJsonInstruction(conceptCandidatesHint: string): string {
     'Respond with ONLY a single JSON object (no markdown fences, no prose), matching exactly:',
     '{',
     `  "conceptCandidates": string[], // 2-4 short labels, finer-grained than the slot title (${conceptCandidatesHint})`,
-    '  "items": [ { "itemId": string, "conceptKeys": string[] } ] // 1-2 keys per item, each copied verbatim from conceptCandidates',
+    '  "items": [ { "index": number, "conceptKeys": string[] } ] // index = the 1-based item number; 1-2 keys each, copied verbatim from conceptCandidates',
     '}',
   ].join('\n');
 }
@@ -124,17 +130,9 @@ function buildGeminiJsonInstruction(conceptCandidatesHint: string): string {
  */
 async function classifySlot(
   system: string,
-  tool: Anthropic.Messages.Tool
+  tool: ToolDef
 ): Promise<BackfillClassifyToolInput> {
   const resolved = resolveModel('concept-backfill-classify');
-
-  if (resolved.provider === 'anthropic') {
-    return forcedStructuredCallAnthropic<BackfillClassifyToolInput>({
-      system,
-      tool,
-      model: resolved.model,
-    });
-  }
 
   if (resolved.provider === 'openrouter') {
     return forcedStructuredCallOpenRouter<BackfillClassifyToolInput>({
@@ -241,8 +239,8 @@ export async function runConceptBackfill(slotId: string): Promise<void> {
     const objective = slot.objective ? `\nObjective: ${slot.objective}` : '';
     const system = [
       `Slot title: "${slotTitle}"${objective}`,
-      'Items already in this slot:',
-      ...allItems.map((it, i) => `${i + 1}. itemId="${it.itemId}" [${it.itemType}] ${it.text}`),
+      'Items already in this slot (tag each by its number):',
+      ...allItems.map((it, i) => `${i + 1}. [${it.itemType}] ${it.text}`),
     ].join('\n');
 
     const tool = buildClassifyTool(slotTitle);
@@ -259,10 +257,21 @@ export async function runConceptBackfill(slotId: string): Promise<void> {
 
     const conceptIdByKey = await persistSlotConcepts(planId, slotId, conceptCandidates);
 
+    // Map each tagged item back to its real itemId by 1-based index. An
+    // out-of-range index (model hallucinated a number) is logged + skipped —
+    // same silent-drop posture the old itemId string-match had, now a range check.
     const itemConceptKeys = new Map<string, string[]>();
     for (const entry of result.items ?? []) {
-      if (!entry?.itemId) continue;
-      itemConceptKeys.set(entry.itemId, entry.conceptKeys ?? []);
+      const idx = entry?.index;
+      if (!Number.isInteger(idx) || typeof idx !== 'number' || idx < 1 || idx > allItems.length) {
+        console.error('[concept-backfill] classify returned out-of-range item index, skipping', {
+          slotId,
+          index: idx,
+          itemCount: allItems.length,
+        });
+        continue;
+      }
+      itemConceptKeys.set(allItems[idx - 1].itemId, entry.conceptKeys ?? []);
     }
 
     for (const item of allItems) {
