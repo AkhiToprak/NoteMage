@@ -121,6 +121,7 @@ import { resolveModel } from './model-routing';
 import { LEARNING_SLOT_BATCH_TOOL } from './ai-tools';
 import { buildLearningBatchPrompt } from './path-prompts';
 import { isLearningBatchEnabled, splitLearningBatchPayload } from './path-learning-batch';
+import { sliceCorpusForSlot } from './path-corpus-slice';
 import {
   applyQuizVerification,
   shouldVerifyQuiz,
@@ -203,6 +204,14 @@ export interface GeneratePathStructureOpts {
    * rather than masquerading as a full-path structure call.
    */
   usageFeature?: string;
+  /**
+   * OpenRouter sticky-routing token (X-Session-Id) for this Stage-A call. Passing
+   * the SAME `path-${planId}` token Stage B uses lets Stage A's corpus prefix warm
+   * the implicit cache Stage B then hits; the preview passes a `preview-<uuid>`
+   * shared across its 3 calls. Caller respects OPENROUTER_STICKY_ROUTING_DISABLED
+   * (mints undefined) — the resolver ignores it on the Gemini branch anyway.
+   */
+  sessionId?: string;
 }
 
 export type GeneratedPathStructure = PathStructureToolInput;
@@ -249,6 +258,40 @@ const PATH_SLOT_CONCURRENCY = Math.max(
   1,
   Number(process.env.PATH_GENERATION_CONCURRENCY ?? '5') || 5,
 );
+
+/**
+ * OpenRouter sticky-routing token for a run: `path-${planId}`, or `undefined`
+ * when `OPENROUTER_STICKY_ROUTING_DISABLED=1`. Extracted so Stage A (the create
+ * route) and Stage B (runPathGeneration) mint the SAME token from the same
+ * planId — Stage A's corpus prefix then warms the implicit cache Stage B hits.
+ */
+export function pathSessionId(planId: string): string | undefined {
+  return process.env.OPENROUTER_STICKY_ROUTING_DISABLED === '1' ? undefined : `path-${planId}`;
+}
+
+/**
+ * Corpus for one Stage-B slot's call. With `PATH_CORPUS_SLICE=1` (default OFF)
+ * and a large corpus, narrows to the sections lexically relevant to the slot —
+ * cutting per-call input tokens. `sliceCorpusForSlot` returns null (→ full
+ * corpus) whenever slicing would be unsafe (small corpus, too few sections, weak
+ * match), so this can never starve a slot of grounding. `plan.corpus` itself is
+ * never mutated (other consumers read it). One greppable console.info per slice.
+ */
+function slotCorpus(
+  plan: PlanForGeneration,
+  slot: { id: string; title: string; topicHint?: string | null },
+): string | null {
+  if (process.env.PATH_CORPUS_SLICE !== '1' || !plan.corpus) return plan.corpus;
+  const sliced = sliceCorpusForSlot(plan.corpus, slot);
+  if (sliced === null) return plan.corpus;
+  console.info('[path-generator] corpus sliced', {
+    planId: plan.id,
+    slotId: slot.id,
+    slicedChars: sliced.length,
+    fullChars: plan.corpus.length,
+  });
+  return sliced;
+}
 
 /** Short, safe preview of a raw AI tool output, for failure diagnostics. */
 function previewToolOutput(raw: unknown): string {
@@ -638,6 +681,7 @@ export async function generatePathStructure(
         featureOverride: preview ? 'path-preview' : undefined,
         userMessage: `Design the path "${opts.title}".`,
         providerOverride: opts.gemini ? 'gemini' : undefined,
+        sessionId: opts.sessionId,
         temperature: stageTemperature('structure'),
         onUsage: (u) => addNormalizedUsage(meter, u),
       });
@@ -1718,7 +1762,7 @@ async function generateTheoryActivity(
     call: (corrective) =>
       forcedStructuredCall<unknown>({
         stage: 'theory',
-        corpus: plan.corpus,
+        corpus: slotCorpus(plan, slot),
         staticInstructions: system,
         dynamicInstructions: corrective
           ? [
@@ -2087,7 +2131,7 @@ async function generateFlashcardsActivity(
     call: (corrective) =>
       forcedStructuredCall<unknown>({
         stage: 'flashcards',
-        corpus: plan.corpus,
+        corpus: slotCorpus(plan, slot),
         staticInstructions: system,
         dynamicInstructions: corrective
           ? [
@@ -2350,17 +2394,17 @@ function parseFlashcardsPayload(
 
 async function callQuizDispatch(
   plan: PlanForGeneration,
-  slotTitle: string,
+  slot: SlotForGeneration,
   staticInstructions: string,
   dynamicInstructions: string
 ): Promise<QuizForSlotToolInput> {
   return forcedStructuredCall<QuizForSlotToolInput>({
     stage: 'quiz',
-    corpus: plan.corpus,
+    corpus: slotCorpus(plan, slot),
     staticInstructions,
     dynamicInstructions,
     anthropicTool: QUIZ_FOR_SLOT_TOOL,
-    userMessage: `Generate the quiz for slot "${slotTitle}". The questions array must not be empty.`,
+    userMessage: `Generate the quiz for slot "${slot.title}". The questions array must not be empty.`,
     providerOverride: plan.gemini ? 'gemini' : undefined,
     sessionId: plan.sessionId,
     temperature: stageTemperature('quiz'),
@@ -2493,7 +2537,7 @@ async function tryDegradedQuiz(
     degradedCatalog,
   ].join('\n');
   try {
-    const raw = await callQuizDispatch(plan, slot.title, system, degradedTail);
+    const raw = await callQuizDispatch(plan, slot, system, degradedTail);
     const result = parseQuizInput(
       raw,
       slot.title,
@@ -2595,7 +2639,7 @@ async function generateQuizActivity(
     call: (corrective) =>
       callQuizDispatch(
         plan,
-        slot.title,
+        slot,
         system,
         corrective
           ? [
@@ -2980,7 +3024,7 @@ async function generateLearningSlotBatch(
       // 16,384-capped flash tier — a combined theory+flashcards payload needs
       // the 5.2 headroom.
       stage: 'theory',
-      corpus: plan.corpus,
+      corpus: slotCorpus(plan, slot),
       staticInstructions: system,
       dynamicInstructions: tail,
       anthropicTool: LEARNING_SLOT_BATCH_TOOL,
@@ -3299,11 +3343,24 @@ async function runGenerationPass(
       // Snapshot for the per-slot progress captions; the authoritative increment
       // happens in the tally below (race-free — only this loop writes `completed`).
       const completedRef = { value: completed.value };
-      const results = await Promise.allSettled(
-        wave.map((slot) =>
-          semaphore.run(() => processSlot(plan, phase, slot, planId, progressTotal, completedRef)),
-        ),
-      );
+      const runSlot = (slot: SlotForGeneration) =>
+        semaphore.run(() => processSlot(plan, phase, slot, planId, progressTotal, completedRef));
+
+      // Warmup serialization (Phase 4 cost pass): run the wave's FIRST slot to
+      // completion before opening the parallel window for the rest. Its calls warm
+      // each model's implicit prefix cache (GLM-5.2 theory + flash cards/quiz), so
+      // the parallel burst hits a warm prefix instead of PATH_SLOT_CONCURRENCY
+      // concurrent cold misses. The first slot runs through the same `runSlot`
+      // (semaphore + processSlot) and is folded into `results` via allSettled, so
+      // its cancel/failure/progress accounting is byte-identical to the parallel
+      // path. Disable with PATH_WARMUP_DISABLED=1 (restores all-parallel).
+      const warmup = process.env.PATH_WARMUP_DISABLED !== '1' && wave.length > 1;
+      const results = warmup
+        ? [
+            ...(await Promise.allSettled([runSlot(wave[0])])),
+            ...(await Promise.allSettled(wave.slice(1).map(runSlot))),
+          ]
+        : await Promise.allSettled(wave.map(runSlot));
 
       // Tally from the settled results: count successes ONCE, collect failed
       // slots, surface a cancel, and propagate any unexpected (infra) throw.
@@ -3364,9 +3421,9 @@ async function runPathGeneration(
   // every GLM call on the same upstream so the shared corpus prefix actually
   // hits the implicit cache instead of being load-balanced across upstreams that
   // each cache-miss. Keyed by planId so a later regenerate can reuse a still-warm
-  // upstream. Disable with OPENROUTER_STICKY_ROUTING_DISABLED=1.
-  const sessionId =
-    process.env.OPENROUTER_STICKY_ROUTING_DISABLED === '1' ? undefined : `path-${planId}`;
+  // upstream. Disable with OPENROUTER_STICKY_ROUTING_DISABLED=1. Same token the
+  // create route passed to Stage A, so Stage A's corpus prefix warmed this cache.
+  const sessionId = pathSessionId(planId);
   plan.sessionId = sessionId;
 
   // Corpus + image catalog are stable for the run — capture them from the first

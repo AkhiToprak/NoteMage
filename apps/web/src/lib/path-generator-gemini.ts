@@ -19,8 +19,12 @@
 // `systemInstruction` and are unaffected.
 
 import type { Content, GenerateContentConfig, Schema } from '@google/genai';
-import { createHash } from 'node:crypto';
 import { getGeminiClient, GEMINI_PATH_MODEL, GEMINI_MAX_OUTPUT_TOKENS } from './gemini';
+import {
+  getOrCreateCachedPrefix,
+  dropCachedPrefix,
+  DEFAULT_CACHE_TTL_SECONDS,
+} from './gemini-prefix-cache';
 
 export interface GeminiUsage {
   /** Gemini `usageMetadata.promptTokenCount` — total input tokens (includes cached). */
@@ -44,122 +48,11 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// ── Explicit context cache for the constant path-prompt prefix ──────────
-//
-// Gemini 2.5 Flash applies a billing discount on an explicit `CachedContent`
-// resource. We create one per distinct (corpus + stage-rules) prefix, keyed
-// by hash, and reuse it across that stage's calls in a run (and, for
-// title-only paths whose prefix is identical across users, across runs). The
-// registry is process-local; a short TTL plus lazy pruning keep both it and
-// Google-side storage small. Everything here is best-effort and never throws
-// — `getOrCreateCachedPrefix` returns null whenever the caller should just
-// send the prefix inline.
+// The explicit context cache for the constant path-prompt prefix now lives in
+// the shared `gemini-prefix-cache` module (also used by PDF import). Path
+// generation passes `displayName: 'notemage-path-prefix'` and the default TTL.
 
-const CACHE_TTL_SECONDS = 1800; // 30 min — ultra runs can exceed 15 min
-const CACHE_MIN_PREFIX_CHARS = 4096; // ~1024 tokens, Gemini 2.5 Flash's min cacheable size
-const CACHE_EXPIRY_BUFFER_MS = 30_000; // stop using an entry 30s before its TTL ends
-const CACHE_FAILURE_COOLDOWN_MS = 120_000; // after a failed create, skip this prefix for 2 min
-
-interface PrefixCacheEntry {
-  /** Resolved cache resource name, or null after a failed/declined create. */
-  name: string | null;
-  /** Epoch ms after which this entry must not be reused. */
-  expiresAt: number;
-  /** Token count written when this entry was first created (for cost metering). */
-  writtenTokens: number;
-  /** In-flight create, so concurrent callers share one round-trip. */
-  pending?: Promise<{ name: string | null; writtenTokens: number }>;
-}
-
-const prefixCacheRegistry = new Map<string, PrefixCacheEntry>();
-
-function pathCacheDisabled(): boolean {
-  const v = process.env.GEMINI_PATH_CACHE_DISABLED;
-  return v === '1' || v === 'true';
-}
-
-function prefixKey(prefix: string): string {
-  return createHash('sha256').update(prefix).digest('hex');
-}
-
-function prunePrefixCache(now: number): void {
-  for (const [key, entry] of prefixCacheRegistry) {
-    if (!entry.pending && entry.expiresAt <= now) prefixCacheRegistry.delete(key);
-  }
-}
-
-async function createCachedPrefix(
-  model: string,
-  prefix: string,
-): Promise<{ name: string | null; writtenTokens: number }> {
-  try {
-    const cached = await getGeminiClient().caches.create({
-      model,
-      config: {
-        systemInstruction: prefix,
-        ttl: `${CACHE_TTL_SECONDS}s`,
-        displayName: 'notemage-path-prefix',
-      },
-    });
-    // usageMetadata.totalTokenCount is the token count of the cached content;
-    // fall back to a char/4 estimate when the API doesn't surface it.
-    const writtenTokens =
-      (cached.usageMetadata?.totalTokenCount ?? Math.ceil(prefix.length / 4));
-    return { name: cached.name ?? null, writtenTokens };
-  } catch {
-    return { name: null, writtenTokens: 0 };
-  }
-}
-
-/**
- * Resolve a live `CachedContent` for `prefix`, creating one on first use
- * and reusing it across the run. Returns `{ name: null, writtenTokens: 0 }`
- * when caching is disabled, the prefix is below Gemini's minimum cacheable
- * size, or creation fails. Never throws.
- *
- * `writtenTokens` is non-zero only on the call that created the entry — used
- * by the caller to meter the cache-write cost that isn't in promptTokenCount.
- */
-async function getOrCreateCachedPrefix(
-  model: string,
-  prefix: string,
-): Promise<{ name: string | null; writtenTokens: number }> {
-  if (pathCacheDisabled() || prefix.length < CACHE_MIN_PREFIX_CHARS) {
-    return { name: null, writtenTokens: 0 };
-  }
-
-  const now = Date.now();
-  prunePrefixCache(now);
-  const key = prefixKey(prefix) + ':' + model;
-
-  const existing = prefixCacheRegistry.get(key);
-  if (existing && existing.expiresAt - CACHE_EXPIRY_BUFFER_MS > now) {
-    if (existing.pending) {
-      const result = await existing.pending;
-      return { name: result.name, writtenTokens: 0 }; // write already counted
-    }
-    return { name: existing.name, writtenTokens: 0 };
-  }
-
-  const pending = createCachedPrefix(model, prefix);
-  prefixCacheRegistry.set(key, {
-    name: null,
-    writtenTokens: 0,
-    expiresAt: now + CACHE_TTL_SECONDS * 1000,
-    pending,
-  });
-  const result = await pending;
-  prefixCacheRegistry.set(key, {
-    name: result.name,
-    writtenTokens: result.writtenTokens,
-    expiresAt: Date.now() + (result.name ? CACHE_TTL_SECONDS * 1000 : CACHE_FAILURE_COOLDOWN_MS),
-  });
-  return result;
-}
-
-function dropCachedPrefix(prefix: string, model: string): void {
-  prefixCacheRegistry.delete(prefixKey(prefix) + ':' + model);
-}
+const CACHE_DISPLAY_NAME = 'notemage-path-prefix';
 
 function joinNonEmpty(parts: string[]): string {
   return parts.filter((p) => p.length > 0).join('\n\n');
@@ -237,7 +130,10 @@ export async function forcedStructuredCallGemini<T>(opts: {
   // means the caller should send the prefix inline (also the flat-instruction
   // path for translation/moderation callers).
   const cacheResult = cachingMode
-    ? await getOrCreateCachedPrefix(model, cacheablePrefix as string)
+    ? await getOrCreateCachedPrefix(model, cacheablePrefix as string, {
+        displayName: CACHE_DISPLAY_NAME,
+        ttlSeconds: DEFAULT_CACHE_TTL_SECONDS,
+      })
     : { name: null, writtenTokens: 0 };
   let activeCacheName = cacheResult.name;
   // Track whether we already reported the write cost for this cache entry

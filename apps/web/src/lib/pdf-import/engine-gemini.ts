@@ -41,6 +41,13 @@ export interface ModelRequest {
   userText: string;
   imageBase64: string;
   mimeType: string;
+  /**
+   * When set, the system prompt is served from this Gemini `CachedContent`
+   * resource (explicit prefix caching): the call references it via
+   * `config.cachedContent` and omits the inline `systemInstruction`. Null/
+   * absent ⇒ send `systemPrompt` inline as today (implicit caching).
+   */
+  cachedContent?: string | null;
   /** Present on the repair turn — carries the prior, rejected output. */
   repair?: { priorAssistant: string; instruction: string };
 }
@@ -93,12 +100,20 @@ const geminiModelCall: ModelCall = async (req, onUsage) => {
       ]
     : [{ role: 'user', parts: userParts }];
 
+  // Explicit prefix cache: reference the CachedContent by name and omit the
+  // inline systemInstruction; else send the prompt inline (implicit caching).
+  // Both the first and repair turns go through this same closure, so a page's
+  // repair call makes the identical cached/inline choice as its first call.
+  const promptConfig = req.cachedContent
+    ? { cachedContent: req.cachedContent }
+    : { systemInstruction: req.systemPrompt };
+
   const generate = (withSchema: boolean) =>
     client.models.generateContent({
       model: GEMINI_PDF_MODEL,
       contents,
       config: {
-        systemInstruction: req.systemPrompt,
+        ...promptConfig,
         temperature: 0,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         responseMimeType: 'application/json',
@@ -178,6 +193,7 @@ export function createGeminiEngine(call: ModelCall): PdfStructureEngine {
         userText: buildPageUserText(input),
         imageBase64: input.pageImageBase64,
         mimeType: input.mimeType,
+        cachedContent: input.cachedSystemPrompt ?? undefined,
       };
 
       const firstRaw = await call(base, input.onUsage);

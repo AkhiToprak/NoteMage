@@ -12,6 +12,7 @@
 // reusable — `generateWithRepair` is generic so the full Stage-B generators can
 // adopt the same validate/repair loop later (out of scope for v1).
 
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { ToolDef } from './ai-tool-types';
 import { TheorySectionSchema, type TheorySection } from '@notemage/shared';
@@ -253,6 +254,7 @@ function firstLearningSlot(
 async function generatePreviewStructure(
   corpus: string,
   meta: PreviewMeta,
+  sessionId: string,
 ): Promise<GeneratedPathStructure> {
   try {
     return await generatePathStructure({
@@ -265,6 +267,7 @@ async function generatePreviewStructure(
       subjectWeights: PREVIEW_SUBJECT_WEIGHTS,
       language: meta.language ?? 'en',
       previewMaxSlots: PREVIEW_MAX_SLOTS,
+      sessionId,
     });
   } catch (error) {
     throw new PreviewGenerationError('structure', error instanceof Error ? error.message : String(error));
@@ -277,6 +280,7 @@ async function generatePreviewLesson(
   structure: GeneratedPathStructure,
   phase: StructurePhase,
   slot: StructureSlot,
+  sessionId: string,
 ): Promise<PreviewLesson> {
   const language = meta.language ?? 'en';
   const ctx: SlotContentContext = {
@@ -325,6 +329,7 @@ async function generatePreviewLesson(
           : previewTail,
         anthropicTool: THEORY_SECTION_TOOL,
         userMessage: `Write the preview lesson for "${slot.title}".`,
+        sessionId,
         // generateWithRepair owns the retry loop — single-shot per call.
         maxAttempts: 1,
         onUsage: recordPreviewUsage,
@@ -357,6 +362,7 @@ async function generatePreviewQuestions(
   structure: GeneratedPathStructure,
   slot: StructureSlot,
   lessonText: string,
+  sessionId: string,
 ): Promise<SampleQuestion[]> {
   const ctx: PreviewQuizContext = {
     pathTitle: structure.title,
@@ -389,6 +395,7 @@ async function generatePreviewQuestions(
         // the sole tool in the array or `tool_choice` would 400.
         anthropicTools: [PREVIEW_QUESTIONS_TOOL],
         userMessage: `Write the 2 preview questions for "${slot.title}".`,
+        sessionId,
         maxAttempts: 1,
         onUsage: recordPreviewUsage,
       }),
@@ -464,14 +471,19 @@ export async function generatePathPreview(input: {
     language: input.meta.language ? normalizePathLanguage(input.meta.language) : 'en',
   };
 
-  const structure = await generatePreviewStructure(corpus, meta);
+  // One OpenRouter sticky-routing token for all 3 preview calls (structure →
+  // lesson → questions), so they land on the same upstream and the shared corpus
+  // prefix hits the implicit cache instead of cold-missing per call.
+  const sessionId = `preview-${randomUUID()}`;
+
+  const structure = await generatePreviewStructure(corpus, meta, sessionId);
   const first = firstLearningSlot(structure);
   if (!first) {
     throw new PreviewGenerationError('structure', 'no learning slot in the generated structure');
   }
 
-  const lesson = await generatePreviewLesson(corpus, meta, structure, first.phase, first.slot);
-  const questions = await generatePreviewQuestions(corpus, meta, structure, first.slot, lesson.text);
+  const lesson = await generatePreviewLesson(corpus, meta, structure, first.phase, first.slot, sessionId);
+  const questions = await generatePreviewQuestions(corpus, meta, structure, first.slot, lesson.text, sessionId);
 
   return { title: structure.title, structure, lesson, questions };
 }

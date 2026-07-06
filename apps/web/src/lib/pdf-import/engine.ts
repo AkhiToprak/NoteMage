@@ -30,6 +30,15 @@ export interface DescribePageInput {
    */
   groundTruthPage?: GroundTruthPage;
   /**
+   * Optional Gemini `CachedContent` resource name backing the structure
+   * system prompt for this import job (explicit prefix caching). When set,
+   * the vision engine references it via `config.cachedContent` and omits the
+   * inline `systemInstruction`; when null/absent it sends the prompt inline
+   * (implicit caching). Set once per job in run-job.ts — see
+   * gemini-prefix-cache.ts. Non-vision engines ignore it.
+   */
+  cachedSystemPrompt?: string | null;
+  /**
    * Best-effort token-usage sink, invoked once per model round trip a
    * vision engine makes for this page (initial call + any repair retry, and
    * once more if the page escalates to a second engine). The text-layer

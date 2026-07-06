@@ -23,7 +23,9 @@ import type { TierKey } from '@/lib/tiers';
 import { assembleTiptap } from './assemble';
 import type { DocModelBlock } from './doc-model';
 import type { DescribePageInput, PdfStructureEngine } from './engine';
-import { geminiEngine } from './engine-gemini';
+import { geminiEngine, GEMINI_PDF_MODEL } from './engine-gemini';
+import { STRUCTURE_SYSTEM_PROMPT } from './prompt';
+import { getOrCreateCachedPrefix } from '@/lib/gemini-prefix-cache';
 import { textLayerEngine } from './engine-text';
 import { cropFigure } from './figure-crop';
 import { extractGroundTruth, type GroundTruth, type GroundTruthPage } from './ground-truth';
@@ -237,6 +239,31 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     // produces nothing get promoted to the vision engine silently.
     const jobMode: ImportJobMode = job.mode === 'fast' ? 'fast' : 'rich';
 
+    // Explicit prefix cache for the per-page structure prompt. Rich mode calls
+    // the vision engine on every page, so caching the ~1.7k-token system prompt
+    // once and referencing it by name avoids re-sending it per page. TTL 30 min:
+    // a large import (many pages, sequential ~60s/page ceiling) can run long, and
+    // an over-long TTL only lingers cheaply in Google-side storage. Fast mode is
+    // skipped — a text-layer PDF may make zero vision calls, so a cache create
+    // would be wasted; its scanned/promoted pages keep the inline prompt.
+    //
+    // Best-effort: a ~1.7k-token prompt may sit below Gemini's model-specific
+    // minimum cacheable size, so `caches.create` fails and the helper returns
+    // null — the engine then transparently sends the prompt inline (implicit
+    // caching). That fallback is expected, not an error.
+    let cachedSystemPrompt: string | null = null;
+    if (jobMode === 'rich') {
+      const cache = await getOrCreateCachedPrefix(GEMINI_PDF_MODEL, STRUCTURE_SYSTEM_PROMPT, {
+        displayName: 'notemage-pdf-import',
+      });
+      cachedSystemPrompt = cache.name;
+      if (cachedSystemPrompt === null) {
+        console.info(
+          `[pdf-import] job ${jobId}: explicit cache unavailable (likely below min tokens) — relying on implicit caching`,
+        );
+      }
+    }
+
     await writeProgress(jobId, {
       phase: 'structuring',
       totalPages: pageCount,
@@ -301,6 +328,10 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
           isScanned: pageIsScanned,
           pageNumber: gtPage.pageNumber,
           groundTruthPage: gtPage,
+          // Rich-mode explicit prefix cache for the structure system prompt
+          // (null when unavailable ⇒ inline prompt). The text-layer engine
+          // ignores it; only the vision engine reads it.
+          cachedSystemPrompt,
           // Land each vision round trip (initial + repair, plus a second
           // engine on table escalation) in the admin AI-usage ledger. The
           // text-layer engine makes no model call, so it never fires this.

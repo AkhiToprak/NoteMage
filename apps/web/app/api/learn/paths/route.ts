@@ -10,7 +10,8 @@ import {
   tooManyRequestsResponse,
   paymentRequiredResponse,
 } from '@/lib/api-response';
-import { generatePathStructure } from '@/lib/path-generator';
+import { generatePathStructure, pathSessionId } from '@/lib/path-generator';
+import { randomUUID } from 'node:crypto';
 import { persistPlanStructure } from '@/lib/persist-plan-structure';
 import { invalidateDashboardCache, loadSerializedPathsForUser } from '@/lib/dashboard-data';
 import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
@@ -278,6 +279,14 @@ export async function POST(request: NextRequest) {
         fallback: classification.fallback,
       });
 
+      // Pre-generate the plan id so Stage A and Stage B share ONE sticky-routing
+      // token (`path-${planId}`): Stage A's corpus prefix warms the implicit
+      // cache Stage B's per-slot calls then hit. The id is passed into
+      // persistPlanStructure as the plan's own id (Prisma accepts an explicit id
+      // for the cuid-defaulted column).
+      const planId = randomUUID();
+      const sessionId = pathSessionId(planId);
+
       // ── Stage A (one AI call, inline) ────────────────────────────────
       let structure: PathStructureToolInput;
       try {
@@ -290,6 +299,7 @@ export async function POST(request: NextRequest) {
           subjectWeights: classification.weights,
           gemini,
           language,
+          sessionId,
         });
       } catch (error) {
         console.error('[learn/paths POST] Stage A failed', error);
@@ -298,8 +308,9 @@ export async function POST(request: NextRequest) {
 
       // ── Persist plan + phases + empty slots in one transaction ───────
       // Shared verbatim with the onboarding claim (persist-plan-structure.ts).
-      const planId = await db.$transaction((tx) =>
+      await db.$transaction((tx) =>
         persistPlanStructure(tx, {
+          planId,
           userId,
           notebookId: resolvedPrimaryNotebookId,
           contextNotebookIds: Array.from(derivedNotebookIds),

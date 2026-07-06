@@ -1,16 +1,16 @@
-# Graph Report - apps/web  (2026-07-06)
+# Graph Report - apps/web  (2026-07-07)
 
 ## Corpus Check
-- 924 files · ~1,120,396 words
+- 933 files · ~1,128,999 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 5430 nodes · 12625 edges · 267 communities (236 shown, 31 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 185 edges (avg confidence: 0.8)
+- 5484 nodes · 12708 edges · 274 communities (240 shown, 34 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 186 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `df14dca3`
+- Built from commit: `c50346b8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -253,27 +253,34 @@
 - [[_COMMUNITY_Community 235|Community 235]]
 - [[_COMMUNITY_Community 236|Community 236]]
 - [[_COMMUNITY_Community 237|Community 237]]
+- [[_COMMUNITY_Community 238|Community 238]]
 - [[_COMMUNITY_Community 239|Community 239]]
+- [[_COMMUNITY_Community 240|Community 240]]
 - [[_COMMUNITY_Community 241|Community 241]]
 - [[_COMMUNITY_Community 242|Community 242]]
 - [[_COMMUNITY_Community 243|Community 243]]
 - [[_COMMUNITY_Community 244|Community 244]]
-- [[_COMMUNITY_Community 245|Community 245]]
 - [[_COMMUNITY_Community 246|Community 246]]
-- [[_COMMUNITY_Community 247|Community 247]]
 - [[_COMMUNITY_Community 248|Community 248]]
+- [[_COMMUNITY_Community 249|Community 249]]
+- [[_COMMUNITY_Community 250|Community 250]]
+- [[_COMMUNITY_Community 251|Community 251]]
+- [[_COMMUNITY_Community 252|Community 252]]
 - [[_COMMUNITY_Community 253|Community 253]]
-- [[_COMMUNITY_Community 257|Community 257]]
-- [[_COMMUNITY_Community 258|Community 258]]
-- [[_COMMUNITY_Community 259|Community 259]]
-- [[_COMMUNITY_Community 263|Community 263]]
+- [[_COMMUNITY_Community 254|Community 254]]
+- [[_COMMUNITY_Community 255|Community 255]]
+- [[_COMMUNITY_Community 260|Community 260]]
+- [[_COMMUNITY_Community 264|Community 264]]
+- [[_COMMUNITY_Community 265|Community 265]]
+- [[_COMMUNITY_Community 266|Community 266]]
+- [[_COMMUNITY_Community 270|Community 270]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `internalErrorResponse()` - 255 edges
 2. `getAuthUserId()` - 234 edges
 3. `unauthorizedResponse()` - 227 edges
 4. `successResponse()` - 222 edges
-5. `badRequestResponse()` - 139 edges
+5. `badRequestResponse()` - 137 edges
 6. `notFoundResponse()` - 109 edges
 7. `tooManyRequestsResponse()` - 61 edges
 8. `rateLimitKey()` - 53 edges
@@ -283,347 +290,347 @@
 ## Surprising Connections (you probably didn't know these)
 - `LessonPage()` --calls--> `useRegisterMageContext()`  [INFERRED]
   app/(dashboard)/lesson/[id]/page.tsx → src/components/mage/useRegisterMageContext.ts
-- `DashboardView()` --calls--> `useOptionalMage()`  [EXTRACTED]
-  app/(dashboard)/dashboard/DashboardView.tsx → src/components/mage/MageProvider.tsx
 - `CalendarView()` --calls--> `useRegisterMageContext()`  [EXTRACTED]
   app/(dashboard)/exam/[id]/calendar/CalendarView.tsx → src/components/mage/useRegisterMageContext.ts
-- `ExamFeedbackPage()` --calls--> `getServerUserId()`  [INFERRED]
-  app/(dashboard)/exam/[id]/feedback/page.tsx → src/lib/server-auth.ts
 - `ExamMissionPage()` --calls--> `useRegisterMageContext()`  [EXTRACTED]
   app/(dashboard)/exam/[id]/mission/[slotId]/page.tsx → src/components/mage/useRegisterMageContext.ts
+- `ExamPathHubPage()` --calls--> `loadExamScopeView()`  [INFERRED]
+  app/(dashboard)/exam/[id]/page.tsx → src/lib/exam-scope.ts
+- `TodaysPlanView()` --calls--> `useRegisterMageContext()`  [EXTRACTED]
+  app/(dashboard)/exam/[id]/plan/TodaysPlanView.tsx → src/components/mage/useRegisterMageContext.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (267 total, 31 thin omitted)
+## Communities (274 total, 34 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.06
-Nodes (102): GET(), PathAccessResponse, mocks, GET(), GET(), GET(), GET(), POST() (+94 more)
+Cohesion: 0.05
+Nodes (130): GET(), PathAccessResponse, GET(), Params, POST(), GET(), GET(), GET() (+122 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.07
-Nodes (79): DELETE(), POST(), POST(), GET(), POST(), CodeExecuteBody, CodeExecuteTest, isExecutableLanguage() (+71 more)
+Cohesion: 0.04
+Nodes (93): attachConceptTags(), createSemaphore(), Semaphore, weaknessConceptsEnabled(), attachFigureStats(), buildCorpusCache(), buildDiagramClozeQuestion(), bulletList() (+85 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.04
-Nodes (93): createSemaphore(), Semaphore, attachFigureStats(), buildDiagramClozeQuestion(), bulletList(), callQuizDispatch(), captureFlashcardConceptKeys(), captureQuizConceptKeys() (+85 more)
+Cohesion: 0.02
+Nodes (94): dependencies, @azure/msal-node, bcryptjs, better-sqlite3, canvas-confetti, cheerio, clsx, codemirror (+86 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.02
-Nodes (95): dependencies, @anthropic-ai/sdk, @azure/msal-node, bcryptjs, better-sqlite3, canvas-confetti, cheerio, clsx (+87 more)
+Cohesion: 0.05
+Nodes (66): mocks, Params, POST(), POST(), GET(), POST(), paymentRequiredResponse(), enqueueJob() (+58 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.05
-Nodes (67): SPARKS, ExamFeedbackPage(), buildPrediction(), clamp01(), buildReflectionTake(), capitalize(), DIFFICULTY_OPTIONS, DifficultyFelt (+59 more)
+Cohesion: 0.09
+Nodes (57): DELETE(), POST(), POST(), GET(), POST(), POST(), DELETE(), POST() (+49 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.06
-Nodes (67): PathAssessmentSpec, PathSlotKind, QuizForSlotToolInput, quizPayloadCatalogFor(), quizShapeExamples(), SlotForGeneration, pathLanguageName(), buildFlashcardsPrompt() (+59 more)
+Cohesion: 0.04
+Nodes (42): QuestionNavigatorItem, MageRevealingParts, MockDetail, QuizViewerProps, ghostExtra, GradedResultAction, GradedResultPanelProps, primaryBtnStyle (+34 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.05
-Nodes (55): AssessmentResultPanel(), clamp(), dedupTopics(), DEFAULT_MOCK_KINDS, defaultMockConfig(), durationLabel(), MOCK_DIFFICULTIES, MOCK_DIFFICULTY_LABEL (+47 more)
+Nodes (51): ActionButton(), AdminHeader(), Chip(), CHIP_PALETTE, ChipTone, Column, DataTable(), EmptyShell() (+43 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.06
-Nodes (43): Derived, FetchState, PathPhase, UltraBadge(), bestGrade(), gradeFromStars(), sectionAverageGrade(), activityMeta() (+35 more)
+Nodes (59): PathAssessmentSpec, PathSlotKind, QuizForSlotToolInput, quizPayloadCatalogFor(), quizShapeExamples(), SlotForGeneration, pathLanguageName(), buildFlashcardsPrompt() (+51 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.05
-Nodes (51): generateWithRepair(), RepairResult, OnboardingSourceKind, GeneratedPathStructure, GeneratePathStructureOpts, theoryPlainText(), CODES, isPathLanguage() (+43 more)
+Nodes (47): POST(), resolveUserId(), POST(), resolveUserId(), authMocks, fetchMock, RUN_TAG, callPost() (+39 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.07
-Nodes (46): applyEvent(), AttemptEvent, chancePForKind(), classifyBand(), computeEventDelta(), countDistinctCalendarDays(), decaySums(), EventDelta (+38 more)
+Cohesion: 0.05
+Nodes (55): AssessmentResultPanel(), clamp(), dedupTopics(), DEFAULT_MOCK_KINDS, defaultMockConfig(), durationLabel(), MOCK_DIFFICULTIES, MOCK_DIFFICULTY_LABEL (+47 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.05
-Nodes (36): metadata, TOPICS, components, DocsSidebar(), DocsToc(), FOOTER_LINKS, MageFooter(), LINKS (+28 more)
+Nodes (49): CalendarScreen(), CalendarView(), CalendarViewProps, DayCard(), dayDescription(), dayHeadline(), ExamDayCard(), ExamMeta (+41 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.06
-Nodes (46): CalendarScreen(), CalendarView(), CalendarViewProps, DayCard(), dayDescription(), dayHeadline(), ExamDayCard(), ExamMeta (+38 more)
+Cohesion: 0.05
+Nodes (51): generateWithRepair(), RepairResult, OnboardingSourceKind, GeneratedPathStructure, GeneratePathStructureOpts, theoryPlainText(), CODES, isPathLanguage() (+43 more)
 
 ### Community 12 - "Community 12"
 Cohesion: 0.07
-Nodes (47): register(), pruneOldNotifications(), runJob(), mocks, BACKGROUND_JOB_STATUSES, BackgroundJobStatus, BACKOFF_MS, bootstrapDeletionSweep() (+39 more)
+Nodes (52): SPARKS, buildPrediction(), clamp01(), buildReflectionTake(), capitalize(), DIFFICULTY_OPTIONS, DifficultyFelt, DifficultyOption (+44 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.07
-Nodes (39): detectImageType(), MAGIC_BYTES, POST(), buildTextSample(), ClassifyFile, POST(), DELETE(), POST() (+31 more)
+Cohesion: 0.05
+Nodes (36): metadata, TOPICS, components, DocsSidebar(), DocsToc(), FOOTER_LINKS, MageFooter(), LINKS (+28 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.07
-Nodes (30): ACTIVITY_ICONS, ACTIVITY_LABELS, ActivityListProps, CheckpointDrawerProps, SLOT_KIND_LABEL, CheckpointFlashcardViewerProps, ACTIVITY_MISSION_LABEL, AssessmentResult (+22 more)
+Cohesion: 0.06
+Nodes (33): ACTIVITY_ICONS, ACTIVITY_LABELS, ActivityListProps, CheckpointDrawerProps, SLOT_KIND_LABEL, CheckpointFlashcardViewerProps, Flashcard, FlashcardImageData (+25 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.09
-Nodes (34): ensureWorkerOnDisk(), extractPdfText(), extractPdfTipTapNodes(), getPdfjs(), loadPdfjs(), processPage(), WORKER_URL, deterministicImport() (+26 more)
+Cohesion: 0.08
+Nodes (46): unprocessableEntityResponse(), clampDailyMinutes(), setPlanItemStatus(), mageGenerationActionsEnabled(), weaknessTrainingUiEnabled(), webSearchDisabled(), getOrCreatePracticeNotebook(), practiceOriginForAction() (+38 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.08
-Nodes (44): resolveSubjectId(), SubjectIcon(), CLASSIFY_SUBJECTS_TOOL, AiUsageEvent, logAiUsage(), globalForAnthropic, generateAndPersistTitle(), sanitizeTitle() (+36 more)
+Cohesion: 0.07
+Nodes (39): detectImageType(), MAGIC_BYTES, POST(), buildTextSample(), ClassifyFile, DELETE(), POST(), deleteUserCompletely() (+31 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.07
-Nodes (37): ActionButton(), AdminHeader(), Chip(), CHIP_PALETTE, ChipTone, Column, DataTable(), EmptyShell() (+29 more)
+Cohesion: 0.06
+Nodes (31): Derived, FetchState, ExamHubViewProps, DeletePathDialog(), Align, PathConnectorProps, X_FRAC_BY_ALIGN, NodeState (+23 more)
 
 ### Community 18 - "Community 18"
-Cohesion: 0.05
-Nodes (32): buildActivityCreate(), buildPhasesCreate(), CloneSourceActivity, CloneSourceFlashcardSet, CloneSourcePhase, CloneSourceQuizSet, CloneSourceSlot, CloneSourceTheory (+24 more)
+Cohesion: 0.08
+Nodes (39): bestGrade(), gradeFromStars(), sectionAverageGrade(), activityMeta(), finalExamSlot(), MissionState, missionStateFor(), MsIcon() (+31 more)
 
 ### Community 19 - "Community 19"
-Cohesion: 0.10
-Nodes (36): NotFound(), StudyCalendarPage(), GET(), Params, ProgressPayload, SnapshotEnvelope, ExamPathHubPage(), loadExamMeta() (+28 more)
+Cohesion: 0.05
+Nodes (38): AnalyticsConsentBanner(), hasAnalyticsConsent(), isAnalyticsConsentUndecided(), optInAnalytics(), optOutAnalytics(), rememberDecision(), PostHogIdentify(), PostHogProvider() (+30 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.08
-Nodes (40): DashboardView(), DashboardViewProps, DashboardPage(), buildDashboardData(), DashboardActivePath, dashboardCacheKey(), DashboardData, deriveDashboardDataFromPaths() (+32 more)
+Nodes (41): buildCallbackHtml(), escapeHtml(), GET(), safeLinkHref(), acquireTokenByCode(), freshMsalClient(), getAuthCodeUrl(), getMsalClient() (+33 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.07
-Nodes (37): PathStructureToolInput, BackfillClassifyToolInput, backfillEvents(), buildClassifyTool(), buildGeminiJsonInstruction(), ClassifyItem, classifySlot(), loadConceptTagsByQuestion() (+29 more)
+Cohesion: 0.06
+Nodes (28): AdminLayout(), AdminUser, NAV_ITEMS, NavItem, AdminDashboardPage(), fmtNum(), Stats, AdminConsoleStyles() (+20 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.08
-Nodes (29): DocModelBlock, anthropicVisionCall(), anthropicVisionEngine, CACHED_SYSTEM, ModelCall, canonicalizeImageRefs(), DescribePageInput, createGeminiEngine() (+21 more)
+Cohesion: 0.10
+Nodes (34): NotFound(), StudyCalendarPage(), ExamFeedbackPage(), GET(), Params, ProgressPayload, SnapshotEnvelope, ExamPathHubPage() (+26 more)
 
 ### Community 23 - "Community 23"
 Cohesion: 0.07
-Nodes (26): QuestionNavigatorItem, MageRevealingParts, MockDetail, MockExamRunnerProps, RunnerQuestion, RunnerSet, AskMageCard(), MissionProgress() (+18 more)
+Nodes (43): bandFor(), clampPct(), deriveExamReadiness(), deriveWeakAreas(), ExamPassiveItem, ExamPassiveItemType, ExamPathReadiness, ExamQuizReadiness (+35 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.09
-Nodes (41): tiptapJsonToPlainText(), AssembledMock, assembleMockExam(), difficultyInstruction(), NormalizedUsage, AssembledPracticeQuiz, assemblePracticeQuiz(), buildPracticeFocusTail() (+33 more)
+Cohesion: 0.06
+Nodes (42): AnnotateAnswerToolInput, CLASSIFY_SUBJECTS_TOOL, ClassifySubjectsToolInput, CONCEPT_CANDIDATES_PROPERTY, CONCEPT_KEYS_PROPERTY, FLASHCARD_FIGURE_PROPERTY, FLASHCARD_TOOL, FLASHCARDS_FOR_SLOT_TOOL_BASE (+34 more)
 
 ### Community 25 - "Community 25"
-Cohesion: 0.06
-Nodes (29): AnswerSubmission, MC_QUESTION, QuizActivityQuestion, QuizActivityState, ReactionMode, trackEvent(), AnswerEntry, QuestionImageData (+21 more)
+Cohesion: 0.08
+Nodes (27): MasteryInputs, masteryScore(), attachUpstreamGapHints(), buildWhyFlagged(), computeImpactPoints(), ConceptEdgeForHints, ConceptWeakArea, ConceptWeakAreaColdStart (+19 more)
 
 ### Community 26 - "Community 26"
-Cohesion: 0.06
-Nodes (41): AnnotateAnswerToolInput, ClassifySubjectsToolInput, CONCEPT_CANDIDATES_PROPERTY, CONCEPT_KEYS_PROPERTY, FLASHCARD_FIGURE_PROPERTY, FLASHCARD_TOOL, FLASHCARDS_FOR_SLOT_TOOL_BASE, FlashcardsForSlotToolInput (+33 more)
+Cohesion: 0.09
+Nodes (39): tiptapJsonToPlainText(), AssembledMock, assembleMockExam(), difficultyInstruction(), MockExamConfig, NormalizedUsage, AssembledPracticeQuiz, assemblePracticeQuiz() (+31 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.07
-Nodes (40): bandFor(), clampPct(), deriveExamReadiness(), deriveWeakAreas(), ExamPassiveItem, ExamPassiveItemType, ExamPathReadiness, ExamQuizReadiness (+32 more)
-
-### Community 28 - "Community 28"
-Cohesion: 0.08
-Nodes (34): buildWeaknessNudgeSubject(), C, getAppUrl(), getFromAddress(), getResend(), leadTrigger(), renderWeaknessNudgeEmail(), sendWeaknessNudgeEmail() (+26 more)
-
-### Community 29 - "Community 29"
 Cohesion: 0.05
 Nodes (42): 1. Deployment & branch hygiene (READ FIRST), 2. Scope & coverage, 3. Findings, 4. Reconciliation with the 2026-05-31 hardening, 5. Appendix, 5a. Dependency advisories (`pnpm audit`, workspace lockfile), 5b. Verified-safe / strong controls (checked, no action), 5c. Subsystem coverage matrix (+34 more)
 
+### Community 28 - "Community 28"
+Cohesion: 0.07
+Nodes (33): classifyBand(), decaySums(), loadConceptWeakAreaRows(), LoadConceptWeakAreaRowsOptions, RawMasteryRow, mocks, unionGroup(), buildLegacyColumns() (+25 more)
+
+### Community 29 - "Community 29"
+Cohesion: 0.14
+Nodes (28): CelebrationOverlay(), CelebrationOverlayProps, CelebrationConfig, CelebrationContext, CelebrationContextValue, CelebrationProvider(), QueueEntry, useOptionalCelebration() (+20 more)
+
 ### Community 30 - "Community 30"
-Cohesion: 0.09
-Nodes (26): GET(), Params, PUT(), GET(), Params, GET(), Params, GET() (+18 more)
+Cohesion: 0.08
+Nodes (25): ReactionsMode, LEGAL, RESOURCES, Row, setHapticsEnabled(), DEFAULTS, Prefs, REMINDER_ROWS (+17 more)
 
 ### Community 31 - "Community 31"
 Cohesion: 0.08
-Nodes (18): BackgroundCosmetic, BaseCosmetic, Cosmetic, CosmeticType, FrameCosmetic, getCosmeticsByType(), NameColorCosmetic, NameStyle (+10 more)
+Nodes (19): BackgroundCosmetic, BaseCosmetic, Cosmetic, COSMETICS, CosmeticType, FrameCosmetic, NameColorCosmetic, NameFontCosmetic (+11 more)
 
 ### Community 32 - "Community 32"
-Cohesion: 0.07
-Nodes (25): AdminLayout(), AdminUser, NAV_ITEMS, NavItem, AdminDashboardPage(), fmtNum(), Stats, AdminConsoleStyles() (+17 more)
+Cohesion: 0.10
+Nodes (24): ALLOWED_MIME_TYPES, ensureWorkerOnDisk(), extractPdfText(), extractPdfTipTapNodes(), getPdfjs(), loadPdfjs(), processPage(), WORKER_URL (+16 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.07
-Nodes (15): Flashcard, FlashcardImageData, FlashcardSetPayload, ReviewGrade, loadReviewQueue(), ReviewQueue, ReviewQueueCard, ReviewQueueImage (+7 more)
+Cohesion: 0.08
+Nodes (26): DocModelBlock, canonicalizeImageRefs(), DescribePageInput, createGeminiEngine(), geminiEngine, geminiModelCall(), getClient(), isSchemaRejection() (+18 more)
 
 ### Community 34 - "Community 34"
-Cohesion: 0.07
-Nodes (30): loadConceptWeakAreaRows(), mocks, unionGroup(), buildLegacyColumns(), buildSessionDynamicTail(), buildSessionStaticInstructions(), cooldownConceptSet(), DiscriminateRowPayload (+22 more)
+Cohesion: 0.06
+Nodes (27): DashboardView(), DashboardViewProps, ExamFeedbackView(), ExamFeedbackViewProps, ExamInfo, ExamHubView(), AskMageButton(), AskMageButtonProps (+19 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.11
-Nodes (13): fuzzyMatch(), substituteBlankMarker(), lowlight, FillBlankRenderer(), AnyQuestionRenderer, Token, SubmitBar(), TranslationRenderer() (+5 more)
+Cohesion: 0.10
+Nodes (28): GET(), Params, PATCH(), PatchBody, toUnlockedPayload(), AssessmentBody, Params, POST() (+20 more)
 
 ### Community 36 - "Community 36"
-Cohesion: 0.10
-Nodes (27): GET(), Params, PATCH(), PatchBody, toUnlockedPayload(), POST(), AssessmentBody, Params (+19 more)
-
-### Community 37 - "Community 37"
 Cohesion: 0.06
 Nodes (24): CandidateGroupKey, ExamScopeEditorProps, GROUPS, ScopeCandidate, ScopeCandidates, ScopeItemRef, BADGE_CLASS, classifyNode() (+16 more)
 
+### Community 37 - "Community 37"
+Cohesion: 0.10
+Nodes (29): weaknessNudgeSweepEnabled(), WeaknessNudgeTriggerKind, assembleDigest(), bootstrapNudgeSweep(), digestSeverity(), EvaluateAndNudgeResult, evaluateAndNudgeUser(), findGraduationAvailableConcepts() (+21 more)
+
 ### Community 38 - "Community 38"
-Cohesion: 0.15
-Nodes (27): CelebrationOverlay(), CelebrationOverlayProps, CelebrationConfig, CelebrationContext, CelebrationContextValue, CelebrationProvider(), QueueEntry, useOptionalCelebration() (+19 more)
+Cohesion: 0.08
+Nodes (28): AppMobileNav(), NAV, AppSidebar(), NAV, GLYPHS, NavIcon(), getCosmetic(), MobileBottomNav() (+20 more)
 
 ### Community 39 - "Community 39"
-Cohesion: 0.10
-Nodes (28): UnlockProvider(), DashboardChrome(), useStudyHeartbeat(), ExamHubView(), AskMageButton(), AskMageButtonProps, CheckpointQuizViewer(), CheckpointTheoryViewer() (+20 more)
-
-### Community 40 - "Community 40"
-Cohesion: 0.10
-Nodes (28): ExpiredBody(), fmtDate(), INTERVALS, PausedBody(), Props, useIosSheet(), WelcomeBody(), useCurrency() (+20 more)
-
-### Community 41 - "Community 41"
-Cohesion: 0.09
-Nodes (22): AccountSettingsPage(), LEGAL, RESOURCES, Row, DEFAULTS, Prefs, REMINDER_ROWS, EMPTY_GOAL_VALUES (+14 more)
-
-### Community 42 - "Community 42"
-Cohesion: 0.09
-Nodes (15): AppShell(), ExamFeedbackView(), ExamFeedbackViewProps, ExamInfo, bandLabel(), BarRow(), clamp(), ExamReportViewPage() (+7 more)
-
-### Community 43 - "Community 43"
 Cohesion: 0.06
 Nodes (35): API route, Architecture, Architecture, Architecture, Client wiring, Context, Current state (verified), Deployment / hosting decision (ws-server) (+27 more)
 
-### Community 44 - "Community 44"
-Cohesion: 0.10
-Nodes (20): formatTimestamp(), parseYouTubeId(), ResolvedSource, ResolveResult, SourceViewerType, UnresolvableSource, youtubeEmbedUrl(), locateQuote() (+12 more)
+### Community 40 - "Community 40"
+Cohesion: 0.07
+Nodes (23): buildActivityCreate(), buildPhasesCreate(), CloneSourceActivity, CloneSourceFlashcardSet, CloneSourcePhase, CloneSourceQuizSet, CloneSourceSlot, CloneSourceTheory (+15 more)
 
-### Community 45 - "Community 45"
+### Community 41 - "Community 41"
 Cohesion: 0.06
 Nodes (23): ACCEPTED_UPLOAD_TYPES, DEFAULT_STATE, Goal, GOAL_DIRECTIVE, GOALS, INTENSITIES, Intensity, INTENSITY_DIRECTIVE (+15 more)
 
-### Community 46 - "Community 46"
-Cohesion: 0.11
-Nodes (22): getPreviewServerSnapshot(), getPreviewSnapshot(), parse(), setPreview(), StoredPreview, StoredPreviewLesson, subscribePreview(), getSampleRunServerSnapshot() (+14 more)
-
-### Community 47 - "Community 47"
-Cohesion: 0.09
-Nodes (15): getNativeShellClient(), OAuthProviderRowProps, BiometricGuardState, detectPlatform(), getBridge(), getNativePlatform(), isInsideNativeShell(), nativeBridge (+7 more)
-
-### Community 48 - "Community 48"
+### Community 42 - "Community 42"
 Cohesion: 0.10
-Nodes (24): CHAT_STUDY_PLAN_TOOL, FLASHCARD_TOOL_WITH_FIGURES, MINDMAP_TOOL, PRESENTATION_TOOL, QUIZ_TOOL_V2_WITH_FIGURES, YOUTUBE_VIDEOS_TOOL, CHAT_BASE_INSTRUCTIONS, INTENT_GUIDANCE (+16 more)
+Nodes (25): APPLE_JWKS, AppleIdTokenClaims, NativeApplePayload, POST(), authOptions, hydrateTokenFromDb(), logOAuthDenial(), oauthProviders (+17 more)
 
-### Community 49 - "Community 49"
+### Community 43 - "Community 43"
 Cohesion: 0.09
-Nodes (28): BatchResult, captionBatch(), captionMissing(), CaptionTarget, CaptionUsageContext, GeminiPart, PLACEHOLDER_CAPTIONS, sanitizeCaption() (+20 more)
+Nodes (28): SourceMaterialRef, PlanForGeneration, resolveFigures(), CatalogContext, FigureRejection, FigureRejectReason, FigureResolution, IMAGE_SELECT (+20 more)
 
-### Community 50 - "Community 50"
+### Community 44 - "Community 44"
 Cohesion: 0.16
 Nodes (33): asBoolean(), asFlexibleString(), asNonEmptyString(), extractOptionText(), isMarkedCorrect(), isPlainObject(), normalizeAssessmentSpec(), normalizeBlankPayload() (+25 more)
 
-### Community 51 - "Community 51"
-Cohesion: 0.10
-Nodes (24): APPLE_JWKS, AppleIdTokenClaims, NativeApplePayload, POST(), hydrateTokenFromDb(), logOAuthDenial(), oauthProviders, findOrCreateOAuthUser() (+16 more)
+### Community 45 - "Community 45"
+Cohesion: 0.12
+Nodes (21): getPreviewServerSnapshot(), getPreviewSnapshot(), parse(), setPreview(), StoredPreview, StoredPreviewLesson, subscribePreview(), getSampleRunServerSnapshot() (+13 more)
 
-### Community 52 - "Community 52"
+### Community 46 - "Community 46"
+Cohesion: 0.07
+Nodes (17): useStreamingChat(), gateVisibility(), mageContextKey(), mageSourceLabel(), MagePresentation, PRESENTATION, presentMageContext(), ACTION_TRAILING (+9 more)
+
+### Community 47 - "Community 47"
+Cohesion: 0.11
+Nodes (27): BackfillClassifyToolInput, backfillEvents(), buildClassifyTool(), buildGeminiJsonInstruction(), ClassifyItem, classifySlot(), loadConceptTagsByQuestion(), runConceptBackfill() (+19 more)
+
+### Community 48 - "Community 48"
 Cohesion: 0.11
 Nodes (31): CodeOutputParsed, compareExpressions(), convertDecimalCommas(), EquationParsed, extractAnswerCandidates(), extractGradingCandidate(), FillBlankParsed, grade() (+23 more)
 
-### Community 53 - "Community 53"
-Cohesion: 0.07
-Nodes (16): useStreamingChat(), gateVisibility(), mageSourceLabel(), MagePresentation, PRESENTATION, presentMageContext(), ACTION_TRAILING, ChatSummary (+8 more)
+### Community 49 - "Community 49"
+Cohesion: 0.10
+Nodes (22): UnlockProvider(), DashboardChrome(), useStudyHeartbeat(), CancelPathDialog(), MageClientContext, MageAutoOpen(), DEFAULT_CONTEXT, DEFAULT_GRANTS (+14 more)
 
-### Community 54 - "Community 54"
-Cohesion: 0.11
-Nodes (27): binomialUpperTailPValue(), computeDominantDistractor(), ComputeDominantDistractorInput, ConceptMisconception, deriveConceptMisconception(), DominantDistractor, logBinomialCoefficient(), logFactorial() (+19 more)
-
-### Community 55 - "Community 55"
+### Community 50 - "Community 50"
 Cohesion: 0.13
-Nodes (24): runTag, FeatureType, getMonthStart(), getPeriodStart(), getWeekStart(), isLifetimeLimit(), LIFETIME_LIMITS, limitFor() (+16 more)
+Nodes (29): EMPTY_USAGE, streamOpenRouterText, buildOpenRouterBody(), callOpenRouter(), CallOpenRouterOptions, EMPTY_USAGE, normalizeUsage(), openRouterHeaders() (+21 more)
 
-### Community 56 - "Community 56"
-Cohesion: 0.08
-Nodes (9): BRAND, KIND_LABEL, shuffleNonIdentity(), parseYearForSort(), Endpoint, Line, hashKey(), mulberry32() (+1 more)
+### Community 51 - "Community 51"
+Cohesion: 0.11
+Nodes (10): AnyQuestionRenderer, Endpoint, Line, hashKey(), mulberry32(), shuffleByKey(), Token, QuestionProps (+2 more)
 
-### Community 57 - "Community 57"
-Cohesion: 0.07
-Nodes (17): ResetPasswordFormProps, TurnstileApi, TurnstileWidget(), TurnstileWidgetProps, Window, VerifyCodeFormProps, FormData, getPasswordScore() (+9 more)
+### Community 52 - "Community 52"
+Cohesion: 0.10
+Nodes (28): assert(), check(), complete(), db, main(), setEq(), resolveSubjectId(), SubjectIcon() (+20 more)
 
-### Community 58 - "Community 58"
+### Community 53 - "Community 53"
 Cohesion: 0.10
 Nodes (22): CalendarGrid(), CalendarGridProps, DayCard(), DayCardProps, DayStatus, toDate(), ExamWeight, ExamWeightBadge() (+14 more)
 
-### Community 59 - "Community 59"
-Cohesion: 0.11
-Nodes (19): ModalDimensions, useModalDimensions(), ImportGroup, ImportJobInfo, ImportMode, ImportPhase, PALETTE, PickedFile (+11 more)
+### Community 54 - "Community 54"
+Cohesion: 0.08
+Nodes (17): figureStyle, KIND_ICON, titleStyle, attrString(), CALLOUT_META, CalloutKind, CalloutSegment, classifySection() (+9 more)
 
-### Community 60 - "Community 60"
-Cohesion: 0.09
-Nodes (20): LessonPage(), LESSONS, CelebrationToast(), CelebrationToastProps, DifficultyBadge(), DifficultyBadgeProps, DifficultyLevel, DifficultySize (+12 more)
+### Community 55 - "Community 55"
+Cohesion: 0.14
+Nodes (25): applyEvent(), AttemptEvent, chancePForKind(), computeEventDelta(), countDistinctCalendarDays(), EventDelta, evidenceWeightForKind(), isStrugglingStatus() (+17 more)
 
-### Community 61 - "Community 61"
+### Community 56 - "Community 56"
+Cohesion: 0.10
+Nodes (8): fuzzyMatch(), substituteBlankMarker(), lowlight, FillBlankRenderer(), SubmitBar(), TranslationRenderer(), Token, WordBankRenderer()
+
+### Community 57 - "Community 57"
+Cohesion: 0.10
+Nodes (10): getNativeShellClient(), OAuthProviderRowProps, VerifyCodeFormProps, BiometricGuardState, detectPlatform(), getBridge(), getNativePlatform(), isInsideNativeShell() (+2 more)
+
+### Community 58 - "Community 58"
 Cohesion: 0.07
 Nodes (29): 🟨 Medium, NM3-03 — CI pipeline has no test step — the entire Vitest suite never runs on push or PR, NM3-04 — community/notebooks GET fetches full user friendship list before every page load to build friend-ID set, NM3-05 — dashboard endpoint queries studyPlan.phases in a denormalized aggregation that loads all phase rows, NM3-06 — No tests for group membership routes — the NM-H9 pending-invitee fix and the broader group authorization surface have no regression guard, NM3-07 — import/classify uses unscoped 'temp-imports/' storage prefix (reads any user's temp upload), NM3-08 — learn/inventory GET queries sections with all pages, then re-sorts in JS using a Map lookup loop, NM3-09 — flashcard-sets GET endpoint loads all cards for all sets in a notebook with no pagination (+21 more)
 
-### Community 62 - "Community 62"
+### Community 59 - "Community 59"
 Cohesion: 0.07
 Nodes (28): 10. Top navigation bar, 11. Empty states, 12. "Ask AI" in the slash menu, 13. Inline-AI preview + accept/reject, 14. In-place generation result + toast (stop the Learn-hub teleport), 15. Locked-cosmetic label rendering (padlock over text), 16. PPTX export findability, 1. Elevation scale (page bg → base card → raised/interactive card) (+20 more)
 
-### Community 63 - "Community 63"
+### Community 60 - "Community 60"
+Cohesion: 0.10
+Nodes (17): CommitResult, ImportGroup, ImportJobInfo, ImportPhase, ImportStatus, PALETTE, PickedFile, PreparedFile (+9 more)
+
+### Community 61 - "Community 61"
+Cohesion: 0.13
+Nodes (27): MC_QUESTION, buildFlashcardActivityContext(), buildQuizActivityContext(), buildSafeBody(), cap(), capCodeWrite(), capRevealing(), clean() (+19 more)
+
+### Community 62 - "Community 62"
 Cohesion: 0.09
 Nodes (24): blockquoteBlockSchema, bulletListBlockSchema, calloutBlockSchema, calloutChildSchema, codeBlockSchema, docModelBlockSchema, docModelSchema, headingBlockSchema (+16 more)
 
+### Community 63 - "Community 63"
+Cohesion: 0.12
+Nodes (10): AccountSettingsPage(), AppShell(), getGradingSystem(), FORMAT_OPTIONS, NewExamPage(), Notebook, numericStep(), Skeleton() (+2 more)
+
 ### Community 64 - "Community 64"
-Cohesion: 0.11
-Nodes (19): AccountGateOverlay(), AccountGateServerGate(), DashboardLayout(), deriveAccountState(), getServerAuthToken, ExamReportPage(), WelcomeBackClient(), B (+11 more)
-
-### Community 65 - "Community 65"
-Cohesion: 0.10
-Nodes (19): getStreakInfo(), getToday(), toDateString(), updateStreak(), PROFILE_SELECT, ProfilePage(), AchievementsSection(), achMeta() (+11 more)
-
-### Community 66 - "Community 66"
 Cohesion: 0.10
 Nodes (15): GOALS, getOnboardingDraft(), getPendingUploadServerSnapshot(), getPendingUploadSnapshot(), OnboardingDraft, parse(), patchOnboardingDraft(), PendingUpload (+7 more)
 
+### Community 65 - "Community 65"
+Cohesion: 0.15
+Nodes (24): pruneOldNotifications(), runJob(), scheduleNextDeletionSweep(), scheduleNextReminderSweep(), BestMatch, buildEmbeddingInput(), CandidateConcept, compareAndMaybeMerge() (+16 more)
+
+### Community 66 - "Community 66"
+Cohesion: 0.13
+Nodes (15): formatTimestamp(), parseYouTubeId(), ResolvedSource, ResolveResult, SourceViewerType, UnresolvableSource, youtubeEmbedUrl(), locateQuote() (+7 more)
+
 ### Community 67 - "Community 67"
-Cohesion: 0.11
-Nodes (23): QUIZ_FOR_SLOT_TOOL, buildOpenRouterBody(), CallOpenRouterOptions, EMPTY_USAGE, normalizeUsage(), openRouterHeaders(), openRouterMaxCompletionTokens(), OpenRouterResponse (+15 more)
+Cohesion: 0.13
+Nodes (22): binomialUpperTailPValue(), computeDominantDistractor(), ComputeDominantDistractorInput, ConceptMisconception, deriveConceptMisconception(), DominantDistractor, logBinomialCoefficient(), logFactorial() (+14 more)
 
 ### Community 68 - "Community 68"
-Cohesion: 0.14
-Nodes (25): safeLinkHref(), addMark(), convertChildren(), convertElement(), convertListItems(), convertTable(), ImageDownloader, onenoteHtmlToPlainText() (+17 more)
+Cohesion: 0.13
+Nodes (22): TipTapDoc, UPLOAD_RULES, videoMimeFromName(), VideoIngestError, VideoNoteBlock, VideoNotes, blockToNodes(), blockToPlainText() (+14 more)
 
 ### Community 69 - "Community 69"
-Cohesion: 0.13
-Nodes (23): TipTapDoc, TipTapMark, TipTapNode, TipTapTextNode, assembleTiptap(), captionParagraph(), clampHeadingLevel(), convertBlock() (+15 more)
+Cohesion: 0.12
+Nodes (21): BurgerMenu(), BurgerMenuProps, COLORS, NavItem, PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS, getPageTitle(), Header() (+13 more)
 
 ### Community 70 - "Community 70"
-Cohesion: 0.11
-Nodes (22): NameFontCosmetic, BurgerMenu(), BurgerMenuProps, COLORS, NavItem, PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS, getPageTitle() (+14 more)
+Cohesion: 0.10
+Nodes (12): ReviewGrade, loadReviewQueue(), ReviewQueue, ReviewQueueCard, ReviewQueueImage, mocks, NOW, FlashcardCard (+4 more)
 
 ### Community 71 - "Community 71"
-Cohesion: 0.11
-Nodes (20): DeletePathDialog(), ResetPathDialog(), loadPathReadinessInputs(), derivePathStats(), findContinueSlot(), PathOverviewStats, PathTopicMastery, PathWeakCheckpoint (+12 more)
+Cohesion: 0.15
+Nodes (22): AiUsageEvent, FEATURE_TO_STAGE, fromToken(), ModelFeature, ModelProvider, ModelToken, parseToken(), PATH_STAGE_MODEL_ENV (+14 more)
 
 ### Community 72 - "Community 72"
+Cohesion: 0.15
+Nodes (21): blockToNode(), collectDeepStrings(), collectDiagramColumnStrings(), decodeEntities(), extractInner(), findMatchingClose(), htmlToTipTapJSON(), isLikelyHeading() (+13 more)
+
+### Community 73 - "Community 73"
 Cohesion: 0.13
 Nodes (21): cap(), capRevealingParts(), CONTEXT_TYPE_SET, dbOwnershipLookup(), expandMageContext(), MageGroundingLoader, MageOwnershipLookup, MODE_SET (+13 more)
 
-### Community 73 - "Community 73"
-Cohesion: 0.10
-Nodes (9): authMocks, fetchMock, RUN_TAG, callPost(), RUN_TAG, sign(), createUser(), nextCase() (+1 more)
-
 ### Community 74 - "Community 74"
-Cohesion: 0.14
-Nodes (20): Params, POST(), POST(), paymentRequiredResponse(), enqueueStructuralEdgeDerivation(), invalidateDashboardCache(), pathContentCap(), loadMaterialCorpus() (+12 more)
+Cohesion: 0.12
+Nodes (22): CodeExecuteBody, CodeExecuteTest, isExecutableLanguage(), normalizeOutput(), POST(), SingleRunResult, trimBytes(), serviceUnavailableResponse() (+14 more)
 
 ### Community 75 - "Community 75"
-Cohesion: 0.16
-Nodes (20): blockToNode(), collectDeepStrings(), collectDiagramColumnStrings(), decodeEntities(), extractInner(), findMatchingClose(), htmlToTipTapJSON(), isLikelyHeading() (+12 more)
+Cohesion: 0.10
+Nodes (14): getCosmeticsByType(), CosmeticsData, CosmeticsPanel(), CosmeticsPanelProps, CosmeticsSelection, LABEL_STYLE, SwatchShellProps, useCosmetics() (+6 more)
 
 ### Community 76 - "Community 76"
-Cohesion: 0.13
-Nodes (22): C, ExamReminderEmailParams, ExamReminderKind, getAppUrl(), getFromAddress(), getResend(), reminderCopy(), renderExamReminderEmail() (+14 more)
+Cohesion: 0.17
+Nodes (20): ANNOTATE_ANSWER_TOOL, CHAT_STUDY_PLAN_TOOL, extractToolUses(), FLASHCARD_TOOL_WITH_FIGURES, MINDMAP_TOOL, PRESENTATION_TOOL, QUIZ_TOOL_V2_WITH_FIGURES, YOUTUBE_VIDEOS_TOOL (+12 more)
 
 ### Community 77 - "Community 77"
-Cohesion: 0.15
-Nodes (24): buildFlashcardActivityContext(), buildQuizActivityContext(), buildSafeBody(), cap(), capCodeWrite(), capRevealing(), clean(), deriveCorrectAnswer() (+16 more)
-
-### Community 78 - "Community 78"
 Cohesion: 0.09
 Nodes (15): fileKindInfo, formatBytes(), metadata, BridgeKind, COPY, deriveDetected(), Detected, ERROR_COPY (+7 more)
 
+### Community 78 - "Community 78"
+Cohesion: 0.12
+Nodes (22): computeCost(), computeModelCost(), CostBreakdown, costForCall(), COSTS, deepseekRates(), glmRates(), RateCard (+14 more)
+
 ### Community 79 - "Community 79"
-Cohesion: 0.17
-Nodes (22): POST(), resolveUserId(), ACTIVE_STATUSES, getLemonSqueezyPortalUrl(), getLemonSqueezySubscription(), intervalFromLemonSqueezyVariantId(), isActiveLemonSqueezyStatus(), LemonSqueezySubscriptionView (+14 more)
+Cohesion: 0.11
+Nodes (17): ModalDimensions, useModalDimensions(), useMultiImport(), MultiPdfImportModal(), MultiPdfImportModalProps, AchievementsSection(), achMeta(), EditProfileModal() (+9 more)
 
 ### Community 80 - "Community 80"
-Cohesion: 0.10
-Nodes (13): CosmeticsData, CosmeticsPanel(), CosmeticsPanelProps, CosmeticsSelection, LABEL_STYLE, SwatchShellProps, useCosmetics(), UploadContext (+5 more)
+Cohesion: 0.11
+Nodes (20): mocks, BACKGROUND_JOB_STATUSES, BackgroundJobStatus, BACKOFF_MS, claimNextJob(), ClaimNextJobOptions, completeJob(), DELETION_SWEEP_INTERVAL_MS (+12 more)
 
 ### Community 81 - "Community 81"
-Cohesion: 0.19
-Nodes (16): POST(), getClientIp(), normalizeEmail(), generateCode(), issueEmailVerificationCode(), issuePasswordResetCode(), LockedCodeRow, resetPasswordWithCode() (+8 more)
+Cohesion: 0.14
+Nodes (16): TipTapNode, TipTapTextNode, assembleTiptap(), captionParagraph(), clampHeadingLevel(), convertBlock(), convertListContainer(), paragraphNode() (+8 more)
 
 ### Community 82 - "Community 82"
 Cohesion: 0.20
@@ -635,159 +642,159 @@ Nodes (16): calloutHeavy(), cleanText(), corrupt(), encrypted(), FIXED_DATE, FIX
 
 ### Community 84 - "Community 84"
 Cohesion: 0.13
-Nodes (16): AppMobileNav(), NAV, AppSidebar(), NAV, GLYPHS, NavIcon(), MobileBottomNav(), Tab (+8 more)
-
-### Community 85 - "Community 85"
-Cohesion: 0.13
 Nodes (14): metadata, Checkpoint, CHIPS, CP, SEG_H, capCorpusText(), extractCappedCorpus(), extractPdf() (+6 more)
 
-### Community 86 - "Community 86"
+### Community 85 - "Community 85"
 Cohesion: 0.09
 Nodes (23): 🟦 Low, NM3-31 — Admin reads of bulk user PII (emails) are not audit-logged, NM3-32 — Zero automated tests for billing webhook routes — payment provisioning correctness and HMAC signature verification have no regression coverage, NM3-33 — dashboard Page.count queries traverse a nested join chain (section -> notebook -> userId) with no index, NM3-34 — CSV formula injection in group flashcard-set CSV export, NM3-35 — Multi-PDF import 'classify' makes a paid Gemini call but never records token usage (quota under-count), NM3-36 — AI chat message endpoint rate-limited only by spoofable client IP (no per-user limiter), NM3-37 — learn/chats GET has no pagination — loads all user chats with message count in one query (+15 more)
 
+### Community 86 - "Community 86"
+Cohesion: 0.13
+Nodes (19): LEARNING_SLOT_BATCH_TOOL, QUIZ_FOR_SLOT_TOOL, openRouterMaxCompletionTokens(), OpenRouterUsage, forcedStructuredCallOpenRouter(), isNonRetryable(), sleep(), BATCH_RULES (+11 more)
+
 ### Community 87 - "Community 87"
-Cohesion: 0.17
-Nodes (21): getVideoIngestCostCeilingUsd(), getVideoIngestMaxOutputTokens(), getVideoIngestTimeoutMs(), VideoMediaResolution, asString(), buildVideoNotesPrompt(), coerceBlock(), coerceNotes() (+13 more)
+Cohesion: 0.15
+Nodes (17): AccountGateOverlay(), ExpiredBody(), fmtDate(), INTERVALS, PausedBody(), Props, useIosSheet(), WelcomeBody() (+9 more)
 
 ### Community 88 - "Community 88"
-Cohesion: 0.19
-Nodes (16): buildCallbackHtml(), escapeHtml(), GET(), acquireTokenByCode(), freshMsalClient(), getAuthCodeUrl(), getMsalClient(), getValidAccessToken() (+8 more)
+Cohesion: 0.11
+Nodes (15): LessonPage(), LESSONS, CelebrationToast(), CelebrationToastProps, DifficultyBadge(), DifficultyBadgeProps, DifficultyLevel, DifficultySize (+7 more)
 
 ### Community 89 - "Community 89"
-Cohesion: 0.14
-Nodes (15): cropFigure(), NormalizedBbox, withTableEscalation(), deriveTitle(), EMPTY_DOC, ENGINE_BY_TIER, engineForJob(), engineForTier() (+7 more)
+Cohesion: 0.16
+Nodes (18): generateReportNarrative(), geminiStructured(), GeminiStructuredUsage, truncate(), extractBalancedJson(), parseJsonLoose(), stripCodeFences(), tryParseJsonLoose() (+10 more)
 
 ### Community 90 - "Community 90"
-Cohesion: 0.10
-Nodes (19): abrilFatface, bangers, bungeeShade, cinzel, epilogue, imFellSc, inter, jetbrainsMono (+11 more)
+Cohesion: 0.19
+Nodes (17): clearLoginChallenge(), configured(), failKey(), loginChallengeRequired(), recordLoginFailure(), checkLoginThrottle(), clearLoginThrottle(), emailFingerprint() (+9 more)
 
 ### Community 91 - "Community 91"
+Cohesion: 0.13
+Nodes (18): bigStreakShouldFire(), buildReaction(), computeReaction(), CopyTier, pickCopy(), QUIZ_REACTION_COPY, isPermitted(), MINIMAL_ALLOWED (+10 more)
+
+### Community 92 - "Community 92"
+Cohesion: 0.14
+Nodes (15): deleteFile(), cropFigure(), NormalizedBbox, deriveTitle(), EMPTY_DOC, ENGINE_BY_TIER, engineForJob(), engineForTier() (+7 more)
+
+### Community 93 - "Community 93"
+Cohesion: 0.17
+Nodes (15): runTag, FeatureType, getMonthStart(), getPeriodStart(), getWeekStart(), LIFETIME_LIMITS, limitFor(), PPP_CURRENCIES (+7 more)
+
+### Community 94 - "Community 94"
 Cohesion: 0.14
 Nodes (13): BuildingPage(), firstStepLabel(), GenState, GOAL_BRIEF, REST_STEPS, clearPendingFile(), getPendingCorpus(), getPendingFile() (+5 more)
 
-### Community 92 - "Community 92"
+### Community 95 - "Community 95"
 Cohesion: 0.11
 Nodes (12): formatTime(), PomodoroPhase, TimerContext, TimerContextValue, TimerMode, TimerProvider(), useTimer(), C (+4 more)
 
-### Community 93 - "Community 93"
-Cohesion: 0.14
-Nodes (19): ChatMessage, DonePayload, SSEEvent, StreamStatus, UseStreamingChatOptions, ChatStreamOptions, MageActionCard, MageActionId (+11 more)
-
-### Community 94 - "Community 94"
-Cohesion: 0.19
-Nodes (18): BestMatch, buildEmbeddingInput(), CandidateConcept, compareAndMaybeMerge(), ConceptRow, cosineSimilarity(), enqueueConceptDedupForPlan(), ensureEmbedding() (+10 more)
-
-### Community 95 - "Community 95"
-Cohesion: 0.15
-Nodes (16): buildSourceIdentityIndex(), allocateBudget(), computeCorpusFit(), corpusBudget(), CorpusFitItem, MaterialCorpusEntry, MaterialKind, PathCorpusEstimate (+8 more)
-
 ### Community 96 - "Community 96"
-Cohesion: 0.14
-Nodes (17): bigStreakShouldFire(), buildReaction(), computeReaction(), CopyTier, pickCopy(), QUIZ_REACTION_COPY, isPermitted(), MINIMAL_ALLOWED (+9 more)
+Cohesion: 0.19
+Nodes (16): logAiUsage(), GeminiTextStreamResult, GeminiTextUsage, joinNonEmpty(), streamGeminiChatText(), StreamGeminiChatTextOpts, generateAndPersistTitle(), sanitizeTitle() (+8 more)
 
 ### Community 97 - "Community 97"
 Cohesion: 0.16
-Nodes (19): rateLimitedHtml(), rateLimitedResponse(), AUTH_LOGIC_PATTERNS, config, CONTENT_SECURITY_POLICY, GLOBAL_THROTTLE_MAX, handleMaintenance(), hasUsableSession() (+11 more)
+Nodes (18): COUNTDOWN_BUCKETS, countdownBucket(), dayKey(), daysUntil(), getAppUrl(), isMissingRelationError(), loadFiredKeys(), loadPrefsForUsers() (+10 more)
 
 ### Community 98 - "Community 98"
-Cohesion: 0.10
-Nodes (21): devDependencies, eslint, eslint-config-next, prettier, prisma, tailwindcss, @tailwindcss/postcss, @types/bcryptjs (+13 more)
+Cohesion: 0.16
+Nodes (16): applyReviewGrades(), applySeedOnly(), FlashcardReviewNotFoundError, FlashcardReviewValidationError, loadOwnedCards(), ReviewGradeInput, ReviewGradeResult, ReviewQuality (+8 more)
 
 ### Community 99 - "Community 99"
 Cohesion: 0.16
-Nodes (16): POST(), resolveUserId(), baseUserData(), testEmail(), AccountState, AccountStateFields, activeGrant(), BillingFields (+8 more)
+Nodes (19): rateLimitedHtml(), rateLimitedResponse(), AUTH_LOGIC_PATTERNS, config, CONTENT_SECURITY_POLICY, GLOBAL_THROTTLE_MAX, handleMaintenance(), hasUsableSession() (+11 more)
 
 ### Community 100 - "Community 100"
-Cohesion: 0.13
-Nodes (13): AppearanceSettingsPage(), ReactionsMode, ResolvedTheme, ThemeContext, ThemeContextValue, ThemePreference, useTheme(), setHapticsEnabled() (+5 more)
+Cohesion: 0.10
+Nodes (21): devDependencies, eslint, eslint-config-next, prettier, prisma, tailwindcss, @tailwindcss/postcss, @types/bcryptjs (+13 more)
 
 ### Community 101 - "Community 101"
+Cohesion: 0.12
+Nodes (14): accentColor(), NMCard(), NMCardProps, ProgressBar(), ProgressBarProps, SAMPLE_CATALOG, SAMPLE_IDS, SampleId (+6 more)
+
+### Community 102 - "Community 102"
+Cohesion: 0.19
+Nodes (19): getVideoIngestCostCeilingUsd(), getVideoIngestMaxOutputTokens(), getVideoIngestTimeoutMs(), VideoMediaResolution, asString(), buildVideoNotesPrompt(), coerceBlock(), coerceNotes() (+11 more)
+
+### Community 103 - "Community 103"
+Cohesion: 0.21
+Nodes (14): callRegister(), mocks, USER, computeAge(), meetsMinimumAge(), parseBirthDate(), trialGrant(), enforceIpCap() (+6 more)
+
+### Community 104 - "Community 104"
 Cohesion: 0.13
 Nodes (16): PathGenerationProgress, PathGenerationStatus, ProgressEnvelope, usePathGenerationStream(), UsePathGenerationStreamResult, ACTIVITY_LABEL, countIncompleteSlots(), GenerationProgressModal() (+8 more)
 
-### Community 102 - "Community 102"
-Cohesion: 0.11
-Nodes (12): ExamHubViewProps, PathPlan, BAND_META, BAND_ORDER, ExamMeta, WeakArea, WeakAreaBand, WeakAreaImpact (+4 more)
-
-### Community 103 - "Community 103"
+### Community 105 - "Community 105"
 Cohesion: 0.14
-Nodes (14): attrString(), CALLOUT_META, CalloutKind, CalloutSegment, classifySection(), MARK_DELIMITERS, rawText(), Segment (+6 more)
-
-### Community 104 - "Community 104"
-Cohesion: 0.22
-Nodes (16): clearLoginChallenge(), configured(), failKey(), loginChallengeRequired(), recordLoginFailure(), checkLoginThrottle(), clearLoginThrottle(), emailFingerprint() (+8 more)
+Nodes (14): register(), bootstrapDeletionSweep(), bootstrapReminderSweep(), deletionSweepDedupeKey(), sweepDedupeKey(), HEARTBEAT_MS, IDLE_MS, isProbablyMigrationRace() (+6 more)
 
 ### Community 106 - "Community 106"
+Cohesion: 0.14
+Nodes (15): PathStructureToolInput, ConceptEdgeSource, DbClient, SlotRow, SOURCE_PRIORITY, ConceptFixture, EdgeFixture, mocks (+7 more)
+
+### Community 108 - "Community 108"
 Cohesion: 0.10
 Nodes (19): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+11 more)
 
-### Community 107 - "Community 107"
-Cohesion: 0.11
-Nodes (11): decorationsForSection(), DECORATIVE_POSES, mix(), PathDecoration(), PathDecorationProps, PathDecorationSpot, VERTICAL_ANCHORS, VerticalAnchor (+3 more)
-
-### Community 108 - "Community 108"
-Cohesion: 0.20
-Nodes (13): GET(), CurrencyResponse, CURRENCY_SYMBOLS, CurrencyCode, detectCurrency(), FALLBACK_RATES, formatPrice(), isSupportedCurrency() (+5 more)
-
 ### Community 109 - "Community 109"
-Cohesion: 0.20
-Nodes (14): COLORS, Props, COLORS, NotificationDropdown(), NotificationDropdownProps, COLORS, NotificationToast(), NotificationToastProps (+6 more)
+Cohesion: 0.22
+Nodes (12): AccountGateServerGate(), DashboardLayout(), DashboardPage(), Overview, ExamsPage(), deriveAccountState(), loadExamsOverview(), getServerAuthToken (+4 more)
 
 ### Community 110 - "Community 110"
-Cohesion: 0.15
-Nodes (10): attachUpstreamGapHints(), ConceptWeakArea, ConceptWeakAreaColdStart, ConceptWeakAreaCoverage, resolveNudgesForUser(), WeakSpotsPage(), BAND_META, WeakSpotAreaWithMergeInfo (+2 more)
+Cohesion: 0.12
+Nodes (13): AnswerSubmission, AnswerEntry, QuestionImageData, QuizMode, QuizQuestion, DiscriminatePayload, RemediationBody(), RemediationBodyProps (+5 more)
 
 ### Community 111 - "Community 111"
 Cohesion: 0.17
-Nodes (14): UPLOAD_RULES, videoMimeFromName(), deleteFile(), VideoIngestError, deriveVideoPageTitle(), notesToPageDoc(), EMPTY_DOC, minutesFromTokens() (+6 more)
+Nodes (14): buildSourceIdentityIndex(), allocateBudget(), corpusBudget(), CorpusFitItem, MaterialCorpusEntry, MaterialKind, PathCorpusEstimate, KIND_LABELS (+6 more)
 
 ### Community 112 - "Community 112"
-Cohesion: 0.17
-Nodes (14): applyReviewGrades(), FlashcardReviewNotFoundError, FlashcardReviewValidationError, loadOwnedCards(), ReviewGradeInput, ReviewGradeResult, ReviewQuality, mocks (+6 more)
+Cohesion: 0.21
+Nodes (12): GET(), CurrencyResponse, CURRENCY_SYMBOLS, CurrencyCode, detectCurrency(), FALLBACK_RATES, isSupportedCurrency(), SUPPORTED_CURRENCIES (+4 more)
 
 ### Community 113 - "Community 113"
-Cohesion: 0.15
-Nodes (17): computeCost(), computeModelCost(), CostBreakdown, costForCall(), COSTS, deepseekRates(), glmRates(), ModelUsage (+9 more)
-
-### Community 114 - "Community 114"
-Cohesion: 0.23
-Nodes (13): callRegister(), mocks, USER, computeAge(), meetsMinimumAge(), parseBirthDate(), trialGrant(), enforceIpCap() (+5 more)
-
-### Community 115 - "Community 115"
 Cohesion: 0.11
 Nodes (17): Allgemeine Geschäftsbedingungen, Anwendbares Recht, Drittdienste, Geistiges Eigentum, Gemeinschaftsinhalte und geteilte Inhalte, Haftungsausschlüsse, Haftungsbeschränkung, Ihr Konto (+9 more)
 
-### Community 116 - "Community 116"
+### Community 114 - "Community 114"
 Cohesion: 0.11
 Nodes (17): Acceptable use, AI features, Changes to these Terms, Community and shared content, Contact, Disclaimers, Governing law, Intellectual property (+9 more)
 
-### Community 117 - "Community 117"
-Cohesion: 0.20
-Nodes (14): ANNOTATE_ANSWER_TOOL, extractToolUses(), AnthropicChatMessage, streamChatGLM(), StreamChatGLMOptions, OpenRouterMessage, OpenRouterStreamHandlers, anthropicToolsToOpenAI() (+6 more)
+### Community 115 - "Community 115"
+Cohesion: 0.21
+Nodes (14): CacheControlEphemeral, ChatMessageParam, ChatTurnResult, ContentBlock, TextBlock, TextBlockParam, ToolChoice, ToolDef (+6 more)
 
-### Community 118 - "Community 118"
+### Community 116 - "Community 116"
 Cohesion: 0.12
 Nodes (16): Architecture, Context, Create, Cross-page persistence, Files, Icons, Modify, Open items to confirm before implementation (+8 more)
 
-### Community 119 - "Community 119"
+### Community 117 - "Community 117"
+Cohesion: 0.16
+Nodes (13): ChatMessage, DonePayload, SSEEvent, StreamStatus, UseStreamingChatOptions, MageConsentPayload, MageRevealGatePayload, MageSourcesPayload (+5 more)
+
+### Community 118 - "Community 118"
 Cohesion: 0.12
 Nodes (16): An wen wir Daten weitergeben, Analyse, Cookies und ähnliche Technologien, Datenschutzerklärung, Ihre Rechte, Import aus Microsoft OneNote, Internationale Übermittlungen, KI-Funktionen und Ihre Inhalte (+8 more)
 
-### Community 120 - "Community 120"
+### Community 119 - "Community 119"
 Cohesion: 0.12
 Nodes (16): AI features and your content, Analytics, Changes to this policy, Children, Contact, Cookies and similar technologies, How long we keep your data, Importing from Microsoft OneNote (+8 more)
 
-### Community 121 - "Community 121"
+### Community 120 - "Community 120"
 Cohesion: 0.17
 Nodes (15): cardHref(), describeMageActionMenu(), MAGE_ACTION_CATALOG, MageActionContext, MageActionKind, MageActionRisk, MageActionsPayload, MageActionSpec (+7 more)
 
-### Community 122 - "Community 122"
+### Community 121 - "Community 121"
 Cohesion: 0.12
-Nodes (15): All confirmed findings by severity, Appendix A — All 32 verified findings (machine-extracted, sorted by severity), Appendix B — Adversarial verification ledger, Bankruptcy / runaway-cost risks (fix first), Critical, Executive summary, High, Lead spot-checks (direct code read, post-workflow) (+7 more)
+Nodes (11): FormData, getPasswordScore(), INITIAL_FORM, MONTHS, PANEL_COPY, scoreColor, scoreLabel, SignupFlow() (+3 more)
+
+### Community 122 - "Community 122"
+Cohesion: 0.16
+Nodes (12): WelcomeBackClient(), B, backOut(), clamp(), fadeWin(), Orient, outCubic(), POSTER_STARS (+4 more)
 
 ### Community 123 - "Community 123"
-Cohesion: 0.17
-Nodes (10): ActiveCard(), ActiveExam, ArchivedCard(), ArchivedExam, daysLeftLabel(), formatDate(), Overview, readinessStatus() (+2 more)
+Cohesion: 0.12
+Nodes (15): All confirmed findings by severity, Appendix A — All 32 verified findings (machine-extracted, sorted by severity), Appendix B — Adversarial verification ledger, Bankruptcy / runaway-cost risks (fix first), Critical, Executive summary, High, Lead spot-checks (direct code read, post-workflow) (+7 more)
 
 ### Community 124 - "Community 124"
 Cohesion: 0.16
@@ -795,223 +802,223 @@ Nodes (9): CheckpointIcon(), CheckpointIconProps, CheckpointKind, LockIcon(), Se
 
 ### Community 125 - "Community 125"
 Cohesion: 0.16
-Nodes (15): CLASSIFY_CHAT_INTENT_TOOL, ClassifyChatIntentToolInput, ChatIntent, ChatIntentResult, classifyChatIntent(), ClassifyChatIntentOpts, findToolUse(), GENERATION_INTENTS (+7 more)
+Nodes (11): formatPrice(), INTERVAL_SUFFIX, isPppCurrency(), monthlyEquivalent(), proPriceCHF(), yearlySavingsPct(), CompareRow, CompareVal (+3 more)
 
 ### Community 126 - "Community 126"
-Cohesion: 0.22
-Nodes (12): getAuthContext(), formatExamStudyState(), dbGroundingLoader(), resolveMageGrounding(), buildMageSourceManifest(), mageContextKey(), detectExplicitWebIntent(), NEGATION_RES (+4 more)
-
-### Community 127 - "Community 127"
-Cohesion: 0.24
-Nodes (12): GeminiTextStreamResult, GeminiTextUsage, joinNonEmpty(), streamGeminiChatText(), StreamGeminiChatTextOpts, getGeminiClient(), globalForGemini, isDegenerateText() (+4 more)
-
-### Community 128 - "Community 128"
-Cohesion: 0.17
-Nodes (12): ConceptEdgeSource, DbClient, deriveStructuralEdgesForPlan(), SlotRow, SOURCE_PRIORITY, ConceptFixture, EdgeFixture, mocks (+4 more)
-
-### Community 129 - "Community 129"
-Cohesion: 0.38
-Nodes (15): callOpenRouter(), streamOpenRouterText(), capAutoTool(), capCaching(), capForcedTool(), capJsonSchema(), capPlain(), capStreamText() (+7 more)
-
-### Community 130 - "Community 130"
 Cohesion: 0.12
 Nodes (16): scripts, build, build:worker, dev, diagram:eval, format, format:check, lint (+8 more)
 
-### Community 131 - "Community 131"
+### Community 127 - "Community 127"
 Cohesion: 0.18
 Nodes (15): buildConceptCandidatesTool(), buildConceptTaggingTool(), ConceptCandidatesToolInput, ConceptTaggingToolInput, db, loadSlotsWithItems(), loadWrongAnswers(), main() (+7 more)
 
-### Community 132 - "Community 132"
-Cohesion: 0.23
-Nodes (10): AnalyticsConsentBanner(), hasAnalyticsConsent(), isAnalyticsConsentUndecided(), optInAnalytics(), optOutAnalytics(), rememberDecision(), PostHogIdentify(), PostHogProvider() (+2 more)
+### Community 128 - "Community 128"
+Cohesion: 0.16
+Nodes (14): CLASSIFY_CHAT_INTENT_TOOL, ClassifyChatIntentToolInput, ChatIntent, ChatIntentResult, classifyChatIntent(), ClassifyChatIntentOpts, GENERATION_INTENTS, GenerationIntent (+6 more)
 
-### Community 133 - "Community 133"
+### Community 129 - "Community 129"
 Cohesion: 0.19
 Nodes (11): CALLOUT_RENDER_META, CALLOUT_TYPE_BY_MARKER, CalloutMarkerType, AdmonitionAwareBlockquote(), bubbleComponents, firstRealIndex(), lowlight, MarkdownRendererProps (+3 more)
 
-### Community 134 - "Community 134"
-Cohesion: 0.17
-Nodes (13): executeCode(), fetchRuntimes(), pickVersion(), PISTON_FILE_NAMES, PISTON_LANGUAGE_MAP, PISTON_SUPPORTED_LANGUAGES, pistonBaseUrl(), PistonExecuteOptions (+5 more)
+### Community 130 - "Community 130"
+Cohesion: 0.24
+Nodes (13): CachedPrefixResult, createCachedPrefix(), dropCachedPrefix(), getOrCreateCachedPrefix(), pathCacheDisabled(), PrefixCacheEntry, prefixCacheRegistry, prefixKey() (+5 more)
 
-### Community 135 - "Community 135"
+### Community 131 - "Community 131"
 Cohesion: 0.16
 Nodes (8): CodeExecuteResponse, CodeWriteRenderer(), compactRuns(), runButtonStyle(), RunResult, CodeWriteRun, CodeMirrorEditor(), CodeMirrorEditorProps
 
-### Community 136 - "Community 136"
+### Community 132 - "Community 132"
 Cohesion: 0.13
 Nodes (14): Asset Handling, Border Radius, Color Token Mapping, Component Organization, Custom Utility Classes (use these when appropriate), Figma MCP Integration Rules — Neon Scholar Design System, Icon System, Partial Updates (+6 more)
 
-### Community 137 - "Community 137"
+### Community 133 - "Community 133"
 Cohesion: 0.18
 Nodes (11): evalFixture(), EvalRow, FIXTURE_DIR, FIXTURES, globalAny, main(), NodeCanvasFactory, OUTPUT_DIR (+3 more)
 
-### Community 138 - "Community 138"
-Cohesion: 0.16
-Nodes (12): getCosmetic(), CONFETTI, CONFETTI_COLORS, COSMETIC_TYPE_LABEL, RewardTakeover(), Button, ButtonProps, Shape (+4 more)
-
-### Community 139 - "Community 139"
-Cohesion: 0.18
-Nodes (13): LEARNING_SLOT_BATCH_TOOL, BATCH_RULES, CORPUS, FLASHCARDS_RULES, main(), ModelResults, MODELS, Outcome (+5 more)
-
-### Community 141 - "Community 141"
+### Community 135 - "Community 135"
 Cohesion: 0.21
 Nodes (13): detectSubjects(), extractJson(), fallbackGroups(), getClient(), groupSchema, niceName(), NO_USAGE, ProposedGroup (+5 more)
 
-### Community 142 - "Community 142"
+### Community 136 - "Community 136"
 Cohesion: 0.19
 Nodes (10): ConceptTrackingAnswer, enqueueBackfillForUntaggedQuestions(), enqueueMisconceptionForNewlyWeakConcepts(), FlashcardGradeInput, mocks, NOW, trackConceptAttempts(), TrackConceptAttemptsArgs (+2 more)
 
-### Community 143 - "Community 143"
+### Community 137 - "Community 137"
 Cohesion: 0.26
 Nodes (11): CONTROL_TO_COMMAND, isControl(), isLetter(), looksLikeCorruptedLatex(), repairMathLatex(), blockMathNode(), APPLY, db (+3 more)
 
-### Community 144 - "Community 144"
+### Community 138 - "Community 138"
 Cohesion: 0.17
 Nodes (11): ~~api-auth-coverage test is a text-regex presence scan, not an object-level authorization test — cannot detect IDOR or cross-user scoping failures~~ (qa, originally High), Appendix — Refuted findings (excluded), Findings, 🟧 High, Index, NM3-01 — Reflected XSS in OneNote OAuth callback via script-context breakout (error_description), NM3-02 — Deleting an account does not cancel an active paid subscription (continued billing after erasure), NoteMage — Full Multi-Lens Audit (2026-06-06) (+3 more)
 
-### Community 145 - "Community 145"
-Cohesion: 0.32
-Nodes (9): clientIpFromHeaders(), trustedProxyHops(), getIpFromHeaders(), IpCapResult, extractVideoId(), fetchDuration(), fetchWithTimeout(), GET() (+1 more)
+### Community 139 - "Community 139"
+Cohesion: 0.21
+Nodes (7): ActiveCard(), ActiveExam, ArchivedCard(), ArchivedExam, daysLeftLabel(), formatDate(), readinessStatus()
 
-### Community 146 - "Community 146"
+### Community 140 - "Community 140"
 Cohesion: 0.26
 Nodes (8): sendSignupNotification(), GOAL_BOUNDS, GOAL_KEYS, GoalKey, validateGoals(), PUT(), GET(), PUT()
 
-### Community 147 - "Community 147"
-Cohesion: 0.21
-Nodes (10): ModelFeature, GeminiUsage, parseStructureReasoningEffort(), PATH_TOOLS_STABLE, Provider, Stage, STAGE_FEATURE, StructuredCallCtx (+2 more)
+### Community 141 - "Community 141"
+Cohesion: 0.26
+Nodes (9): generateCode(), issueEmailVerificationCode(), issuePasswordResetCode(), LockedCodeRow, resetPasswordWithCode(), mocks, tx, VerifyCodeResult (+1 more)
 
-### Community 148 - "Community 148"
-Cohesion: 0.30
-Nodes (11): createCachedPrefix(), dropCachedPrefix(), forcedStructuredCallGemini(), getOrCreateCachedPrefix(), joinNonEmpty(), pathCacheDisabled(), PrefixCacheEntry, prefixCacheRegistry (+3 more)
+### Community 142 - "Community 142"
+Cohesion: 0.26
+Nodes (11): buildWeaknessNudgeSubject(), C, getAppUrl(), getFromAddress(), getResend(), leadTrigger(), renderWeaknessNudgeEmail(), sendWeaknessNudgeEmail() (+3 more)
 
-### Community 149 - "Community 149"
+### Community 143 - "Community 143"
 Cohesion: 0.21
 Nodes (10): GOAL_LABELS, MARKER_CLASS, MarkerKind, Node, NODES, PathRevealPage(), previewNodes(), SlotCounts (+2 more)
 
-### Community 150 - "Community 150"
+### Community 144 - "Community 144"
 Cohesion: 0.17
 Nodes (10): BBOX, BLOCK, CALLOUT_CHILD, CHILD_LIST, DOC_MODEL_JSON_SCHEMA, LIST_ITEM, LIST_ITEM_LEAF, PARAGRAPH (+2 more)
 
-### Community 151 - "Community 151"
+### Community 145 - "Community 145"
+Cohesion: 0.38
+Nodes (11): buildHeadingSizeRank(), buildTableBlock(), computeBodyFontSize(), detectTableRegion(), groundTruthToBlocks(), guessHeaderRow(), headingLevelFor(), isHeadingLine() (+3 more)
+
+### Community 146 - "Community 146"
+Cohesion: 0.20
+Nodes (5): ResetPasswordFormProps, TurnstileApi, TurnstileWidget(), TurnstileWidgetProps, Window
+
+### Community 147 - "Community 147"
 Cohesion: 0.18
 Nodes (10): 1. Model inventory, 2. Canonical caching map, 3. Findings, 4. Priority plan, Headline verdict, Implementation status (2026-06-11, same day), P1 — Correctness bugs, P2 — Caching & cost (+2 more)
 
-### Community 152 - "Community 152"
-Cohesion: 0.24
-Nodes (8): CancelPathDialog(), ToastAction, ToastContext, ToastContextValue, ToastItem, ToastOptions, ToastProvider(), useToast()
-
-### Community 153 - "Community 153"
-Cohesion: 0.18
-Nodes (3): figureStyle, KIND_ICON, titleStyle
-
-### Community 154 - "Community 154"
+### Community 148 - "Community 148"
 Cohesion: 0.18
 Nodes (5): AddedVideo, UsageEntry, VideoMaterialPickerProps, WizardState, VideoUrlConfirm
 
-### Community 155 - "Community 155"
+### Community 149 - "Community 149"
 Cohesion: 0.18
 Nodes (10): 14-tägige Geld-zurück-Garantie, Ihr Widerrufsrecht (Verbraucher in der EU/im EWR), Kontakt, Kostenloser Plan, Kündigung Ihres Abonnements, Rückerstattungsrichtlinie, So beantragen Sie eine Rückerstattung, Verlängerungen (+2 more)
 
-### Community 156 - "Community 156"
+### Community 150 - "Community 150"
 Cohesion: 0.18
 Nodes (10): 14-day money-back guarantee, Cancelling your subscription, Changes to this policy, Contact, Free plan, How payments and refunds are handled, How to request a refund, Refund Policy (+2 more)
 
-### Community 157 - "Community 157"
+### Community 151 - "Community 151"
+Cohesion: 0.27
+Nodes (8): checkAiSpendAlarm(), fireAlarm(), DAILY, mocks, NON_DAILY, threshold(), topFeaturesByCost(), windowSpendUsd()
+
+### Community 152 - "Community 152"
+Cohesion: 0.24
+Nodes (8): bandLabel(), BarRow(), clamp(), ExamReportViewPage(), ExamReportViewProps, formatDate(), ReportView(), Ring()
+
+### Community 153 - "Community 153"
+Cohesion: 0.25
+Nodes (7): averageGrades(), formatGrade(), fromNeutral(), GRADING_SYSTEMS, GradingBand, GradingSystem, C
+
+### Community 154 - "Community 154"
+Cohesion: 0.25
+Nodes (9): BatchResult, captionBatch(), captionMissing(), CaptionTarget, CaptionUsageContext, GeminiPart, PLACEHOLDER_CAPTIONS, sanitizeCaption() (+1 more)
+
+### Community 155 - "Community 155"
 Cohesion: 0.27
 Nodes (9): admonitionsToCallouts(), BLOCK_PATTERNS, INLINE_PATTERNS, isStructuralLine(), markdownToHtml(), parseFenceLine(), repairCodeFences(), splitSoftProseLines() (+1 more)
 
-### Community 158 - "Community 158"
+### Community 156 - "Community 156"
+Cohesion: 0.25
+Nodes (7): scoreSection(), Section, SLICE_BUDGET_CHARS, sliceCorpusForSlot(), splitSections(), STOP_WORDS, termsFor()
+
+### Community 157 - "Community 157"
 Cohesion: 0.25
 Nodes (10): ExtractedPdfImage, extractJpegImages(), extractPdfImages(), extractPngImages(), extractWithPdfjs(), findJpegEnd(), JPEG_END, JPEG_START (+2 more)
 
-### Community 159 - "Community 159"
+### Community 158 - "Community 158"
 Cohesion: 0.22
 Nodes (7): BRAND_COLORS, darkenHex(), generatePresentationPptx(), KIND_LABEL, lightenHex(), PresentationSlide, SlideData
 
-### Community 160 - "Community 160"
+### Community 159 - "Community 159"
 Cohesion: 0.25
 Nodes (9): BLOCKED_HOSTNAMES, createPinnedAgent(), importFromUrl(), isPrivateIp(), SSRFError, UrlImportResult, validateAndResolve(), ValidatedTarget (+1 more)
 
-### Community 161 - "Community 161"
+### Community 160 - "Community 160"
 Cohesion: 0.18
 Nodes (5): CardPhase, primaryBtnStyle, VIDEO_ID_PATTERNS, VideoInputMaskProps, VideoSourceCardProps
 
-### Community 162 - "Community 162"
-Cohesion: 0.33
-Nodes (8): POST(), COMPLIANCE_HEADERS, complianceFooter(), getFromAddress(), getResend(), sendLaunchAnnouncement(), sendWaitlistConfirmation(), GET()
-
-### Community 163 - "Community 163"
+### Community 161 - "Community 161"
 Cohesion: 0.20
 Nodes (9): Apple Pencil — hardware has no barrel button, Code review (static verification, no physical device), Device matrix, Don't re-flag this as "missing", Known limitations, Stylus + barrel-button support, The eraser never auto-switches back to pen, Wacom + macOS — driver-dependent (+1 more)
 
-### Community 164 - "Community 164"
+### Community 162 - "Community 162"
 Cohesion: 0.27
 Nodes (7): getMilestone(), getStreakColor(), STREAK_MILESTONES, StreakDisplay(), StreakDisplayProps, StreakInfo, useCelebration()
 
-### Community 165 - "Community 165"
+### Community 163 - "Community 163"
 Cohesion: 0.22
 Nodes (9): convert(), DROPPED_KEYS, FLASHCARDS_FOR_SLOT_SCHEMA_GEMINI, PATH_STRUCTURE_SCHEMA_GEMINI, QUIZ_FOR_SLOT_SCHEMA_GEMINI, THEORY_SECTION_SCHEMA_GEMINI, toGeminiSchema(), TYPE_MAP (+1 more)
 
+### Community 164 - "Community 164"
+Cohesion: 0.27
+Nodes (10): ChatStreamOptions, MageActionCard, MageActionId, MageConsentChip, MageMessageMetadata, MageMode, MageRevealGate, MageSource (+2 more)
+
+### Community 165 - "Community 165"
+Cohesion: 0.38
+Nodes (8): clientIpFromHeaders(), trustedProxyHops(), getIpFromHeaders(), extractVideoId(), fetchDuration(), fetchWithTimeout(), GET(), isoDurationToClock()
+
 ### Community 166 - "Community 166"
-Cohesion: 0.42
-Nodes (7): geminiStructured(), GeminiStructuredUsage, truncate(), extractBalancedJson(), parseJsonLoose(), stripCodeFences(), tryParseJsonLoose()
+Cohesion: 0.31
+Nodes (9): C, ExamReminderEmailParams, ExamReminderKind, getAppUrl(), getFromAddress(), getResend(), reminderCopy(), renderExamReminderEmail() (+1 more)
 
 ### Community 167 - "Community 167"
-Cohesion: 0.42
-Nodes (8): isMissingRelationError(), loadNotificationPreferences(), NOTIFICATION_PREF_KEYS, parseNotificationPreferences(), pickPrefs(), saveNotificationPreferences(), GET(), PUT()
-
-### Community 168 - "Community 168"
 Cohesion: 0.33
 Nodes (9): extractImageRelIds(), extractTextNodes(), getSortedSlideNames(), mimeFromExtension(), parsePptxFile(), parseRels(), PptxImage, PptxSlide (+1 more)
 
-### Community 169 - "Community 169"
+### Community 168 - "Community 168"
 Cohesion: 0.20
 Nodes (9): arrowParens, bracketSpacing, endOfLine, printWidth, semi, singleQuote, tabWidth, trailingComma (+1 more)
 
-### Community 170 - "Community 170"
+### Community 169 - "Community 169"
 Cohesion: 0.29
 Nodes (9): ageDays(), APPLY, db, dbHost(), ID, listStuck(), main(), MODE (+1 more)
 
-### Community 171 - "Community 171"
+### Community 170 - "Community 170"
 Cohesion: 0.22
 Nodes (8): Adding an exam {#exams}, Countdown {#countdown}, Exams, How they work together, Pomodoro {#pomodoro}, Stopwatch {#stopwatch}, Timer widget, Why link a notebook?
 
-### Community 172 - "Community 172"
+### Community 171 - "Community 171"
 Cohesion: 0.22
 Nodes (8): 1. Manually, 2. With AI, 3. By import, Export to .pptx and .pdf, Limits, Related docs, Studying a deck, Three ways to make a deck
 
-### Community 173 - "Community 173"
+### Community 172 - "Community 172"
 Cohesion: 0.22
 Nodes (8): Class, Direct message, Friends, Groups, Public profiles, See also, Sharing notebooks, Study group
 
-### Community 174 - "Community 174"
+### Community 173 - "Community 173"
 Cohesion: 0.22
 Nodes (8): 0. Prereqs (SSH into the Hetzner box), 1. Create the Piston service (Coolify → New Resource → Docker Compose, Empty), 2. Put the web app on the same network, 3. Install language runtimes, 4. Point the web app at Piston, 5. Verify, Notes, Piston setup (code_write execution) on Coolify
 
-### Community 175 - "Community 175"
+### Community 174 - "Community 174"
 Cohesion: 0.28
 Nodes (6): AchievementToastProps, clamp01(), computeOrigin(), fireMascotConfetti(), MASCOT_CONFETTI_COLORS, MascotConfettiOptions
 
-### Community 176 - "Community 176"
+### Community 175 - "Community 175"
 Cohesion: 0.31
 Nodes (6): FolderCard(), FolderCardProps, FolderData, formatDate(), COLOR_SWATCHES, FolderFormProps
 
+### Community 176 - "Community 176"
+Cohesion: 0.25
+Nodes (8): decorationsForSection(), DECORATIVE_POSES, mix(), PathDecoration(), PathDecorationProps, PathDecorationSpot, VERTICAL_ANCHORS, VerticalAnchor
+
 ### Community 177 - "Community 177"
+Cohesion: 0.28
+Nodes (8): CHECKOUT_URL_BY_INTERVAL, CHECKOUT_URL_BY_INTERVAL_PPP, loadLemon(), openProCheckout(), OpenProCheckoutOptions, PPP_CHECKOUT_CONFIGURED, resolveCheckoutUrl(), Window
+
+### Community 178 - "Community 178"
 Cohesion: 0.25
 Nodes (6): math, asciiToKatexHtml(), EquationRenderer(), normalize(), PALETTE, PaletteKey
 
-### Community 178 - "Community 178"
+### Community 179 - "Community 179"
 Cohesion: 0.44
 Nodes (8): C, getAppUrl(), getFromAddress(), getResend(), renderPasswordResetEmail(), renderVerificationEmail(), sendPasswordResetCode(), sendVerificationCode()
 
-### Community 179 - "Community 179"
+### Community 180 - "Community 180"
 Cohesion: 0.22
 Nodes (9): buildNodes(), countActivities(), deriveMaterials(), fileExt(), fmtSize(), Step1Material(), Step4Analyze(), Step5Review() (+1 more)
-
-### Community 180 - "Community 180"
-Cohesion: 0.43
-Nodes (5): authOptions, isCredentialsCallbackPath(), normalizeAuthPath(), handler, rateLimitedPost()
 
 ### Community 181 - "Community 181"
 Cohesion: 0.25
@@ -1034,166 +1041,182 @@ Cohesion: 0.25
 Nodes (5): NONE, deriveConsentChips(), mageGrantUncoveredDirective(), MageThreadGrants, ResumePayload
 
 ### Community 186 - "Community 186"
+Cohesion: 0.36
+Nodes (6): forcedStructuredCall(), parseStructureReasoningEffort(), Provider, Stage, STAGE_FEATURE, buildSourceMaterialsBlock()
+
+### Community 187 - "Community 187"
+Cohesion: 0.29
+Nodes (4): BRAND, KIND_LABEL, shuffleNonIdentity(), parseYearForSort()
+
+### Community 188 - "Community 188"
 Cohesion: 0.25
 Nodes (4): LINE_COLORS, MindmapRendererProps, NODE_COLORS, TreeNode
 
-### Community 187 - "Community 187"
+### Community 189 - "Community 189"
 Cohesion: 0.39
 Nodes (7): APPLY, buildIndex(), db, dbHost(), main(), MaterialRef, normLabel()
 
-### Community 188 - "Community 188"
+### Community 190 - "Community 190"
 Cohesion: 0.29
 Nodes (6): OneNote import, Section-level imports, Supported file uploads, URL imports, Where this hooks in, YouTube transcripts
 
-### Community 189 - "Community 189"
+### Community 191 - "Community 191"
 Cohesion: 0.29
 Nodes (6): Background colour, Embedding files and images, Stylus support, Tools, What gets saved, Where canvas fits in
 
-### Community 190 - "Community 190"
+### Community 192 - "Community 192"
 Cohesion: 0.29
 Nodes (6): Building a quiz, Export, Limits, Manually, Taking a quiz, With AI
 
-### Community 191 - "Community 191"
+### Community 193 - "Community 193"
 Cohesion: 0.29
 Nodes (6): Accepted residuals (low-risk, documented), Foundation (shared libs), Outstanding — needs owner decision / infra (NOT code), Route lanes, Security Remediation — 2026-06-13, Verification
 
-### Community 192 - "Community 192"
-Cohesion: 0.38
-Nodes (3): CommitResult, ImportStatus, ImportCreatingStepProps
+### Community 195 - "Community 195"
+Cohesion: 0.29
+Nodes (3): CLASSIFY_RESULT, CONCEPT_ID_BY_KEY, mocks
 
-### Community 194 - "Community 194"
+### Community 196 - "Community 196"
 Cohesion: 0.29
 Nodes (5): COMPARISON, CYCLE_4, STEPS_4, TIMELINE_3, TIMELINE_4
 
-### Community 195 - "Community 195"
+### Community 197 - "Community 197"
+Cohesion: 0.48
+Nodes (6): COMPLIANCE_HEADERS, complianceFooter(), getFromAddress(), getResend(), sendLaunchAnnouncement(), sendWaitlistConfirmation()
+
+### Community 198 - "Community 198"
 Cohesion: 0.29
 Nodes (3): DateOfBirthFieldProps, MONTHS, Parts
 
-### Community 196 - "Community 196"
+### Community 199 - "Community 199"
 Cohesion: 0.33
 Nodes (5): Create an account, Sign in, What's in your dashboard, Where to go next, Your first notebook
 
-### Community 197 - "Community 197"
+### Community 200 - "Community 200"
 Cohesion: 0.33
 Nodes (5): Giving the AI context, Limits, Starting a chat, Streaming responses, Tools the AI can call
 
-### Community 198 - "Community 198"
+### Community 201 - "Community 201"
 Cohesion: 0.33
 Nodes (5): Achievements, See also, Streak freezes, Streaks, Where to see it all
 
-### Community 199 - "Community 199"
+### Community 202 - "Community 202"
 Cohesion: 0.47
 Nodes (5): Exam, ExamCountdown(), ExamCountdownProps, getDaysRemaining(), getUrgencyColor()
 
-### Community 200 - "Community 200"
+### Community 203 - "Community 203"
 Cohesion: 0.33
 Nodes (5): Betreiber, Datenschutz, Haftungsausschluss, Impressum, Verantwortlich für den Inhalt
 
-### Community 201 - "Community 201"
+### Community 204 - "Community 204"
 Cohesion: 0.33
 Nodes (5): Data protection, Disclaimer, Legal Notice, Operator, Responsibility for content
 
-### Community 202 - "Community 202"
+### Community 205 - "Community 205"
+Cohesion: 0.47
+Nodes (3): selectRelevantContext(), STOP_WORDS, termsFor()
+
+### Community 206 - "Community 206"
 Cohesion: 0.60
 Nodes (5): constantTimeEqual(), hasSignupBypass(), hasSignupBypassFromAppCookies(), isValidBypassToken(), normalizeEnvToken()
 
-### Community 203 - "Community 203"
+### Community 207 - "Community 207"
 Cohesion: 0.33
 Nodes (5): Callout, CALLOUT_STYLES, CalloutOptions, CalloutType, Commands
 
-### Community 204 - "Community 204"
+### Community 208 - "Community 208"
 Cohesion: 0.33
 Nodes (5): CLOSED_STATE, SlashCommand, SlashCommandOptions, slashCommandPluginKey, SlashCommandState
 
-### Community 205 - "Community 205"
+### Community 209 - "Community 209"
 Cohesion: 0.33
 Nodes (4): readYouTubeDuration(), Window, YTNamespace, YTPlayer
 
-### Community 206 - "Community 206"
-Cohesion: 0.40
-Nodes (5): OrchestratorFile, OrchestratorGroup, OrchestratorInput, OrchestratorResult, ImportJobMode
+### Community 210 - "Community 210"
+Cohesion: 0.33
+Nodes (4): GET(), Params, ProgressPayload, SnapshotEnvelope
 
-### Community 207 - "Community 207"
+### Community 211 - "Community 211"
 Cohesion: 0.33
 Nodes (3): RTab, RTabButtonProps, RTabsProps
 
-### Community 208 - "Community 208"
+### Community 212 - "Community 212"
 Cohesion: 0.33
 Nodes (5): buffer, __dirname, __filename, require, workerPath
 
-### Community 209 - "Community 209"
+### Community 214 - "Community 214"
+Cohesion: 0.40
+Nodes (4): DB performance runbook, Incremental completion denormalization (done — migration 20260717000000), `index-advisor.sql` — run every few weeks (or after a feature adds new queries), What the load audit already applied (2026-07-06)
+
+### Community 215 - "Community 215"
 Cohesion: 0.40
 Nodes (4): Adding a path, Browsing, Publishing your own, See also
 
-### Community 210 - "Community 210"
+### Community 216 - "Community 216"
 Cohesion: 0.40
 Nodes (4): Before traffic, Expected behavior, Login/Auth Security Release — 2026-07-03, Monitor
 
-### Community 211 - "Community 211"
+### Community 217 - "Community 217"
 Cohesion: 0.40
 Nodes (4): Asking for one, How they're built, Where they live, Why use a mind map vs. a flashcard deck
 
-### Community 213 - "Community 213"
-Cohesion: 0.40
-Nodes (3): Align, PathConnectorProps, X_FRAC_BY_ALIGN
-
-### Community 215 - "Community 215"
+### Community 220 - "Community 220"
 Cohesion: 0.50
-Nodes (4): loadPdfjs(), RenderedPdfPage, RenderOptions, renderPdfToPngs()
+Nodes (3): detectExplicitWebIntent(), NEGATION_RES, REQUEST_RES
 
-### Community 216 - "Community 216"
+### Community 221 - "Community 221"
 Cohesion: 0.40
 Nodes (4): Commands, InlineHeading, InlineHeadingOptions, LEVEL_STYLES
 
-### Community 217 - "Community 217"
+### Community 222 - "Community 222"
 Cohesion: 0.50
 Nodes (4): BlockMath, buildSpan(), InlineMath, renderMath()
 
-### Community 218 - "Community 218"
+### Community 223 - "Community 223"
 Cohesion: 0.50
 Nodes (3): cn(), Card, CardProps
 
-### Community 219 - "Community 219"
+### Community 224 - "Community 224"
 Cohesion: 0.40
 Nodes (4): JWT, NameStyleSession, Session, TutorialStateSession
 
-### Community 221 - "Community 221"
+### Community 226 - "Community 226"
 Cohesion: 0.50
 Nodes (3): How to use it, Tier note, What it does
 
-### Community 222 - "Community 222"
+### Community 227 - "Community 227"
 Cohesion: 0.50
 Nodes (4): ⬜ Info, NM3-53 — No test for the assessment route — client-trusted score/total forgery (the exact prior-pentest finding) has no regression guard, NM3-54 — Two divergent grading trust boundaries — server re-grades notebook quizzes but trusts the client for learn-path assessment slots, NM3-55 — PostHog identify transmits email and full name to the analytics processor
 
-### Community 224 - "Community 224"
+### Community 231 - "Community 231"
 Cohesion: 0.50
 Nodes (3): ImagePlaceholder, ImagePlaceholderOptions, ImagePlaceholderUploadContext
 
-### Community 226 - "Community 226"
+### Community 233 - "Community 233"
 Cohesion: 0.50
 Nodes (3): name, private, version
 
-### Community 227 - "Community 227"
+### Community 234 - "Community 234"
 Cohesion: 0.50
 Nodes (3): Deploy on Vercel, Getting Started, Learn More
 
-### Community 228 - "Community 228"
+### Community 235 - "Community 235"
 Cohesion: 0.67
 Nodes (3): db, main(), textToTipTapJSON()
 
 ## Knowledge Gaps
-- **1751 isolated node(s):** `semi`, `trailingComma`, `singleQuote`, `printWidth`, `tabWidth` (+1746 more)
+- **1776 isolated node(s):** `semi`, `trailingComma`, `singleQuote`, `printWidth`, `tabWidth` (+1771 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **31 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `internalErrorResponse()` connect `Community 0` to `Community 1`, `Community 162`, `Community 36`, `Community 167`, `Community 74`, `Community 13`, `Community 48`, `Community 81`, `Community 146`, `Community 114`, `Community 126`, `Community 30`?**
+- **Why does `internalErrorResponse()` connect `Community 0` to `Community 3`, `Community 35`, `Community 4`, `Community 103`, `Community 74`, `Community 76`, `Community 140`, `Community 15`, `Community 16`?**
   _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Why does `useBreakpoint()` connect `Community 32` to `Community 33`, `Community 65`, `Community 70`, `Community 39`, `Community 41`, `Community 44`, `Community 109`, `Community 14`, `Community 53`, `Community 23`, `Community 25`, `Community 59`, `Community 92`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._
-- **Why does `successResponse()` connect `Community 0` to `Community 1`, `Community 162`, `Community 36`, `Community 167`, `Community 74`, `Community 13`, `Community 81`, `Community 146`, `Community 126`, `Community 30`?**
+- **Why does `useBreakpoint()` connect `Community 21` to `Community 34`, `Community 69`, `Community 6`, `Community 5`, `Community 70`, `Community 14`, `Community 79`, `Community 46`, `Community 49`, `Community 110`, `Community 95`, `Community 30`, `Community 63`?**
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
+- **Why does `NotFound()` connect `Community 22` to `Community 25`, `Community 13`, `Community 29`, `Community 70`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **Are the 25 inferred relationships involving `internalErrorResponse()` (e.g. with `GET()` and `DELETE()`) actually correct?**
   _`internalErrorResponse()` has 25 INFERRED edges - model-reasoned connections that need verification._

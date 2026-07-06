@@ -6,32 +6,27 @@ import { describe, it, expect } from 'vitest';
 import { isLearningBatchEnabled, splitLearningBatchPayload } from './path-learning-batch';
 
 describe('isLearningBatchEnabled', () => {
-  it('is true for the exact string "1"', () => {
+  it('is true when unset (ON by default — kill-switch semantics)', () => {
+    expect(isLearningBatchEnabled(undefined)).toBe(true);
+  });
+
+  it('is true for "1" / "true" (and with incidental whitespace)', () => {
     expect(isLearningBatchEnabled('1')).toBe(true);
-  });
-
-  it('is true for "1" with incidental surrounding whitespace (trimmed)', () => {
     expect(isLearningBatchEnabled(' 1 ')).toBe(true);
-    expect(isLearningBatchEnabled('\t1\n')).toBe(true);
+    expect(isLearningBatchEnabled('true')).toBe(true);
   });
 
-  it('is false when unset', () => {
-    expect(isLearningBatchEnabled(undefined)).toBe(false);
-  });
-
-  it('is false for the empty string', () => {
-    expect(isLearningBatchEnabled('')).toBe(false);
-  });
-
-  it('is false for "0"', () => {
+  it('is false only for the explicit disable strings "0" / "false"', () => {
     expect(isLearningBatchEnabled('0')).toBe(false);
+    expect(isLearningBatchEnabled(' 0 ')).toBe(false);
+    expect(isLearningBatchEnabled('false')).toBe(false);
+    expect(isLearningBatchEnabled('FALSE')).toBe(false);
   });
 
-  it('is false for truthy-looking but non-"1" values', () => {
-    expect(isLearningBatchEnabled('true')).toBe(false);
-    expect(isLearningBatchEnabled('yes')).toBe(false);
-    expect(isLearningBatchEnabled('11')).toBe(false);
-    expect(isLearningBatchEnabled('1.0')).toBe(false);
+  it('is true for the empty string and any non-disable value', () => {
+    expect(isLearningBatchEnabled('')).toBe(true);
+    expect(isLearningBatchEnabled('yes')).toBe(true);
+    expect(isLearningBatchEnabled('11')).toBe(true);
   });
 });
 

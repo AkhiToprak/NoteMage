@@ -47,6 +47,14 @@ export interface PersistPlanStructureInput {
   subjectWeights: number[];
   /** Defaults to "generating" (a fresh path awaiting Stage B). */
   generationStatus?: string;
+  /**
+   * Pre-generated plan id. Omit to let Prisma mint a cuid (the onboarding claim
+   * path). The create route supplies one so it can derive the Stage-A sticky
+   * session token (`path-${planId}`) BEFORE the plan is persisted — Stage A and
+   * Stage B then share one token and one warm prefix cache. Must be a valid
+   * unique id when set.
+   */
+  planId?: string;
 }
 
 /**
@@ -97,6 +105,8 @@ export async function persistPlanStructure(
 
   const plan = await tx.studyPlan.create({
     data: {
+      // Omit `id` when unset so Prisma's @default(cuid()) still applies.
+      ...(input.planId ? { id: input.planId } : {}),
       userId: input.userId,
       notebookId: input.notebookId,
       contextNotebookIds: input.contextNotebookIds,

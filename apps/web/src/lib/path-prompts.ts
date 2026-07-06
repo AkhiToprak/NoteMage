@@ -247,6 +247,10 @@ export const GEMINI_JSON_PREAMBLE =
 
 /** Persisted with generated quiz sets so prompt changes remain auditable. */
 export const PATH_QUIZ_PROMPT_VERSION = 'path-quiz-2026-07-02-v2';
+/** Persisted with generated path structures so prompt changes remain auditable. */
+export const PATH_STRUCTURE_PROMPT_VERSION = 'path-structure-2026-07-07-v1';
+/** Persisted with generated theory sections so prompt changes remain auditable. */
+export const PATH_THEORY_PROMPT_VERSION = 'path-theory-2026-07-07-v1';
 
 export function buildPathStructurePrompt(ctx: PathStructureContext): SplitPrompt {
   const isPreview = typeof ctx.maxNodes === 'number' && ctx.maxNodes > 0;
