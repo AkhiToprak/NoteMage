@@ -121,6 +121,12 @@ model User {
   // every QuizAttempt.answers blob. Bumped by the attempts route.
   maxQuizStreakEver          Int                @default(0) // Longest consecutive-correct run in any single quiz session
   everHadComeback            Boolean            @default(false) // Has the user ever, in one session, hit ≥3 wrong then ≥5 right?
+  // Denormalized SUM(Flashcard.repetitions) across all this user's cards — the
+  // "spaced repetition" achievement metric. Maintained incrementally by a DB
+  // trigger (see migration 20260717000000) so the achievement gather reads one
+  // column instead of a join + aggregate over every card. Recompute:
+  // SUM(repetitions) over flashcards JOIN flashcard_sets WHERE userId = this.
+  flashcardRepetitionsSum    Int                @default(0)
   tier                       Tier               @default(FREE)
   pendingTier                Tier? // Tier to switch to at end of current period (null = no change)
   billingInterval            BillingInterval? // Quota reset cadence (null = monthly). Only `weekly` diverges — see tiers.ts
@@ -281,7 +287,8 @@ model BackgroundJob {
   updatedAt   DateTime  @updatedAt
 
   @@index([status, runAt])
-  @@index([lockedAt])
+  // Stale-lock reclaim uses the partial `background_jobs_running_lockedAt_idx`
+  // (migration 20260628000000), so a bare lockedAt index is dead weight.
   @@index([kind, status])
   @@map("background_jobs")
 }
@@ -417,9 +424,10 @@ model NotebookChat {
   flashcardSets FlashcardSet[]
   quizSets      QuizSet[]
 
-  @@index([userId])
   @@index([notebookId])
   // Mage panel resume looks up the latest thread for (user, contextKey).
+  // Its leading `userId` column also serves the plain `WHERE userId = ?` scans,
+  // so a standalone userId index would be redundant.
   @@index([userId, contextKey])
   @@map("notebook_chats")
 }
@@ -534,8 +542,12 @@ model Flashcard {
   flashcardSet FlashcardSet     @relation(fields: [flashcardSetId], references: [id], onDelete: Cascade)
   images       FlashcardImage[]
 
-  @@index([flashcardSetId])
-  @@index([nextReviewAt])
+  // Both review-queue predicates filter by set (leading FK column, also serving
+  // the cascade delete) and range on a review date. The old bare
+  // @@index([flashcardSetId]) is the prefix of these, and @@index([nextReviewAt])
+  // was never used standalone — both are subsumed here.
+  @@index([flashcardSetId, lastReviewAt])
+  @@index([flashcardSetId, nextReviewAt])
   @@map("flashcards")
 }
 
@@ -713,6 +725,9 @@ model QuizAnswer {
   question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@index([attemptId])
+  // FK index: serves the question-cascade delete and the per-question
+  // misconception / practice-generator lookups (was an unindexed FK).
+  @@index([questionId])
   @@map("quiz_answers")
 }
 
@@ -878,6 +893,13 @@ model StudyPlan {
   // Content language of the path (BCP-47 lowercase). Drives the source
   // side of in-place path translation.
   language           String   @default("en")
+  // Denormalized completion rollup: true iff this plan has ≥1 phase and every
+  // phase has allSlotsDone. Maintained by a DB trigger (migration
+  // 20260717000000) so the "finished a whole path" achievement is a flat
+  // indexed count instead of a 3-level nested-every anti-join over the tree.
+  // NOTE: this is achievement-completion (all activities done), NOT the stricter
+  // gating "completed" (which also requires the assessment pass gate).
+  allPhasesDone      Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -898,6 +920,12 @@ model StudyPlan {
   @@index([userId, updatedAt(sort: Desc)])
   @@index([notebookId])
   @@index([contextNotebookIds], type: Gin)
+  // hasActivePathWork() counts a user's in-flight paths on every dashboard /
+  // my-path load (before the Redis cache). Almost every plan is 'ready', so this
+  // is served by a PARTIAL index `WHERE generationStatus IN (queued, generating,
+  // cancelling)` created in migration 20260716000000_db_load_audit_indexes — a
+  // handful of rows instead of the whole table. Raw SQL there (Prisma can't
+  // express partial indexes), not a plain [userId, generationStatus] here.
   @@map("study_plans")
 }
 
@@ -983,6 +1011,8 @@ model ConceptAttemptEvent {
 
   @@unique([sourceAttemptId, conceptId, itemId]) // hard dedupe guard — safe to replay/retry
   @@index([userId, conceptId, createdAt])
+  // FK index for the concept-delete cascade (composites above lead with userId).
+  @@index([conceptId])
   @@map("concept_attempt_events")
 }
 
@@ -1005,6 +1035,8 @@ model ConceptMastery {
 
   @@unique([userId, conceptId])
   @@index([userId, status])
+  // FK index for the concept-delete cascade (the constraints above lead with userId).
+  @@index([conceptId])
   @@map("concept_masteries")
 }
 
@@ -1068,6 +1100,10 @@ model StudyPhase {
   // enum is preserved for the schema, but path-gating treats every phase as
   // sequential going forward.
   gateStrategy GateStrategy @default(open)
+  // Denormalized completion rollup: true iff this phase has ≥1 slot and every
+  // slot has allActivitiesDone. Maintained by a DB trigger (migration
+  // 20260717000000). Feeds the "finished a phase" achievement + the plan rollup.
+  allSlotsDone Boolean      @default(false)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -1123,6 +1159,12 @@ model CheckpointSlot {
   // Drives the letter-grade chip in PathView; pre-grading-feature rows stay
   // null and the renderer falls back to a star-derived coarser grade.
   bestPercentage      Float?
+  // Denormalized completion rollup: true iff this slot has ≥1 activity and every
+  // activity is `completed`. Maintained by a DB trigger (migration
+  // 20260717000000). This is the atom the phase/plan rollups build on, and it
+  // replaces the innermost `activities: { some, every: { completed } }` anti-join
+  // in the achievement gather. NOTE: NOT the gating "completed" (no pass gate).
+  allActivitiesDone   Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -1275,8 +1317,17 @@ model Notification {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, read])
   @@index([userId, createdAt])
+  // Retention sweep deletes read rows older than the cutoff (no userId in the where).
+  @@index([read, createdAt])
+  // The two hot read paths — the unread badge (userId + read=false) and the
+  // pending-unlocks poll (userId + type + read=false) — are served by PARTIAL
+  // indexes `WHERE read = false`, created in migration
+  // 20260716000000_db_load_audit_indexes. Prisma can't express a WHERE clause on
+  // an index, so they live in raw SQL there, not here. Almost every notification
+  // ends up read, so the partial indexes stay tiny. Do NOT re-add plain
+  // [userId, read] / [userId, type, read, createdAt] here — that would duplicate
+  // the partials and double write cost.
   @@map("notifications")
 }
 
@@ -1530,7 +1581,7 @@ model Tag {
 
   sharedNotebookTags SharedNotebookTag[]
 
-  @@index([name])
+  // `name @unique` already creates tags_name_key — a second index is redundant.
   @@map("tags")
 }
 
@@ -1590,8 +1641,9 @@ model StudyMinute {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // The composite PK already indexes (userId, minute) — same columns, same order —
+  // so a secondary index only doubled write cost on every heartbeat insert.
   @@id([userId, minute])
-  @@index([userId, minute])
   @@map("study_minutes")
 }
 
@@ -1626,8 +1678,9 @@ model Achievement {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // @@unique([userId, badge]) already serves every `WHERE userId = ?` query via
+  // its leading column — a standalone userId index is redundant.
   @@unique([userId, badge])
-  @@index([userId])
   @@map("achievements")
 }
 
@@ -1706,8 +1759,9 @@ model ExamScopeItem {
 
   exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
 
+  // @@unique([examId, itemType, itemId])'s leading column already serves the
+  // plain `WHERE examId = ?` scans — a standalone examId index is redundant.
   @@unique([examId, itemType, itemId])
-  @@index([examId])
   @@map("exam_scope_items")
 }
 

@@ -14,11 +14,22 @@ export async function updateStreak(userId: string) {
   const today = getToday();
   const todayStr = toDateString(today);
 
-  const streak = await db.userStreak.upsert({
-    where: { userId },
-    create: { userId, currentStreak: 0, longestStreak: 0, freezesLeft: 2, freezesUsed: 0 },
-    update: {},
-  });
+  // The study heartbeat calls this every 30s, but the streak only changes on the
+  // first study of a new day. A cheap indexed read (userId is @unique) short-
+  // circuits every later ping, skipping the upsert's write lock + @updatedAt WAL
+  // churn (the old unconditional upsert wrote on every single heartbeat).
+  const existing = await db.userStreak.findUnique({ where: { userId } });
+  if (existing?.lastStudyDate && toDateString(existing.lastStudyDate) === todayStr) {
+    return existing;
+  }
+
+  const streak =
+    existing ??
+    (await db.userStreak.upsert({
+      where: { userId },
+      create: { userId, currentStreak: 0, longestStreak: 0, freezesLeft: 2, freezesUsed: 0 },
+      update: {},
+    }));
 
   const lastStr = streak.lastStudyDate ? toDateString(streak.lastStudyDate) : null;
 

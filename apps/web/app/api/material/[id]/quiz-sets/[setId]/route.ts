@@ -31,7 +31,17 @@ export async function GET(request: NextRequest, { params }: Params) {
 
     const quizSet = await db.quizSet.findFirst({
       where: { id: setId, notebookId },
-      include: {
+      // Project only what the player (QuizSessionRunner) reads — drops the
+      // `diagrams` jsonb (unused by this route; the checkpoint viewer loads
+      // diagrams from the activity content route instead) and the write-only
+      // verification/generation provenance columns.
+      select: {
+        id: true,
+        title: true,
+        notebookId: true,
+        sectionId: true,
+        createdAt: true,
+        updatedAt: true,
         questions: {
           orderBy: { sortOrder: 'asc' },
           // Figure-reuse (P5): carry each question's exhibit image (0-or-1) so

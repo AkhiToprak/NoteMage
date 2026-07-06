@@ -120,7 +120,9 @@ export async function POST(request: NextRequest) {
         const section = await db.section.findFirst({ where: { id: sectionId, notebookId } });
         if (!section) return notFoundResponse('Section not found');
 
-        const page = await db.page.findFirst({ where: { id: pageId, sectionId } });
+        // Existence/ownership check only — no Page field is read afterward, so
+        // don't drag content / textContent / drawingData over the wire.
+        const page = await db.page.findFirst({ where: { id: pageId, sectionId }, select: { id: true } });
         if (!page) return notFoundResponse('Page not found');
 
         storagePath = `images/${pageId}/${timestamp}-${sanitized}`;

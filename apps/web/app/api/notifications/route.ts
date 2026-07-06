@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { cacheGetOrSet } from '@/lib/redis-cache';
+import { unreadCountCacheKey, UNREAD_COUNT_TTL_SECONDS } from '@/lib/notification-cache';
 import { successResponse, unauthorizedResponse, internalErrorResponse } from '@/lib/api-response';
 
 // GET — list notifications (paginated) or get unread count
@@ -11,29 +13,38 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
 
-    // If just requesting unread count
+    // If just requesting unread count. This is the app-wide bell poll — cache
+    // the (already index-served) count + latest-unread per user with a short TTL
+    // so idle polls don't re-hit Postgres every tick. createdAt is serialized to
+    // an ISO string here so the cached JSON round-trips losslessly (the client
+    // accepts either form).
     if (searchParams.get('unreadCount') === 'true') {
-      const [count, latestUnread] = await Promise.all([
-        db.notification.count({
-          where: { userId, read: false },
-        }),
-        db.notification.findFirst({
-          where: { userId, read: false },
-          orderBy: { createdAt: 'desc' },
-          select: { id: true, type: true, data: true, createdAt: true },
-        }),
-      ]);
-      return successResponse({
-        count,
-        latestUnread: latestUnread
-          ? {
-              id: latestUnread.id,
-              type: latestUnread.type,
-              data: latestUnread.data,
-              createdAt: latestUnread.createdAt,
-            }
-          : null,
-      });
+      const payload = await cacheGetOrSet(
+        unreadCountCacheKey(userId),
+        UNREAD_COUNT_TTL_SECONDS,
+        async () => {
+          const [count, latestUnread] = await Promise.all([
+            db.notification.count({ where: { userId, read: false } }),
+            db.notification.findFirst({
+              where: { userId, read: false },
+              orderBy: { createdAt: 'desc' },
+              select: { id: true, type: true, data: true, createdAt: true },
+            }),
+          ]);
+          return {
+            count,
+            latestUnread: latestUnread
+              ? {
+                  id: latestUnread.id,
+                  type: latestUnread.type,
+                  data: latestUnread.data,
+                  createdAt: latestUnread.createdAt.toISOString(),
+                }
+              : null,
+          };
+        },
+      );
+      return successResponse(payload);
     }
 
     // Paginated list

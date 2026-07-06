@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { cookies, headers } from 'next/headers';
 import { getToken } from 'next-auth/jwt';
 import type { JWT } from 'next-auth/jwt';
@@ -17,7 +18,10 @@ import { validateAuthToken } from '@/lib/auth-context';
  * against the current User row before returning it. That database check is why
  * server-rendered pages cannot keep using a revoked or banned session.
  */
-export async function getServerAuthToken(): Promise<JWT | null> {
+// `cache()` memoizes per request, so the DB validation runs once even though a
+// single dashboard render resolves the session three times (getServerAuthUser +
+// AccountGateServerGate + WelcomeBackServerGate all enter through here).
+export const getServerAuthToken = cache(async (): Promise<JWT | null> => {
   const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
   // The stores aren't typed as a NextRequest, but getToken's SessionStore only
   // calls cookies.getAll() and headers.get() — both present here at runtime.
@@ -33,7 +37,7 @@ export async function getServerAuthToken(): Promise<JWT | null> {
   token.tier = auth.tier;
   token.scholarName = auth.scholarName ?? undefined;
   return token;
-}
+});
 
 /** The authenticated user id, or null when there is no valid session. */
 export async function getServerUserId(): Promise<string | null> {

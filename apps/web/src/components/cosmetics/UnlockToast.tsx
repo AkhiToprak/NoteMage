@@ -115,14 +115,21 @@ export function UnlockProvider({ children }: { children: React.ReactNode }) {
     let handle: number | null = null;
     const run = async () => {
       if (cancelled) return;
-      await poll();
+      // Skip the fetch while the tab is hidden; keep the timer chain alive so
+      // it resumes when the tab returns. A refocus polls immediately below.
+      if (!document.hidden) await poll();
       if (cancelled) return;
       handle = window.setTimeout(run, POLL_INTERVAL_MS);
     };
     run();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void poll();
+    };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       cancelled = true;
       if (handle !== null) window.clearTimeout(handle);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [poll]);
 

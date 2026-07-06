@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import { db } from '@/lib/db';
 import type { TypedBackgroundJob } from '@/lib/background-jobs';
 import { scheduleNextReminderSweep, scheduleNextDeletionSweep } from '@/lib/background-jobs';
 import { sweepPausedAccountsForDeletion } from '@/lib/account-deletion';
@@ -12,6 +13,19 @@ import { runMisconceptionTag } from '@/lib/concept-misconception-tag';
 import { runConceptDedup, runConceptDedupBackfill } from '@/lib/concept-dedup';
 import { deriveStructuralEdgesForPlan } from '@/lib/concept-edges';
 import { runWeaknessNudgeSweepPage, scheduleNextNudgeSweep } from '@/lib/weakness-nudges';
+
+/** Read notifications never expired — a per-user table grows without bound. The
+ *  hourly reminders.sweep prunes read rows past this window; the sweep is served
+ *  by @@index([read, createdAt]). Unread rows are left alone. */
+const NOTIFICATION_RETENTION_DAYS = 60;
+
+async function pruneOldNotifications(): Promise<number> {
+  const cutoff = new Date(Date.now() - NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const { count } = await db.notification.deleteMany({
+    where: { read: true, createdAt: { lt: cutoff } },
+  });
+  return count;
+}
 
 export async function runJob(job: TypedBackgroundJob): Promise<void> {
   switch (job.kind) {
@@ -76,6 +90,12 @@ export async function runJob(job: TypedBackgroundJob): Promise<void> {
           `[reminders] swept ${summary.examsScanned} exams · created ${summary.created} · emailed ${summary.emailed}`,
         );
       }
+      // Piggyback the periodic notification retention prune on this hourly chain.
+      const pruned = await pruneOldNotifications().catch((err) => {
+        console.error('[notifications] prune failed', err);
+        return 0;
+      });
+      if (pruned > 0) console.info(`[notifications] pruned ${pruned} read notification(s) past retention`);
       return;
     }
     case 'accounts.deletion_sweep': {

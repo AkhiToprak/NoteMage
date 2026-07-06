@@ -68,7 +68,20 @@ export async function POST(
 
     const quizSet = await db.quizSet.findFirst({
       where: { id: setId, notebookId },
-      include: { questions: true },
+      // Grading + concept-tracking read only these question columns; the bare
+      // `include: { questions: true }` also dragged the QuizSet.diagrams jsonb
+      // and every question's hint/explanation/source columns over the wire.
+      select: {
+        questions: {
+          select: {
+            id: true,
+            kind: true,
+            payload: true,
+            options: true,
+            correctIndex: true,
+          },
+        },
+      },
     });
     if (!quizSet) return notFoundResponse('Quiz set not found');
 

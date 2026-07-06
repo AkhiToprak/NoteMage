@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { invalidateUnreadCount } from '@/lib/notification-cache';
 import {
   successResponse,
   unauthorizedResponse,
@@ -29,6 +30,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       where: { id },
       data: { read: true },
     });
+    await invalidateUnreadCount(userId).catch(() => {});
 
     return successResponse({ read: true });
   } catch {

@@ -1,5 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { cacheGetOrSet } from '@/lib/redis-cache';
+import { invalidateUnreadCount } from '@/lib/notification-cache';
 import { ACHIEVEMENTS, UserStats } from './achievements';
 import { unlockCosmeticsForAchievement } from './cosmetics/unlock';
 import { weaknessTrainingUiEnabled, flashcardReviewQueueEnabled } from '@/lib/feature-flags';
@@ -19,9 +21,11 @@ const NON_META_BADGES = ACHIEVEMENTS.filter((a) => a.badge !== 'all_achievements
 /** All valid badge keys (used to exclude orphaned old records from counts) */
 const VALID_BADGES = ACHIEVEMENTS.map((a) => a.badge);
 
-// These independent counts/lookups already run concurrently via Promise.all;
-// the remaining queries hit distinct tables/shapes, so there is nothing safe to
-// merge without changing results. Caching is out of scope (invalidation risk).
+// ~20 counts/lookups (several nested `every` anti-joins over the path tree).
+// checkAndUnlockAchievements wraps this call in a 60s Redis cache because it
+// fires on nearly every user action; achievements are monotonic, so a stale
+// read only ever DELAYS an unlock (never causes a wrong one) and self-corrects
+// on the next cache miss. Direct callers (the achievements page) get fresh data.
 export async function gatherUserStats(userId: string): Promise<UserStats> {
   const [
     streak,
@@ -62,6 +66,9 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
         tutorialState: true,
         maxQuizStreakEver: true,
         everHadComeback: true,
+        // Denormalized SUM(Flashcard.repetitions), trigger-maintained — replaces
+        // a join + aggregate over every card (see migration 20260717000000).
+        flashcardRepetitionsSum: true,
       },
     }),
 
@@ -74,15 +81,8 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     }),
   ]);
 
-  const [chatMessageCount, flashcardReviewAgg, documentCount, quizSetCount] = await Promise.all([
+  const [chatMessageCount, documentCount, quizSetCount] = await Promise.all([
     db.chatMessage.count({ where: { userId, role: 'user' } }),
-
-    // SR bumps Flashcard.repetitions; no per-review row exists, so sum.
-    // Phase 9.6 — FlashcardSet has direct userId now; no notebook hop.
-    db.flashcard.aggregate({
-      _sum: { repetitions: true },
-      where: { flashcardSet: { userId } },
-    }),
 
     db.document.count({ where: { notebook: { userId } } }),
 
@@ -91,11 +91,14 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
   ]);
 
   // ── Phase 7 — personal learning-path rework gather ───────────────────────
-  // Three of these go through Prisma (path/phase rollups), two through
-  // raw SQL where Prisma's relational where-builder can't express the
-  // condition cheaply (perfect-on-a-5+-question-quiz, first-attempt ace).
-  // `maxQuizStreakEver` and `everHadComeback` are denormalized on User
-  // and arrive via `userRecord` above — no extra query.
+  // The three completion rollups (phase / path / section complete) read the
+  // trigger-maintained denormalized booleans instead of the old 3-level
+  // nested-every anti-joins — same semantics (see migration 20260717000000),
+  // now flat indexed lookups. The two $queryRaw checks stay: Prisma's where-
+  // builder can't express them cheaply (perfect-on-a-5+-question-quiz,
+  // first-attempt ace). `maxQuizStreakEver`, `everHadComeback`, and
+  // `flashcardRepetitionsSum` are denormalized on User and arrive via
+  // `userRecord` above — no extra query.
   const [
     perfectQuizRow,
     phaseComplete,
@@ -114,39 +117,17 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
       ) AS ok
     `),
 
-    // Phase 10 — any phase whose every slot has every activity completed
-    // (and has ≥1 slot with ≥1 activity). Scope through plan.userId so
-    // cross-notebook paths count too.
+    // Any phase fully complete (≥1 slot, every slot allActivitiesDone). Scoped
+    // through plan.userId so cross-notebook paths count too.
     db.studyPhase.findFirst({
-      where: {
-        plan: { userId },
-        slots: {
-          some: {},
-          every: {
-            activities: { some: {}, every: { completed: true } },
-          },
-        },
-      },
+      where: { allSlotsDone: true, plan: { userId } },
       select: { id: true },
     }),
 
-    // Phase 10 — count of plans whose every phase has every slot fully
-    // completed (drives both `path_complete` (≥1) and `two_paths` (≥2)).
+    // Count of fully-complete plans (≥1 phase, every phase allSlotsDone).
+    // Drives both `path_complete` (≥1) and `two_paths` (≥2).
     db.studyPlan.count({
-      where: {
-        userId,
-        phases: {
-          some: {},
-          every: {
-            slots: {
-              some: {},
-              every: {
-                activities: { some: {}, every: { completed: true } },
-              },
-            },
-          },
-        },
-      },
+      where: { userId, allPhasesDone: true },
     }),
 
     // Phase 10 — first attempt per slot that scored 100%. ROW_NUMBER gives
@@ -164,12 +145,9 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
       ) AS ok
     `),
 
-    // Any single checkpoint slot with every activity completed → "first steps".
+    // Any single checkpoint slot fully complete → "first steps".
     db.checkpointSlot.findFirst({
-      where: {
-        phase: { plan: { userId } },
-        activities: { some: {}, every: { completed: true } },
-      },
+      where: { allActivitiesDone: true, phase: { plan: { userId } } },
       select: { id: true },
     }),
   ]);
@@ -313,7 +291,7 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     tutorialCompleted: !!tutorialState?.completedAt,
     totalAchievementsUnlocked: unlockedCount,
     chatMessageCount,
-    flashcardReviewCount: flashcardReviewAgg._sum.repetitions ?? 0,
+    flashcardReviewCount: userRecord?.flashcardRepetitionsSum ?? 0,
     documentCount,
     quizSetCount,
     hasPerfectQuiz,
@@ -333,16 +311,25 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
 export async function checkAndUnlockAchievements(
   userId: string
 ): Promise<{ badge: string; name: string }[]> {
-  // 1. Gather stats and existing achievements in parallel
-  const [stats, existingAchievements] = await Promise.all([
-    gatherUserStats(userId),
-    db.achievement.findMany({
-      where: { userId },
-      select: { badge: true },
-    }),
-  ]);
-
+  // 1. Cheap point query first (indexed on Achievement.userId). If the meta-
+  // achievement is already unlocked, every badge is done — skip the ~20-query
+  // stats gather entirely. This is the biggest win: a "finished" user otherwise
+  // pays the full gather on every chat message / quiz attempt / activity forever.
+  const existingAchievements = await db.achievement.findMany({
+    where: { userId },
+    select: { badge: true },
+  });
   const unlockedBadges = new Set(existingAchievements.map((a) => a.badge));
+  if (unlockedBadges.has('all_achievements')) return [];
+
+  // 2. Gather stats, cached 60s per user (see gatherUserStats note). None of the
+  // hot callers need per-request freshness, and this is what fires on every
+  // action — the cache removes the fan-out from the hot path.
+  const stats = await cacheGetOrSet(
+    `achievement-stats:${userId}`,
+    60,
+    () => gatherUserStats(userId),
+  );
 
   // ── Pass 1: Check all achievements except the meta-achievement ──────
   const newlyUnlocked: { badge: string; name: string; description: string; icon: string }[] = [];
@@ -435,6 +422,12 @@ export async function checkAndUnlockAchievements(
         // Ignore P2002 unique constraint violation (race condition)
       }
     }
+  }
+
+  // New badges wrote unread achievement_unlocked notifications — drop the cached
+  // unread count so the bell reflects them without waiting for the TTL.
+  if (newlyUnlocked.length > 0) {
+    await invalidateUnreadCount(userId).catch(() => {});
   }
 
   return newlyUnlocked.map(({ badge, name }) => ({ badge, name }));

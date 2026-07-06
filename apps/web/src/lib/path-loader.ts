@@ -101,11 +101,43 @@ export const pathInclude = {
   notebook: { select: { id: true, name: true, color: true, kind: true } },
   phases: {
     orderBy: { sortOrder: 'asc' },
-    include: {
+    // `select` (not `include`) so the phase/slot/activity tree drops columns no
+    // consumer reads — CheckpointSlot.objective (Text) and .assessmentSpec (Json)
+    // in particular. Only annotatePhases + serializePath consume this shape (and
+    // the exam-scope / practice-generator readers go through serializePath too),
+    // so this is exactly the field set those need.
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      sortOrder: true,
+      status: true,
+      gateStrategy: true,
       slots: {
         orderBy: { sortOrder: 'asc' },
-        include: {
-          activities: { orderBy: { sortOrder: 'asc' } },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          kind: true,
+          sortOrder: true,
+          starsEarned: true,
+          bestPercentage: true,
+          prerequisiteSlotIds: true,
+          prunedActivityKinds: true,
+          activities: {
+            orderBy: { sortOrder: 'asc' },
+            select: {
+              id: true,
+              kind: true,
+              title: true,
+              sortOrder: true,
+              completed: true,
+              theoryId: true,
+              flashcardSetId: true,
+              quizSetId: true,
+            },
+          },
         },
       },
     },

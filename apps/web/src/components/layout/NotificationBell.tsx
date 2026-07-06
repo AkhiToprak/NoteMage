@@ -86,13 +86,21 @@ export default function NotificationBell({ size = 38 }: Props) {
   useEffect(() => {
     let cancelled = false;
     const tick = () => {
-      if (!cancelled) void fetchUnreadCount();
+      // Skip the poll while the tab is hidden — idle background tabs otherwise
+      // keep hitting the notifications table forever. A refocus re-polls
+      // immediately via the visibilitychange listener below.
+      if (!cancelled && !document.hidden) void fetchUnreadCount();
     };
     void Promise.resolve().then(tick);
     const interval = setInterval(tick, 30000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') tick();
+    };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [fetchUnreadCount]);
 
