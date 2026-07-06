@@ -570,9 +570,9 @@
     "semantic_hash": "2e4a862ed9c12fa1670ae2b3923b14ab"
   },
   "apps/web/src/components/settings/IosUpgradeSheet.tsx": {
-    "mtime": 1782509949.1273634,
-    "ast_hash": "3787f301f90f16ba8fa3ded54148961a",
-    "semantic_hash": "3787f301f90f16ba8fa3ded54148961a"
+    "mtime": 1783336077.6773608,
+    "ast_hash": "327334a3818a8774e234389ab32e634b",
+    "semantic_hash": ""
   },
   "apps/web/src/components/settings/SubscriptionPanel.tsx": {
     "mtime": 1782509949.1267657,
@@ -1820,8 +1820,8 @@
     "semantic_hash": "68d219bf6ba309853606353969a45690"
   },
   "apps/web/app/api/billing/revenuecat/webhook/route.ts": {
-    "mtime": 1783287949.3066344,
-    "ast_hash": "a0925bd34776fa8231f378536ecb2ad5",
+    "mtime": 1783335947.8273425,
+    "ast_hash": "dbcb0b08996d9fefc6f84c0cb1fc2e82",
     "semantic_hash": ""
   },
   "apps/web/app/api/currency/route.ts": {
@@ -85085,8 +85085,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/account-gate/AccountGateOverlay.tsx": {
-    "mtime": 1783288710.768785,
-    "ast_hash": "76e174c70285c724739ba206ec27bdef",
+    "mtime": 1783335998.7354631,
+    "ast_hash": "fe48cd72dc61a871f4b91cce46c697dc",
     "semantic_hash": ""
   },
   "apps/web/src/components/account-gate/AccountGateServerGate.tsx": {

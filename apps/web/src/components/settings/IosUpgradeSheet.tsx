@@ -313,7 +313,15 @@ export default function IosUpgradeSheet({ open, onClose, onPurchased }: IosUpgra
           </button>
           <p style={{ margin: 0, fontSize: 11, color: 'var(--outline)', textAlign: 'center', lineHeight: 1.5 }}>
             Billed through your Apple ID. Subscriptions renew automatically until cancelled in your
-            App Store settings.
+            App Store settings.{' '}
+            {/* App Review 3.1.2: purchase UI must link Terms of Use + Privacy Policy. */}
+            <a href="/terms" style={{ color: 'inherit', textDecoration: 'underline' }}>
+              Terms
+            </a>
+            {' · '}
+            <a href="/privacy" style={{ color: 'inherit', textDecoration: 'underline' }}>
+              Privacy
+            </a>
           </p>
         </div>
       </div>

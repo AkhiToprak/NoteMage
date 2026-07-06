@@ -15,6 +15,8 @@ import { useEffect, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useUpgrade } from '@/hooks/useUpgrade';
+import { getNativePlatform } from '@/lib/native-bridge';
+import IosUpgradeSheet from '@/components/settings/IosUpgradeSheet';
 import { useCurrency } from '@/hooks/useCurrency';
 import { PPP_CHECKOUT_CONFIGURED } from '@/lib/lemonsqueezy-client';
 import {
@@ -27,6 +29,21 @@ import {
 import styles from './account-gate.module.css';
 
 const INTERVALS: BillingInterval[] = ['weekly', 'monthly', 'yearly'];
+
+/**
+ * Inside the iOS shell the gate must sell through StoreKit (App Review 3.1.1
+ * forbids the Lemon Squeezy checkout there), so the subscribe CTA opens the
+ * native IosUpgradeSheet instead. The sheet polls /api/me/entitlement until the
+ * RevenueCat webhook lands, then refreshes — re-running the server gate.
+ */
+function useIosSheet() {
+  const [isIos, setIsIos] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  useEffect(() => {
+    setIsIos(getNativePlatform() === 'ios');
+  }, []);
+  return { isIos, sheetOpen, setSheetOpen };
+}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '';
@@ -90,8 +107,14 @@ function ExpiredBody() {
   const savePct = yearlySavingsPct('PRO', priceCurrency);
   const busy = upgrading || pausing;
 
+  const { isIos, sheetOpen, setSheetOpen } = useIosSheet();
+
   const subscribe = async () => {
     setError('');
+    if (isIos) {
+      setSheetOpen(true);
+      return;
+    }
     try {
       await startUpgrade(selected);
     } catch {
@@ -169,6 +192,8 @@ function ExpiredBody() {
         anytime and continue by subscribing.
       </p>
       <p className={styles.fine}>Cancel anytime · Secure checkout</p>
+
+      {isIos && <IosUpgradeSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />}
     </>
   );
 }
@@ -177,9 +202,14 @@ function ExpiredBody() {
 function PausedBody({ deletionAt }: { deletionAt: string | null }) {
   const { startUpgrade, upgrading } = useUpgrade();
   const [error, setError] = useState('');
+  const { isIos, sheetOpen, setSheetOpen } = useIosSheet();
 
   const subscribe = async () => {
     setError('');
+    if (isIos) {
+      setSheetOpen(true);
+      return;
+    }
     try {
       await startUpgrade('yearly');
     } catch {
@@ -225,6 +255,8 @@ function PausedBody({ deletionAt }: { deletionAt: string | null }) {
       >
         {upgrading ? 'Opening checkout…' : 'Changed your mind? Subscribe now'}
       </button>
+
+      {isIos && <IosUpgradeSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />}
     </>
   );
 }

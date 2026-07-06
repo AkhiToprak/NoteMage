@@ -24,6 +24,19 @@ interface RcEvent {
   entitlement_ids?: string[];
   expiration_at_ms?: number | null;
   original_transaction_id?: string | null;
+  product_id?: string | null;
+}
+
+/**
+ * Quota cadence from the StoreKit product id. Convention: the weekly product's
+ * id contains "weekly" (nm_pro_weekly); everything else — monthly, yearly, or
+ * an unrecognized id — gets monthly semantics, mirroring the Lemon Squeezy
+ * mapping (yearly is quota-identical to monthly, see tiers.ts). Must be passed
+ * on every grant: trial signups start with billingInterval='weekly', so leaving
+ * the column untouched would keep a paying monthly subscriber on weekly caps.
+ */
+function intervalFromProductId(productId: string | null | undefined): 'weekly' | 'monthly' {
+  return productId?.toLowerCase().includes('weekly') ? 'weekly' : 'monthly';
 }
 
 function authOk(header: string | null, expected: string): boolean {
@@ -117,7 +130,12 @@ async function handleEvent(event: RcEvent) {
     await db.user.update({
       where: { id: userId },
       data: {
-        ...activeGrant({ source: 'APPLE_IAP', periodEnd, wasActive }),
+        ...activeGrant({
+          source: 'APPLE_IAP',
+          periodEnd,
+          interval: intervalFromProductId(event.product_id),
+          wasActive,
+        }),
         revenueCatAppUserId: event.app_user_id,
         ...(event.original_transaction_id
           ? { appleOriginalTransactionId: event.original_transaction_id }

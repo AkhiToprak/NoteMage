@@ -2,7 +2,7 @@
   "expo": {
     "name": "Notemage",
     "slug": "notemage-mobile",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "notemage",
