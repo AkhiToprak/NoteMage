@@ -70,6 +70,7 @@ import { isLegacyComposition, resolveModel } from './model-routing';
 import { logAiUsage } from './ai-usage';
 import { streamGeminiChatText } from './chat-stream-gemini';
 import { streamChatGLM } from './chat-stream-openrouter';
+import { openRouterMaxCompletionTokens } from './openrouter';
 import type { TierKey } from './tiers';
 import { buildLegacyColumns } from './quiz-grading';
 import { QuizSetV2Schema, type QuizQuestionV2 } from '@notemage/shared';
@@ -1035,6 +1036,10 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 tools: CHAT_TOOLS,
                 toolChoice: streamParams.tool_choice as Anthropic.Messages.ToolChoice,
                 onText: enqueueText,
+                // Generation turns emit large structured JSON — give them the
+                // model ceiling so it isn't cut off at OpenRouter's 4096 default.
+                // Prose turns stay bounded at 8k.
+                maxTokens: intentToolName ? openRouterMaxCompletionTokens(activeModel) : 8_000,
                 plugins: webPluginActive ? [{ id: 'web', max_results: 3 }] : undefined,
                 // onAnnotations fires PER batch (usually once, near the end) —
                 // append so a rare multi-batch stream doesn't drop earlier links.
@@ -1125,6 +1130,22 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
               // later needed.
               extra: { intent, mage: isMageAnswer, webSearch: webPluginActive || undefined },
             });
+
+            // GLM hit its completion ceiling. On a forced-generation turn the
+            // tool-call JSON is truncated (unparseable / half a quiz), so drop it
+            // rather than persist a broken artifact — tell the user to shrink the
+            // request. Sits AFTER logAiUsage so the truncated call's spend is
+            // still metered. Prose turns fall through and are flagged later.
+            if (glmResponse && glmResponse.stop_reason === 'max_tokens' && intentToolName) {
+              if (webPluginActive) await refundUsage(userId, 'web_search');
+              controller.enqueue(
+                sseEvent('error', {
+                  error: 'Answer hit the length limit — try a smaller request.',
+                })
+              );
+              controller.close();
+              return;
+            }
 
             const {
               text: extractedText,
@@ -1742,6 +1763,15 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                   console.error('[AI Chat] YouTube search failed:', err);
                 }
               }
+            }
+
+            // Prose turn cut off at the length limit — mark the answer so the
+            // user knows it's incomplete (generation turns already short-circuit
+            // above). Emit the note as a final delta and persist it in `content`.
+            if (glmResponse?.stop_reason === 'max_tokens') {
+              const truncationNote = '\n\n_[Answer was cut off at the length limit.]_';
+              assistantText += truncationNote;
+              controller.enqueue(sseEvent('text', { delta: truncationNote }));
             }
 
             const done = await saveAndBuildDone(

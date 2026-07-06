@@ -102,6 +102,9 @@ const geminiModelCall: ModelCall = async (req, onUsage) => {
         temperature: 0,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         responseMimeType: 'application/json',
+        // Flash-Lite enables thinking by default; thinking tokens bill at the
+        // output rate. Structured page transcription doesn't need it.
+        thinkingConfig: { thinkingBudget: 0 },
         ...(withSchema ? { responseJsonSchema: DOC_MODEL_JSON_SCHEMA } : {}),
         abortSignal: AbortSignal.timeout(PAGE_TIMEOUT_MS),
       },
@@ -133,8 +136,18 @@ const geminiModelCall: ModelCall = async (req, onUsage) => {
         cacheWriteTokens: 0,
       });
     }
+    // A dense page can hit MAX_OUTPUT_TOKENS. The repair retry re-sends the full
+    // page image and truncates at the same point — burn 2× for zero gain. Throw
+    // (AFTER metering the spend above) so describePage skips the repair and the
+    // worker keeps the heuristic result (mirrors engine-anthropic's guard).
+    if (response.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
+      throw new StructureEngineError(
+        `Gemini vision response truncated at maxOutputTokens (${MAX_OUTPUT_TOKENS})`,
+      );
+    }
     return response.text ?? '';
   } catch (err) {
+    if (err instanceof StructureEngineError) throw err; // e.g. the MAX_TOKENS guard
     const aborted =
       err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
     const message = aborted

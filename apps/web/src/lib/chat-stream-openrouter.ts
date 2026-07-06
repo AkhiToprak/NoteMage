@@ -45,6 +45,10 @@ export interface StreamChatGLMOptions {
   signal?: AbortSignal;
   /** Defaults to true (parity with the non-reasoning slots GLM replaces). */
   enableReasoning?: boolean;
+  /** Completion ceiling. Unset ⇒ OpenRouter's default (4096) — chat-stream
+   *  passes the model ceiling on generation turns so structured JSON isn't
+   *  silently truncated. `stop_reason: 'max_tokens'` signals it was hit. */
+  maxTokens?: number;
   /** P5 — OpenRouter `plugins` array (e.g. the web plugin). Only forwarded when set. */
   plugins?: Array<Record<string, unknown>>;
   /** P5 — raw (UNTRUSTED) provider annotations (web citations), mirroring `onText`. */
@@ -78,6 +82,7 @@ export async function streamChatGLM(opts: StreamChatGLMOptions): Promise<Anthrop
       toolChoice: toolChoiceToOpenAI(opts.toolChoice),
       disableReasoning: opts.enableReasoning !== true,
       plugins: opts.plugins,
+      maxTokens: opts.maxTokens,
       signal: opts.signal,
     },
     handlers,
@@ -115,7 +120,14 @@ export async function streamChatGLM(opts: StreamChatGLMOptions): Promise<Anthrop
     role: 'assistant',
     model: opts.model,
     content,
-    stop_reason: result.toolCalls.length > 0 ? 'tool_use' : 'end_turn',
+    // 'length' ⇒ cut off at max_tokens (prose or tool-call JSON truncated);
+    // chat-stream drops a truncated tool call and warns the user.
+    stop_reason:
+      result.finishReason === 'length'
+        ? 'max_tokens'
+        : result.toolCalls.length > 0
+          ? 'tool_use'
+          : 'end_turn',
     stop_sequence: null,
     usage,
   } as unknown as Anthropic.Messages.Message;
