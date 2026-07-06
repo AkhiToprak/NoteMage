@@ -875,6 +875,11 @@ model StudyPlan {
   generationStatus   String   @default("ready") // "queued" | "generating" | "ready" | "failed"
   generationProgress Json?
   generationError    String?  @db.Text
+  // Prompt-version stamp written at Stage-B completion: the STRUCTURE / THEORY /
+  // QUIZ prompt-builder version constants (path-prompts.ts) in force when this
+  // path's content was generated. Lets a later prompt change be correlated with
+  // the paths produced under the old prompt. Null for rows predating this stamp.
+  promptVersions     Json?
   // Subject-aware generation (Phase 10.8). Classifier-detected subject
   // buckets ranked by weight; the generator restricts question kinds to
   // each subject's palette. Empty arrays mean the row predates the

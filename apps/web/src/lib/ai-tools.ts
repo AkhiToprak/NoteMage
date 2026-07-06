@@ -1125,17 +1125,7 @@ export const THEORY_SECTION_TOOL: ToolDef = {
   name: 'create_theory_section',
   description: [
     'Generate a compact theory section for one checkpoint slot.',
-    'Target ~300–500 words total. Keep the language warm, plain, and example-driven.',
-    'Output:',
-    '- title: the heading shown above the section.',
-    '- introduction: 1–2 paragraphs that set up the concept.',
-    '- keyPoints: 3–6 short bullets the learner should remember.',
-    '- examples: 2–3 concrete examples, each with a 1-phrase label and a 1–2 sentence explanation.',
-    '- summary (optional): a 1-paragraph wrap-up.',
-    '',
-    'STRICT SHAPE RULES:',
-    '- `keyPoints` MUST be a real JSON array of plain strings, e.g. ["First point","Second point"]. NEVER a stringified JSON, an object keyed by index ({"0":"...","1":"..."}), or a single comma-separated string.',
-    '- `examples` MUST be a real JSON array of objects, each with `label` (plain string) and `explanation` (plain string). NEVER stringified, NEVER keyed by index.',
+    'Follow the JSON shape, length target, voice, and array-shape rules given in the system prompt; the server rejects drift.',
   ].join('\n'),
   input_schema: {
     type: 'object' as const,
@@ -1181,7 +1171,7 @@ export const THEORY_SECTION_TOOL: ToolDef = {
         type: 'array',
         maxItems: 3,
         description:
-          'OPTIONAL. Only when a "Available source figures" list accompanies this prompt: 0–3 figures to embed. Each `imageRef` MUST be copied verbatim from that list — never invent one. Include a figure only when it genuinely illustrates THIS slot. Omit entirely if none fit.',
+          'OPTIONAL. 0–3 figures to embed — follow the OPTIONAL FIGURES rules in the system prompt (copy each imageRef verbatim from the supplied list; omit if none fit).',
         items: {
           type: 'object',
           properties: {
@@ -1201,7 +1191,7 @@ export const THEORY_SECTION_TOOL: ToolDef = {
         type: 'array',
         maxItems: 2,
         description:
-          'Include 1–2 structured diagrams when the topic has temporal / sequential / comparative / cyclical structure; when in doubt, include one. Use the right kind: "timeline" for dated/historical sequences, "steps" for a process or how-to, "comparison" for contrasting things, "cycle" for a repeating loop. Fill ONLY the fields for the chosen kind. Omit ONLY if no kind fits the topic naturally.',
+          'OPTIONAL. 1–2 structured diagrams — follow the DIAGRAMS rules in the system prompt (pick the one kind that fits the topic; fill only that kind\'s fields; omit if none fits).',
         items: {
           type: 'object',
           properties: {

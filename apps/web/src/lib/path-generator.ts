@@ -45,6 +45,8 @@ import {
   buildFlashcardsPrompt,
   buildQuizPrompt,
   PATH_QUIZ_PROMPT_VERSION,
+  PATH_STRUCTURE_PROMPT_VERSION,
+  PATH_THEORY_PROMPT_VERSION,
   type PathStructureContext,
   type SlotContentContext,
 } from './path-prompts';
@@ -3550,7 +3552,17 @@ async function runPathGeneration(
   // DELETE route already refunded) instead of shipping a path the user discarded.
   const settled = await db.studyPlan.updateMany({
     where: { id: planId, generationStatus: 'generating' },
-    data: { generationStatus: 'ready', generationError: null },
+    data: {
+      generationStatus: 'ready',
+      generationError: null,
+      // Stamp the prompt-builder versions in force for this run (M7b) so a later
+      // prompt change can be correlated with the paths produced under the old one.
+      promptVersions: {
+        structure: PATH_STRUCTURE_PROMPT_VERSION,
+        theory: PATH_THEORY_PROMPT_VERSION,
+        quiz: PATH_QUIZ_PROMPT_VERSION,
+      },
+    },
   });
   if (settled.count === 0) {
     const current = await db.studyPlan.findUnique({
