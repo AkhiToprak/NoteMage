@@ -11,6 +11,12 @@ import { invalidateTokenBudgetCache } from './token-budget';
 import type { ModelProvider } from './model-routing';
 import type { TierKey } from './tiers';
 
+/** Cache hit ratio = cacheRead / (cacheRead + input). 0 when nothing ran. */
+export function computeCacheHitRatio(cacheReadTokens: number, inputTokens: number): number {
+  const denom = cacheReadTokens + inputTokens;
+  return denom > 0 ? cacheReadTokens / denom : 0;
+}
+
 export interface AiUsageEvent {
   userId: string | null;
   /** Stable feature key, e.g. 'chat-generate', 'chat-title', 'path-classify', 'doc-summarize'. */

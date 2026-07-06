@@ -3,6 +3,7 @@ import { getAdminUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { successResponse, forbiddenResponse, internalErrorResponse } from '@/lib/api-response';
 import { TIERS } from '@/lib/tiers';
+import { computeCacheHitRatio } from '@/lib/ai-usage';
 
 // GET — platform stats overview (admin only)
 export async function GET(request: NextRequest) {
@@ -21,13 +22,13 @@ export async function GET(request: NextRequest) {
       // All-AI token spend + computed USD cost (every feature, not just chat).
       db.aiUsageEvent.aggregate({
         where: { createdAt: { gte: sevenDaysAgo } },
-        _sum: { inputTokens: true, outputTokens: true, costUsd: true },
+        _sum: { inputTokens: true, outputTokens: true, cacheReadTokens: true, cacheWriteTokens: true, costUsd: true },
       }),
       // Per-feature breakdown for the same window.
       db.aiUsageEvent.groupBy({
         by: ['feature'],
         where: { createdAt: { gte: sevenDaysAgo } },
-        _sum: { inputTokens: true, outputTokens: true, costUsd: true },
+        _sum: { inputTokens: true, outputTokens: true, cacheReadTokens: true, cacheWriteTokens: true, costUsd: true },
         _count: { _all: true },
       }),
       db.waitlist.count(),
@@ -41,19 +42,26 @@ export async function GET(request: NextRequest) {
     const freeUsers = tierMap.FREE || 0;
     const proUsers = tierMap.PRO || 0;
 
-    const weeklyTokensTotal =
-      (usageAgg._sum.inputTokens ?? 0) + (usageAgg._sum.outputTokens ?? 0);
+    const weeklyInputTokens = usageAgg._sum.inputTokens ?? 0;
+    const weeklyTokensTotal = weeklyInputTokens + (usageAgg._sum.outputTokens ?? 0);
+    const weeklyCacheReadTokens = usageAgg._sum.cacheReadTokens ?? 0;
+    const weeklyCacheHitRatio = computeCacheHitRatio(weeklyCacheReadTokens, weeklyInputTokens);
     const weeklyCostUsd = usageAgg._sum.costUsd ?? 0;
     const avgWeeklyTokensPerUser = totalUsers > 0 ? weeklyTokensTotal / totalUsers : 0;
 
     // Per-feature rollup, heaviest token spend first.
     const usageByFeature = usageByFeatureRaw
-      .map((row) => ({
-        feature: row.feature,
-        tokens: (row._sum.inputTokens ?? 0) + (row._sum.outputTokens ?? 0),
-        costUsd: row._sum.costUsd ?? 0,
-        calls: row._count._all,
-      }))
+      .map((row) => {
+        const cacheReadTokens = row._sum.cacheReadTokens ?? 0;
+        return {
+          feature: row.feature,
+          tokens: (row._sum.inputTokens ?? 0) + (row._sum.outputTokens ?? 0),
+          costUsd: row._sum.costUsd ?? 0,
+          calls: row._count._all,
+          cacheReadTokens,
+          cacheHitRatio: computeCacheHitRatio(cacheReadTokens, row._sum.inputTokens ?? 0),
+        };
+      })
       .sort((a, b) => b.tokens - a.tokens);
 
     // Rough MRR estimate in CHF — Pro headcount × the monthly Pro price.
@@ -65,6 +73,8 @@ export async function GET(request: NextRequest) {
       proUsers,
       avgWeeklyTokensPerUser: Math.round(avgWeeklyTokensPerUser),
       weeklyTokensTotal,
+      weeklyCacheReadTokens,
+      weeklyCacheHitRatio,
       weeklyCostUsd,
       usageByFeature,
       totalRevenue,

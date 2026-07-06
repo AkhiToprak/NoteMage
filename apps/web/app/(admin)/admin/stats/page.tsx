@@ -20,6 +20,8 @@ type FeatureUsage = {
   tokens: number;
   costUsd: number;
   calls: number;
+  cacheReadTokens: number;
+  cacheHitRatio: number;
 };
 
 type Stats = {
@@ -28,6 +30,8 @@ type Stats = {
   proUsers: number;
   avgWeeklyTokensPerUser: number;
   weeklyTokensTotal: number;
+  weeklyCacheReadTokens: number;
+  weeklyCacheHitRatio: number;
   weeklyCostUsd: number;
   usageByFeature: FeatureUsage[];
   totalRevenue: number;
@@ -39,6 +43,10 @@ const fmt = (n: number | undefined) => (n == null ? '—' : n.toLocaleString());
 // USD with cents — token costs are small, so show 4 decimals under $1.
 const fmtUsd = (n: number | undefined) =>
   n == null ? '—' : `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: n < 1 ? 4 : 2 })}`;
+
+// Cache hit ratio as a percentage; dash when nothing was cache-read.
+const fmtPct = (row: FeatureUsage) =>
+  row.cacheHitRatio === 0 && row.cacheReadTokens === 0 ? '—' : `${(row.cacheHitRatio * 100).toFixed(1)}%`;
 
 // Human labels for the stable feature keys logAiUsage() writes.
 const FEATURE_LABELS: Record<string, string> = {
@@ -60,6 +68,7 @@ const FEATURE_COLUMNS: Column<FeatureUsage>[] = [
   { key: 'tokens', header: 'Tokens', align: 'right', render: (r) => r.tokens.toLocaleString() },
   { key: 'calls', header: 'Calls', align: 'right', render: (r) => r.calls.toLocaleString() },
   { key: 'costUsd', header: 'Cost (USD)', align: 'right', render: (r) => fmtUsd(r.costUsd) },
+  { key: 'cacheHitRatio', header: 'Cache %', align: 'right', render: (r) => fmtPct(r) },
 ];
 
 export default function AdminStatsPage() {

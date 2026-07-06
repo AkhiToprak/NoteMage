@@ -13,6 +13,7 @@ import { runMisconceptionTag } from '@/lib/concept-misconception-tag';
 import { runConceptDedup, runConceptDedupBackfill } from '@/lib/concept-dedup';
 import { deriveStructuralEdgesForPlan } from '@/lib/concept-edges';
 import { runWeaknessNudgeSweepPage, scheduleNextNudgeSweep } from '@/lib/weakness-nudges';
+import { checkAiSpendAlarm } from '@/lib/ai-spend-alarm';
 
 /** Read notifications never expired — a per-user table grows without bound. The
  *  hourly reminders.sweep prunes read rows past this window; the sweep is served
@@ -96,6 +97,9 @@ export async function runJob(job: TypedBackgroundJob): Promise<void> {
         return 0;
       });
       if (pruned > 0) console.info(`[notifications] pruned ${pruned} read notification(s) past retention`);
+      // Piggyback the AI spend watchdog on the same hourly chain. Self-contained
+      // (never throws), so a failing spend query can't stop the sweep.
+      await checkAiSpendAlarm();
       return;
     }
     case 'accounts.deletion_sweep': {
