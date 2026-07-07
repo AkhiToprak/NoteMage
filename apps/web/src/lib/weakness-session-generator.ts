@@ -691,6 +691,9 @@ export async function generateWeaknessSession(opts: {
         userMessage: 'Generate the remediation session now. The concepts array must not be empty.',
         // Extraction-shaped forced tool — sample cold, not at the ~1.0 default.
         temperature: 0.3,
+        // Small output (a handful of concept entries) — cap well under the GLM
+        // default so the call isn't dispatched at the 32k ceiling (L5).
+        maxTokens: 4_096,
         onUsage,
       });
       parsed = parseWeaknessSession(raw, targetIds, labelById);

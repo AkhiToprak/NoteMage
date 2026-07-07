@@ -30,6 +30,7 @@ import { COSTS } from '@/lib/path-generator-cost';
 import type { TierKey } from '@/lib/tiers';
 import {
   getVideoIngestCostCeilingUsd,
+  getVideoIngestEstOutputTokens,
   getVideoIngestMaxOutputTokens,
   getVideoIngestTimeoutMs,
   type VideoMediaResolution,
@@ -59,9 +60,12 @@ function mediaResolutionEnum(resolution: VideoMediaResolution): MediaResolution 
  * Conservative pre-flight USD estimate for a video of `durationSec` at the given
  * resolution. The frame share is billed at the video/image input rate, the audio
  * share at the (higher) audio input rate — accounting for the audio nuance keeps
- * the estimate from under-shooting and slipping past the ceiling. Output is
- * assumed at the cap. Falls back to the flat input rate for both if the model
- * carries no rate card (cost 0 → estimate still meaningful via the flat path).
+ * the estimate from under-shooting and slipping past the ceiling. The conservative
+ * INPUT stays; the OUTPUT term uses the EXPECTED output (VIDEO_INGEST_EST_OUTPUT_TOKENS
+ * ≈ the prompt's ~120-block cap), not the hard maxOutput cap — pricing output at
+ * the cap was spuriously rejecting borderline videos. Falls back to the flat input
+ * rate for both if the model carries no rate card (cost 0 → estimate still
+ * meaningful via the flat path).
  */
 export function estimateVideoIngestUsd(
   durationSec: number,
@@ -81,7 +85,7 @@ export function estimateVideoIngestUsd(
   const audioRate = rates ? Math.max(inputRate, 1.0) : 0;
 
   const inputUsd = (frameTokens * inputRate + audioTokens * audioRate) / 1_000_000;
-  const outputUsd = (getVideoIngestMaxOutputTokens() * outputRate) / 1_000_000;
+  const outputUsd = (getVideoIngestEstOutputTokens() * outputRate) / 1_000_000;
   return inputUsd + outputUsd;
 }
 

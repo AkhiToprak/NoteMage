@@ -33,6 +33,12 @@ const DEFAULT_VIDEO_INGEST_TIMEOUT_MS = 8 * 60_000;
  *  Override via VIDEO_INGEST_MAX_OUTPUT_TOKENS. */
 const DEFAULT_VIDEO_INGEST_MAX_OUTPUT_TOKENS = 32_768;
 
+/** EXPECTED output tokens for the pre-flight USD estimate — distinct from the
+ *  hard cap above. The prompt caps notes at ~120 blocks (≈100 tok/block ≈ 12k);
+ *  pricing the estimate at the full 32k cap made borderline videos read as "too
+ *  long" and rejected them spuriously. Override via VIDEO_INGEST_EST_OUTPUT_TOKENS. */
+const DEFAULT_VIDEO_INGEST_EST_OUTPUT_TOKENS = 12_000;
+
 export type VideoMediaResolution = 'low' | 'default';
 
 /** Master kill switch for Lane 2. When set, the video-import route/worker must
@@ -73,4 +79,11 @@ export function getVideoIngestMaxOutputTokens(): number {
   if (raw === undefined || raw === '') return DEFAULT_VIDEO_INGEST_MAX_OUTPUT_TOKENS;
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_VIDEO_INGEST_MAX_OUTPUT_TOKENS;
+}
+
+export function getVideoIngestEstOutputTokens(): number {
+  const raw = process.env.VIDEO_INGEST_EST_OUTPUT_TOKENS;
+  if (raw === undefined || raw === '') return DEFAULT_VIDEO_INGEST_EST_OUTPUT_TOKENS;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_VIDEO_INGEST_EST_OUTPUT_TOKENS;
 }

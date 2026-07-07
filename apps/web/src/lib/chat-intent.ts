@@ -62,12 +62,16 @@ const STANDALONE_QUIZ = /\b(quiz|test) me\b/i;
  * Sync keyword classifier — the fast path.
  *
  * Returns:
- * - `'chat'` when no generation keyword appears (the dominant case).
+ * - `'chat'` when no generation keyword appears (the dominant case), OR when a
+ *   single generation keyword appears WITHOUT a creation verb — those turns are
+ *   almost always plain chat ("what is a mind map?"), and paying a serial GLM
+ *   classifier call to confirm just adds latency to an answer. (L2: set
+ *   `CHAT_INTENT_LLM_AMBIGUOUS=1` to restore the old null→LLM behavior here.)
  * - a generation intent when a single intent's keyword appears alongside a
  *   creation verb (e.g. "make flashcards"), or a standalone imperative.
- * - `null` when a generation keyword is present but intent is ambiguous
- *   (keyword without a creation verb, or multiple intents matched) — the
- *   caller should defer to `classifyChatIntent`.
+ * - `null` only for genuinely multi-intent turns (≥2 distinct generation
+ *   keywords alongside a creation verb, e.g. "make flashcards and a quiz") —
+ *   the caller defers to `classifyChatIntent` to pick which one.
  */
 export function heuristicIntent(text: string): ChatIntent | null {
   const lower = text.toLowerCase();
@@ -80,9 +84,15 @@ export function heuristicIntent(text: string): ChatIntent | null {
 
   if (matched.length === 1 && CREATE_VERB.test(lower)) return matched[0];
 
-  // Keyword present but no creation verb (e.g. "what is a mind map?"), or
-  // several intents matched ("flashcards and a quiz") → let the LLM decide.
-  return null;
+  // Multiple generation keywords alongside a creation verb — genuinely
+  // ambiguous ("flashcards and a quiz"). Only this case is worth the LLM.
+  if (matched.length >= 2 && CREATE_VERB.test(lower)) return null;
+
+  // Keyword present but no creation verb ("what is a mind map?"). Almost always
+  // plain chat — answer synchronously instead of blocking on the classifier.
+  // The env rollback restores the old behavior (route these to the LLM too).
+  if (process.env.CHAT_INTENT_LLM_AMBIGUOUS === '1') return null;
+  return 'chat';
 }
 
 const VALID_INTENTS = new Set<ChatIntent>([

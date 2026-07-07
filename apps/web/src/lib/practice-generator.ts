@@ -561,6 +561,9 @@ export async function assemblePracticeQuiz(opts: {
         userMessage: 'Generate the practice quiz now. The questions array must not be empty.',
         // Extraction-shaped forced tool — sample cold, not at the ~1.0 default.
         temperature: 0.3,
+        // A practice quiz is a bounded set of questions — cap under the GLM
+        // default so the call isn't dispatched at the 32k ceiling (L5).
+        maxTokens: 6_000,
         onUsage,
       });
       parsed = parsePracticeQuiz(raw, opts.title, kinds);

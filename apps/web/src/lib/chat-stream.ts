@@ -371,15 +371,21 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     };
 
     // ── Load conversation history ──
-    const history = await db.chatMessage.findMany({
+    // Bound the query to the most recent turns (mirrors the GET resume path in
+    // app/api/mage/messages/route.ts) — a long chat used to load every row only
+    // to trim in memory. Fetch newest-first with a hard `take`, then restore
+    // chronological order for the model.
+    const recentHistory = await db.chatMessage.findMany({
       where: { chatId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
+      take: 60,
       select: { role: true, content: true },
     });
+    const history = recentHistory.reverse();
 
     // Cap history and strip artifact-payload bodies so large artifact JSON
     // (presentation_start, mindmap, youtube markers) isn't re-sent each turn.
-    const MAX_HISTORY_CHARS = 120_000;
+    const MAX_HISTORY_CHARS = parseInt(process.env.CHAT_HISTORY_MAX_CHARS ?? '', 10) || 60_000;
     // Marker families whose payload bodies should be collapsed.
     const MARKER_STRIP_RE =
       /\[(presentation_start|mindmap_start|youtube_videos_start):[^\]]*\][\s\S]*?\[(presentation_end|mindmap_end|youtube_videos_end)\]/g;

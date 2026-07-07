@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { docModelSchema, type DocModelBlock } from './doc-model';
 import type { GroundTruthPage } from './ground-truth';
-import { groundTruthToBlocks, isTableDensePage } from './heuristic-fallback';
+import { groundTruthToBlocks, isMathDensePage, isTableDensePage } from './heuristic-fallback';
 import type { Cell, Line } from './pdfjs-geometry';
 
 // The fallback consumes pure geometry, so fixtures are hand-built Line
@@ -193,5 +193,36 @@ describe('isTableDensePage', () => {
 
   it('does not flag a page with no tables', () => {
     expect(isTableDensePage([denseParagraph, denseParagraph])).toBe(false);
+  });
+});
+
+const proseBlock = (text: string): DocModelBlock => ({ type: 'paragraph', runs: [{ text }] });
+
+describe('isMathDensePage', () => {
+  it('flags a formula-heavy page (glyph ratio > 3%)', () => {
+    expect(isMathDensePage([proseBlock('E = mc^2 and ∑x ≥ ∫f(x) ± √2, {a} ≠ [b]')])).toBe(true);
+  });
+
+  it('does not flag plain prose', () => {
+    expect(
+      isMathDensePage([
+        proseBlock(
+          'The French Revolution began in 1789 and reshaped the political order of Europe over the following decade.',
+        ),
+      ]),
+    ).toBe(false);
+  });
+
+  it('never flags a blank or tiny page', () => {
+    expect(isMathDensePage([proseBlock('x = 1')])).toBe(false);
+    expect(isMathDensePage([])).toBe(false);
+  });
+
+  it('counts glyphs across list items and table cells', () => {
+    const list: DocModelBlock = {
+      type: 'bulletList',
+      items: [{ runs: [{ text: 'a ≤ b ≤ c and x × y ÷ z = w^2 ± 3' }] }],
+    };
+    expect(isMathDensePage([list])).toBe(true);
   });
 });

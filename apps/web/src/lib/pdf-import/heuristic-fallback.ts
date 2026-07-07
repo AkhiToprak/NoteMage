@@ -15,6 +15,56 @@ export function isTableDensePage(blocks: DocModelBlock[]): boolean {
   }
   return tableRows >= 4;
 }
+
+/** Math-ish glyphs — operators, relations, brackets, and set/logic symbols the
+ *  heuristic extractor can't lay out as math. Deliberately dumb: a raw glyph
+ *  ratio, no LaTeX parsing. Used only as a NEGATIVE gate for the L8 prose
+ *  fast-path (a math-dense page must go to the vision engine). */
+// eslint-disable-next-line no-useless-escape
+const MATH_GLYPHS = /[∑∫√≈≠≤≥±×÷^=<>{}\[\]\\]/g;
+
+/**
+ * A page reads as "math-dense" when >~3% of its characters are math-ish glyphs.
+ * Above that, the deterministic extractor (which emits no math blocks) would
+ * mangle formulas, so the prose fast-path must skip the page and let the vision
+ * engine handle it. Blank/tiny pages (< 20 chars) are never math-dense.
+ */
+export function isMathDensePage(blocks: DocModelBlock[]): boolean {
+  let total = 0;
+  let mathHits = 0;
+  for (const block of blocks) {
+    for (const text of blockText(block)) {
+      total += text.length;
+      mathHits += (text.match(MATH_GLYPHS) ?? []).length;
+    }
+  }
+  if (total < 20) return false;
+  return mathHits / total > 0.03;
+}
+
+/** Every plain-text string reachable inside one block (runs, list items, cells). */
+function blockText(block: DocModelBlock): string[] {
+  const out: string[] = [];
+  const pushRuns = (runs: InlineRun[] | undefined): void => {
+    for (const run of runs ?? []) out.push(run.text);
+  };
+  switch (block.type) {
+    case 'heading':
+    case 'paragraph':
+      pushRuns(block.runs);
+      break;
+    case 'bulletList':
+    case 'orderedList':
+      for (const item of block.items) pushRuns(item.runs);
+      break;
+    case 'table':
+      for (const row of block.rows) for (const cell of row) pushRuns(cell);
+      break;
+    default:
+      break;
+  }
+  return out;
+}
 import {
   buildRowsForTable,
   detectCanonicalColumns,

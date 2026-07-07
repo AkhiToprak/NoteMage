@@ -29,7 +29,7 @@ import { getOrCreateCachedPrefix } from '@/lib/gemini-prefix-cache';
 import { textLayerEngine } from './engine-text';
 import { cropFigure } from './figure-crop';
 import { extractGroundTruth, type GroundTruth, type GroundTruthPage } from './ground-truth';
-import { groundTruthToBlocks } from './heuristic-fallback';
+import { groundTruthToBlocks, isMathDensePage, isTableDensePage } from './heuristic-fallback';
 
 /** `ImportJob.mode` enum — keep aligned with the schema column. */
 export type ImportJobMode = 'rich' | 'fast';
@@ -45,6 +45,19 @@ function pageHasUsableTextLayer(page: GroundTruthPage): boolean {
   return page.lines.some((line) =>
     line.cells.some((cell) => cell.text.trim().length > 0),
   );
+}
+
+/**
+ * L8 prose fast-path gate: the deterministic extractor's blocks are safe to ship
+ * without a vision pass only when the page is pure prose — no figures (the
+ * extractor emits none, so any image block would be a future addition), no
+ * table-dense layout, and no math-dense content. Any of those needs the vision
+ * engine, which the extractor can't reproduce.
+ */
+function proseOnlyBlocks(blocks: DocModelBlock[]): boolean {
+  if (blocks.length === 0) return false; // nothing extracted → let vision try
+  if (blocks.some((b) => b.type === 'image')) return false;
+  return !isTableDensePage(blocks) && !isMathDensePage(blocks);
 }
 
 /** Page-content mirror cap — the page-content route hard-rejects over 500KB. */
@@ -290,6 +303,10 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     // the crop is dropped (no orphan captions).
     const figureCrops: Array<{ ref: string; buffer: Buffer; alt?: string; bbox?: number[] }> = [];
     let fallbackPages = 0;
+    // L8: rich-mode prose pages that the deterministic extractor handled without
+    // a vision call (flag-gated). Distinct from `fallbackPages` (engine failures).
+    let prosePages = 0;
+    const proseFastPath = process.env.PDF_PROSE_FAST_PATH === '1';
 
     for (let i = 0; i < pageCount; i++) {
       const gtPage = ground.pages[i];
@@ -317,6 +334,22 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
             },
           ];
         }
+      } else if (
+        // L8 prose fast-path — skip the vision call on a plain prose page the
+        // deterministic extractor handles losslessly. Flag-gated (default OFF;
+        // the live-engine eval is the quality gate). Every condition must hold:
+        // rich mode, flag on, a usable text layer on this page, and the extracted
+        // blocks are neither figure-bearing, table-dense, nor math-dense — all of
+        // which the heuristic (headings/paragraphs/lists/tables only, no math or
+        // images) would mangle, so those pages still go to the vision engine.
+        proseFastPath &&
+        jobMode === 'rich' &&
+        ground.hasTextLayer &&
+        pageHasUsableTextLayer(gtPage) &&
+        proseOnlyBlocks(groundTruthToBlocks(gtPage))
+      ) {
+        blocks = groundTruthToBlocks(gtPage);
+        prosePages += 1;
       } else {
         // Per-page engine selection. Fast mode tries the text-layer engine
         // when both the document and this specific page carry text; a
@@ -558,11 +591,14 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
 
     // Coverage telemetry — alt-title regressions show up as a falling
     // titled/cropped ratio after a prompt change (P1 acceptance gate).
+    // `prosePages` (L8) rides along: how many pages skipped the vision call via
+    // the prose fast-path. It's a cost stat, not a user-facing signal like
+    // `fallbackPages`, so it lives in the breadcrumb, not the ImportJob row.
     Sentry.addBreadcrumb({
       category: 'pdf-import',
       level: 'info',
       message: 'figures titled at import',
-      data: { jobId, figuresCropped, figuresTitled },
+      data: { jobId, figuresCropped, figuresTitled, prosePages },
     });
 
     // Layer 2 of the captioning ladder — caption any figure the model didn't

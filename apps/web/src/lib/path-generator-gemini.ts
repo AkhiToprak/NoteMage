@@ -104,6 +104,8 @@ export async function forcedStructuredCallGemini<T>(opts: {
   maxAttempts?: number;
   /** Override the default Gemini model id. */
   model?: string;
+  /** Per-call output-token ceiling. Omit ⇒ GEMINI_MAX_OUTPUT_TOKENS. */
+  maxOutputTokens?: number;
   /** Sampling temperature. Undefined ⇒ Gemini default. Path stages pass the
    *  same low per-stage value they pass the GLM path so a Gemini env-pin
    *  produces equally stable structured output. */
@@ -119,6 +121,7 @@ export async function forcedStructuredCallGemini<T>(opts: {
     userMessage = 'Generate now.',
     maxAttempts = 2,
     model = GEMINI_PATH_MODEL,
+    maxOutputTokens = GEMINI_MAX_OUTPUT_TOKENS,
     temperature,
     onUsage,
   } = opts;
@@ -145,7 +148,7 @@ export async function forcedStructuredCallGemini<T>(opts: {
     const usedCache = activeCacheName !== null;
     try {
       const config: GenerateContentConfig = {
-        maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
+        maxOutputTokens,
         responseMimeType: 'application/json',
         // Gemini 2.5 Flash enables thinking by default; thinking tokens
         // are billed at the output rate and can easily double the

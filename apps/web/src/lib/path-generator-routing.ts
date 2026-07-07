@@ -93,6 +93,11 @@ export interface StructuredCallCtx<T> {
   userMessage: string;
   /** Max attempts at the call level. Default 2 (matches the existing pattern). */
   maxAttempts?: number;
+  /** Per-call output-token ceiling. Omit ⇒ the provider default (GLM 32k /
+   *  Gemini 16k). Small forced-tool outputs (weakness/practice sessions) pass a
+   *  tight value so the call isn't dispatched at the full ceiling. Clamped by
+   *  each provider's own max (openRouterMaxCompletionTokens on OpenRouter). */
+  maxTokens?: number;
   /** Sampling temperature for this call. Undefined ⇒ provider default (~1.0).
    *  Forwarded to both the OpenRouter and Gemini branches — the caller
    *  (path-generator.ts) sets a low per-stage value so structured tool output
@@ -186,6 +191,7 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
       tools: ctx.anthropicTools ?? [ctx.anthropicTool],
       userMessage: ctx.userMessage,
       maxAttempts: ctx.maxAttempts,
+      maxTokens: ctx.maxTokens,
       model,
       sessionId: ctx.sessionId,
       reasoningEffort,
@@ -251,6 +257,7 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
       : { cacheablePrefix, dynamicTail: ctx.dynamicInstructions }),
     userMessage: ctx.userMessage,
     maxAttempts: ctx.maxAttempts,
+    maxOutputTokens: ctx.maxTokens,
     model,
     temperature: ctx.temperature,
     onUsage: (usage: GeminiUsage) => {
