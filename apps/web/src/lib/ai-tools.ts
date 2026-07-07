@@ -456,6 +456,7 @@ export const QUIZ_TOOL_V2: ToolDef = {
     QUIZ_PAYLOAD_CATALOG,
     '',
     'Mix kinds intentionally — use mc for factual recall with 4 options, true_false for crisp single-claim checks, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax fills, match_pairs for terms/definitions, translation for language learning, sentence_reorder for syntax/sequencing, equation for math, code_output for coding output prediction, timeline for chronology. Avoid all-MC unless the material is purely factual.',
+    'For MC questions: 4 options each, distribute the correct answer evenly across positions 0–3, keep all four options similar in length and level of detail, make distractors plausible.',
   ].join('\n'),
   input_schema: {
     type: 'object' as const,
